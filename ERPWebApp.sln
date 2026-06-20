@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37328.6 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "erpwebapp.client", "erpwebapp.client\erpwebapp.client.esproj", "{E1B350AC-8415-5B1C-C568-5BA2AAB1E3AD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERPWebApp.Server", "ERPWebApp.Server\ERPWebApp.Server.csproj", "{A648108B-5158-4F63-84C4-31F99D9D7127}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E1B350AC-8415-5B1C-C568-5BA2AAB1E3AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1B350AC-8415-5B1C-C568-5BA2AAB1E3AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1B350AC-8415-5B1C-C568-5BA2AAB1E3AD}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{E1B350AC-8415-5B1C-C568-5BA2AAB1E3AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1B350AC-8415-5B1C-C568-5BA2AAB1E3AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1B350AC-8415-5B1C-C568-5BA2AAB1E3AD}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{A648108B-5158-4F63-84C4-31F99D9D7127}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A648108B-5158-4F63-84C4-31F99D9D7127}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A648108B-5158-4F63-84C4-31F99D9D7127}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A648108B-5158-4F63-84C4-31F99D9D7127}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B3D8FC2D-C991-4DA6-840D-F063901305AB}
+	EndGlobalSection
+EndGlobal
