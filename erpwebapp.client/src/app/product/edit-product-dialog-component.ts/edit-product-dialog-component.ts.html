@@ -1,0 +1,43 @@
+<h2 mat-dialog-title>Edit Product</h2>
+
+<form [formGroup]="form" mat-dialog-content class="form-grid">
+
+  <mat-form-field appearance="outline">
+    <mat-label>Code</mat-label>
+    <input matInput formControlName="code">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Name</mat-label>
+    <input matInput formControlName="name">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Category</mat-label>
+    <input matInput formControlName="categorie">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Unit Price</mat-label>
+    <input matInput type="number" formControlName="price">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Stock Qty</mat-label>
+    <input matInput type="number" formControlName="stockQty">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Status</mat-label>
+    <mat-select formControlName="isActive">
+      <mat-option [value]="true">Active</mat-option>
+      <mat-option [value]="false">Inactive</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+</form>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="form.invalid">Save</button>
+</mat-dialog-actions>

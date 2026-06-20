@@ -1,0 +1,33 @@
+<div class="dashboard">
+
+  <!-- KPI SECTION -->
+ <div class="kpi-grid" cdkDropList (cdkDropListDropped)="drop($event)">
+  <mat-card class="kpi-card" cdkDropListOrientation="mixed" *ngFor="let kpi of kpis" cdkDrag>
+    <div class="kpi-icon" [ngClass]="kpi.bg">
+      <mat-icon>{{ kpi.icon }}</mat-icon>
+    </div>
+    <div class="kpi-content">
+      <span class="kpi-title">{{ kpi.title }}</span>
+      <span class="kpi-value">{{ kpi.value }}</span>
+      <span class="kpi-trend" [ngClass]="kpi.trendClass">{{ kpi.trend }}</span>
+    </div>
+  </mat-card>
+</div>
+
+  <!-- CHART SECTION -->
+ <!-- CHART GRID -->
+<div class="chart-grid" cdkDropList (cdkDropListDropped)="dropChart($event)">
+  <mat-card class="chart-card" *ngFor="let chart of charts" cdkDrag>
+    <div class="chart-header">
+      <h3>{{ chart.title }}</h3>
+      <button mat-icon-button>
+        <mat-icon>more_vert</mat-icon>
+      </button>
+    </div>
+    <div class="chart-body">
+      {{ chart.body }}
+    </div>
+  </mat-card>
+</div>
+
+</div>

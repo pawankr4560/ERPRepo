@@ -1,0 +1,104 @@
+.settings-page {
+  padding: 24px;
+  color: #172033;
+}
+
+.settings-header {
+  margin-bottom: 20px;
+}
+
+.settings-header h1,
+.section-heading h2 {
+  margin: 0;
+}
+
+.settings-header h1 {
+  font-size: 26px;
+}
+
+.settings-header p,
+.section-heading p {
+  margin: 6px 0 0;
+  color: #667085;
+}
+
+.settings-section {
+  max-width: 860px;
+  border: 1px solid #dce2ea;
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+}
+
+.settings-section.loading {
+  opacity: 0.65;
+}
+
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e7eaf0;
+}
+
+.section-heading h2 {
+  font-size: 19px;
+}
+
+.section-heading mat-icon {
+  color: #174ea6;
+}
+
+.method-options {
+  display: grid;
+  gap: 12px;
+  margin: 22px 0;
+}
+
+.method-options mat-radio-button {
+  border: 1px solid #dce2ea;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.option-content {
+  display: inline-grid;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.option-content strong {
+  font-size: 15px;
+}
+
+.option-content small {
+  color: #667085;
+  line-height: 1.4;
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid #e7eaf0;
+}
+
+.current-setting {
+  color: #667085;
+  font-size: 14px;
+}
+
+@media (max-width: 640px) {
+  .settings-page {
+    padding: 16px;
+  }
+
+  .settings-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

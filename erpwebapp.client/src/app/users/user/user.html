@@ -1,0 +1,81 @@
+<div class="mat-elevation-z8">
+
+  <table mat-table [dataSource]="dataSource" class="full-width-table">
+
+    <!-- ID -->
+    <ng-container matColumnDef="id">
+      <th mat-header-cell *matHeaderCellDef> ID </th>
+      <td mat-cell *matCellDef="let user"> {{ user.id }} </td>
+    </ng-container>
+
+    <!-- Name -->
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef> Name </th>
+      <td mat-cell *matCellDef="let user"> {{ user.name }} </td>
+    </ng-container>
+
+    <!-- Gender -->
+    <ng-container matColumnDef="gender">
+      <th mat-header-cell *matHeaderCellDef> Gender </th>
+      <td mat-cell *matCellDef="let user"> {{ user.gender }} </td>
+    </ng-container>
+
+    <!-- Weight -->
+    <ng-container matColumnDef="weight">
+      <th mat-header-cell *matHeaderCellDef> Weight (kg) </th>
+      <td mat-cell *matCellDef="let user"> {{ user.weight }} </td>
+    </ng-container>
+
+    <!-- Height -->
+    <ng-container matColumnDef="height">
+      <th mat-header-cell *matHeaderCellDef> Height (cm) </th>
+      <td mat-cell *matCellDef="let user"> {{ user.height }} </td>
+    </ng-container>
+
+    <!-- Calorie -->
+    <ng-container matColumnDef="calorie">
+      <th mat-header-cell *matHeaderCellDef> Calories </th>
+      <td mat-cell *matCellDef="let user"> {{ user.calorie }} </td>
+    </ng-container>
+
+    <!-- Status -->
+    <ng-container matColumnDef="isActive">
+      <th mat-header-cell *matHeaderCellDef> Status </th>
+      <td mat-cell *matCellDef="let user">
+        <span [class.active]="user.isActive"
+              [class.inactive]="!user.isActive">
+          {{ user.isActive ? 'Active' : 'Inactive' }}
+        </span>
+      </td>
+    </ng-container>
+    
+    <!-- Actions Column -->
+    <ng-container matColumnDef="actions">
+    <th mat-header-cell *matHeaderCellDef> Actions </th>
+    <td mat-cell *matCellDef="let user">
+
+        <button mat-icon-button color="primary" 
+                (click)="editUser(user)">
+          <mat-icon>edit</mat-icon>
+        </button>
+
+        <button mat-icon-button color="warn"
+                (click)="deleteUser(user)"
+                aria-label="Delete">
+        <mat-icon>delete</mat-icon>
+        </button>
+
+    </td>
+    </ng-container>
+    
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+  </table>
+
+  <mat-paginator
+    [pageSizeOptions]="[5, 10, 20]"
+    showFirstLastButtons>
+  </mat-paginator>
+
+</div>

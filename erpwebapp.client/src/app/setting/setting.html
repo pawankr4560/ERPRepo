@@ -1,0 +1,59 @@
+<section class="settings-page">
+  <header class="settings-header">
+    <div>
+      <h1>System Settings</h1>
+      <p>Configure the default calculation method used when new loans are created.</p>
+    </div>
+  </header>
+
+  <div class="settings-section" [class.loading]="isLoading">
+    <div class="section-heading">
+      <div>
+        <h2>Loan Interest Method</h2>
+        <p>Existing loans retain their original method and generated EMI schedule.</p>
+      </div>
+      <mat-icon aria-hidden="true">percent</mat-icon>
+    </div>
+
+    <mat-radio-group
+      class="method-options"
+      [(ngModel)]="interestCalculationType"
+      [disabled]="isLoading || isSaving"
+      aria-label="Loan interest calculation method"
+    >
+      <mat-radio-button value="Reducing">
+        <span class="option-content">
+          <strong>Reducing Balance</strong>
+          <small>Interest is calculated monthly on the remaining principal balance.</small>
+        </span>
+      </mat-radio-button>
+
+      <mat-radio-button value="Flat">
+        <span class="option-content">
+          <strong>Flat Rate</strong>
+          <small>Interest is calculated on the original principal for the full tenure.</small>
+        </span>
+      </mat-radio-button>
+    </mat-radio-group>
+
+    <div class="settings-actions">
+      <span class="current-setting">
+        Current system method: <strong>{{ savedInterestCalculationType }}</strong>
+      </span>
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        (click)="save()"
+        [disabled]="
+          isLoading ||
+          isSaving ||
+          interestCalculationType === savedInterestCalculationType
+        "
+      >
+        <mat-icon>save</mat-icon>
+        {{ isSaving ? 'Saving...' : 'Save Setting' }}
+      </button>
+    </div>
+  </div>
+</section>

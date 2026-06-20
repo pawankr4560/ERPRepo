@@ -1,3 +1,9 @@
 .vs/
 bin/
 obj/
+artifacts/
+**/dist/
+**/node_modules/
+**/.angular/
+*.user
+appsettings.Local.json

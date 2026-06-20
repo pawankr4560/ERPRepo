@@ -1,0 +1,28 @@
+.item-master {
+  padding: 16px;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.spinner {
+  margin: 30px auto;
+}
+
+.full-width-table {
+  width: 100%;
+}
+
+.active {
+  color: #1b5e20;
+  font-weight: 600;
+}
+
+.inactive {
+  color: #b71c1c;
+  font-weight: 600;
+}
+

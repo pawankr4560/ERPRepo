@@ -1,0 +1,13 @@
+.full-width-table {
+  width: 100%;
+}
+
+.active {
+  color: green;
+  font-weight: 600;
+}
+
+.inactive {
+  color: red;
+  font-weight: 600;
+}

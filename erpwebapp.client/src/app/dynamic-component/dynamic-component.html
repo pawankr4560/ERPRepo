@@ -1,0 +1,22 @@
+<div style="border:1px solid #ccc; padding:10px; margin-top:10px">
+      <h3>{{ title }}</h3>
+      <p>I am loaded dynamically from AppComponent</p>
+    </div>
+
+
+<h3>{{ title }}</h3>
+
+<input
+  #searchInput
+  type="text"
+  placeholder="Search a place"
+  class="input"
+/>
+
+<div *ngIf="place as p">
+  <hr />
+  <p><b>Name:</b> {{ p.name }}</p>
+  <p><b>Address:</b> {{ p.address }}</p>
+  <p><b>Latitude:</b> {{ p.lat }}</p>
+  <p><b>Longitude:</b> {{ p.lng }}</p>
+</div>

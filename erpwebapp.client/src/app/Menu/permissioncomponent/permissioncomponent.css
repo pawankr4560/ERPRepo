@@ -1,0 +1,18 @@
+table {
+  width: 100%;
+}
+
+.parent {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.child {
+  padding-left: 28px;
+  color: #475569;
+}
+
+mat-checkbox {
+  display: flex;
+  justify-content: center;
+}

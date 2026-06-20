@@ -1,0 +1,201 @@
+.payment-page {
+  min-height: calc(100vh - 80px);
+  padding: 24px;
+  background: #f5f7fb;
+  color: #172033;
+}
+
+.page-header,
+.payment-form,
+.payment-toolbar,
+.table-wrap {
+  background: #fff;
+  border: 1px solid #e1e6ee;
+  border-radius: 8px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+  margin-bottom: 14px;
+}
+
+.page-header h1,
+.form-heading h2 {
+  margin: 0;
+  color: #1f3a6f;
+}
+
+.page-header h1 {
+  font-size: 26px;
+}
+
+.page-header p,
+.form-heading p {
+  margin: 5px 0 0;
+  color: #667085;
+}
+
+.payment-form {
+  padding: 20px;
+  margin-bottom: 14px;
+}
+
+.form-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.form-heading h2 {
+  font-size: 20px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.remarks-field {
+  grid-column: span 2;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.payment-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.search-field {
+  width: min(100%, 480px);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.payment-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.payment-table th,
+.payment-table td {
+  padding: 13px 12px;
+  border-bottom: 1px solid #e9edf3;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.payment-table th {
+  background: #eef2f8;
+  color: #273f6a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.payment-table tr:last-child td {
+  border-bottom: none;
+}
+
+.secondary-text {
+  display: block;
+  max-width: 240px;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #667085;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  min-height: 26px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-success {
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.status-pending {
+  background: #fff8e1;
+  color: #8a5a00;
+}
+
+.status-failed {
+  background: #ffebee;
+  color: #b42318;
+}
+
+.status-refunded {
+  background: #e8eef8;
+  color: #244b85;
+}
+
+.actions-column {
+  width: 104px;
+  white-space: nowrap;
+}
+
+.empty-row {
+  padding: 28px !important;
+  color: #667085;
+  text-align: center !important;
+}
+
+@media (max-width: 1100px) {
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .payment-page {
+    padding: 12px;
+  }
+
+  .page-header,
+  .payment-toolbar,
+  .form-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .remarks-field {
+    grid-column: auto;
+  }
+
+  .form-actions {
+    flex-wrap: wrap;
+  }
+}

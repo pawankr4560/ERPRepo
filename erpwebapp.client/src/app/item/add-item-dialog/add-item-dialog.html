@@ -1,0 +1,64 @@
+<h2 mat-dialog-title>Add Item</h2>
+
+<form [formGroup]="form" mat-dialog-content class="form-grid">
+  <mat-form-field appearance="outline">
+    <mat-label>Code</mat-label>
+    <input matInput formControlName="code" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Name</mat-label>
+    <input matInput formControlName="name" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" style="grid-column: span 2;">
+    <mat-label>Category</mat-label>
+    <input matInput formControlName="categorie" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>UOM Index</mat-label>
+    <input matInput type="number" formControlName="uomIndex" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Location Index</mat-label>
+    <input matInput type="number" formControlName="locationIndex" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Stock Qty</mat-label>
+    <input matInput type="number" formControlName="stockQty" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Price</mat-label>
+    <input matInput type="number" formControlName="price" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" style="grid-column: span 2;">
+    <mat-label>Status</mat-label>
+    <mat-select formControlName="status">
+      <mat-option [value]="true">Active</mat-option>
+      <mat-option [value]="false">Inactive</mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" style="grid-column: span 2;">
+    <mat-label>Description</mat-label>
+    <input matInput formControlName="description" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" style="grid-column: span 2;">
+    <mat-label>Image</mat-label>
+    <input matInput formControlName="image" />
+  </mat-form-field>
+</form>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="cancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="save()" [disabled]="form.invalid">
+    Save
+  </button>
+</mat-dialog-actions>
+

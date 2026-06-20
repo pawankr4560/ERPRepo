@@ -1,0 +1,41 @@
+<h2 mat-dialog-title class="dialog-title">Edit User</h2>
+
+<form [formGroup]="form" mat-dialog-content class="dialog-content">
+
+  <div class="form-grid">
+
+    <mat-form-field appearance="outline">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Gender</mat-label>
+      <mat-select formControlName="gender">
+        <mat-option value="Male">Male</mat-option>
+        <mat-option value="Female">Female</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Weight (kg)</mat-label>
+      <input matInput type="number" formControlName="weight">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Height (cm)</mat-label>
+      <input matInput type="number" formControlName="height">
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Daily Calorie</mat-label>
+      <input matInput type="number" formControlName="calorie">
+    </mat-form-field>
+
+  </div>
+</form>
+
+<mat-dialog-actions align="end" class="dialog-actions">
+  <button mat-stroked-button (click)="cancel()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="save()">Save</button>
+</mat-dialog-actions>

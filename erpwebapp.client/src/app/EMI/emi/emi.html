@@ -1,0 +1,87 @@
+<div class="emi-container">
+  <div class="row">
+    <div class="left-panel">
+      <h2>EMI Calculator</h2>
+
+      <div class="field">
+        <label>Loan Amount</label>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Enter loan amount</mat-label>
+          <input matInput [(ngModel)]="loanAmount" type="number" />
+          <span matPrefix>₹</span>
+        </mat-form-field>
+      </div>
+
+      <div class="field">
+        <label>Interest Rate</label>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Enter interest rate</mat-label>
+          <input matInput [(ngModel)]="interestRate" type="number" step="0.01" />
+          <span matSuffix>%</span>
+        </mat-form-field>
+      </div>
+
+      <div class="field">
+        <label>Interest Method</label>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-select [(ngModel)]="interestCalculationType">
+            <mat-option value="Reducing">Reducing Balance</mat-option>
+            <mat-option value="Flat">Flat Rate</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="field">
+        <label>Years to Pay</label>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Enter tenure in years</mat-label>
+          <input matInput [(ngModel)]="tenure" type="number" />
+        </mat-form-field>
+      </div>
+
+      <button mat-raised-button color="primary" (click)="calculateEMI()" class="calculate-btn">
+        CALCULATE
+      </button>
+
+      <div class="field" *ngIf="emi > 0">
+        <label>Monthly Payment</label>
+        <mat-form-field appearance="outline" class="full-width">
+          <input matInput [value]="'₹' + formatCurrency(emi)" readonly />
+          <span matSuffix>%</span>
+        </mat-form-field>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="emi-card" *ngIf="emi > 0">
+        <h3>Monthly Home Loan EMI</h3>
+
+        <div class="emi-amount">
+          ₹{{ formatCurrency(emi) }}
+        </div>
+
+        <div class="summary-row">
+          <span>Principal Amount</span>
+          <strong>₹{{ formatCurrency(loanAmount) }}</strong>
+        </div>
+
+        <div class="summary-row">
+          <span>Interest Amount</span>
+          <strong>₹{{ formatCurrency(totalInterest) }}</strong>
+        </div>
+
+        <div class="summary-row">
+          <span>Total Amount Payable</span>
+          <strong>₹{{ formatCurrency(totalPayable) }}</strong>
+        </div>
+
+        <button
+          mat-raised-button
+          color="primary"
+          class="loan-btn">
+          Talk To Our Loan Expert
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
