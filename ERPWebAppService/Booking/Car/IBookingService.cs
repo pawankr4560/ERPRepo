@@ -1,10 +1,12 @@
-﻿using ERPWebAppModels.Booking;
+using ERPWebAppModels.Booking;
 
-namespace ERPWebAppService.Booking.Car
+namespace ERPWebAppService.Booking.Car;
+
+public interface IBookingService
 {
-    public interface IBookingService
-    {
-        Task<BookingDto> CreateBookingAsync(CreateBookingDto dto);
-        Task<IEnumerable<BookingDto>> GetAllAsync();
-    }
+    Task<IEnumerable<BookingDto>> GetAllAsync();
+    Task<BookingDto?> GetByIdAsync(int id);
+    Task<BookingDto> CreateBookingAsync(CreateBookingDto dto);
+    Task<BookingDto?> UpdateBookingAsync(int id, UpdateBookingDto dto);
+    Task<bool> DeleteBookingAsync(int id);
 }

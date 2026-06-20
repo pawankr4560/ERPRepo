@@ -173,6 +173,7 @@ builder.Services.AddTransient<ILoanEMIScheduleService, LoanEMIScheduleService>()
 builder.Services.AddTransient<IStripeService, StripeService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<ICarService, CarService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
 
 // Stripe Services
 builder.Services.AddScoped<CustomerService>();

@@ -1,0 +1,106 @@
+<h2 mat-dialog-title>{{ title }}</h2>
+
+<mat-dialog-content>
+  <form [formGroup]="form" class="form-grid">
+    <mat-form-field *ngIf="!isCreateMode" appearance="outline" class="full-row">
+      <mat-label>Booking Number</mat-label>
+      <input matInput formControlName="bookingNumber" readonly />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>User</mat-label>
+      <mat-select formControlName="userId">
+        <mat-option *ngFor="let user of data.users" [value]="user.id">
+          {{ user.firstName }} {{ user.lastName }}
+          <span *ngIf="user.email">({{ user.email }})</span>
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="form.get('userId')?.hasError('required')">
+        User is required
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Car</mat-label>
+      <mat-select formControlName="carId">
+        <mat-option *ngFor="let car of selectableCars" [value]="car.id">
+          {{ car.brand }} {{ car.model }} · {{ car.pricePerDay | currency:'INR' }}/day
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="form.get('carId')?.invalid">Car is required</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Pickup Date</mat-label>
+      <input
+        matInput
+        type="date"
+        formControlName="pickupDate"
+        [min]="isCreateMode ? minDate : null"
+      />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Return Date</mat-label>
+      <input matInput type="date" formControlName="returnDate" />
+    </mat-form-field>
+
+    <div *ngIf="form.errors" class="validation-message full-row">
+      <span *ngIf="form.hasError('returnBeforePickup')">
+        Return date must be later than pickup date.
+      </span>
+      <span *ngIf="form.hasError('pickupInPast')">
+        Pickup date cannot be in the past.
+      </span>
+      <span *ngIf="form.hasError('bookingTooLong')">
+        Booking duration cannot exceed 365 days.
+      </span>
+    </div>
+
+    <mat-form-field *ngIf="!isCreateMode" appearance="outline">
+      <mat-label>Booking Status</mat-label>
+      <mat-select formControlName="status">
+        <mat-option value="Pending">Pending</mat-option>
+        <mat-option value="Confirmed">Confirmed</mat-option>
+        <mat-option value="Completed">Completed</mat-option>
+        <mat-option value="Cancelled">Cancelled</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field *ngIf="!isCreateMode" appearance="outline">
+      <mat-label>Payment Status</mat-label>
+      <mat-select formControlName="paymentStatus">
+        <mat-option value="Pending">Pending</mat-option>
+        <mat-option value="Paid">Paid</mat-option>
+        <mat-option value="Refunded">Refunded</mat-option>
+        <mat-option value="Failed">Failed</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="summary full-row">
+      <div>
+        <span>Duration</span>
+        <strong>{{ estimatedDays }} day(s)</strong>
+      </div>
+      <div>
+        <span>Estimated Amount</span>
+        <strong>{{ estimatedAmount | currency:'INR':'symbol':'1.0-2' }}</strong>
+      </div>
+    </div>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-stroked-button (click)="close()">
+    {{ isViewMode ? 'Close' : 'Cancel' }}
+  </button>
+  <button
+    *ngIf="!isViewMode"
+    mat-raised-button
+    color="primary"
+    (click)="save()"
+    [disabled]="form.invalid"
+  >
+    Save
+  </button>
+</mat-dialog-actions>

@@ -1,0 +1,113 @@
+.car-master {
+  padding: 16px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.page-header p {
+  margin: 5px 0 0;
+  color: #64748b;
+}
+
+.page-header button mat-icon {
+  margin-right: 6px;
+}
+
+.spinner {
+  margin: 40px auto;
+}
+
+.table-container {
+  overflow-x: auto;
+  border-radius: 12px;
+  background: #fff;
+}
+
+table {
+  width: 100%;
+}
+
+.car-image {
+  width: 64px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #eef2f7;
+}
+
+.car-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.car-image mat-icon {
+  color: #64748b;
+}
+
+.secondary {
+  display: block;
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.status {
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #334155;
+  background: #e2e8f0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status[data-status='available'] {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.status[data-status='booked'] {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.status[data-status='maintenance'],
+.status[data-status='inactive'] {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.actions {
+  white-space: nowrap;
+}
+
+.empty-row td {
+  padding: 32px;
+  text-align: center;
+  color: #64748b;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .page-header button {
+    width: 100%;
+  }
+}

@@ -31,20 +31,41 @@ public class CarController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateCarDto dto)
     {
-        var car = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(Get), new { id = car.Id }, car);
+        try
+        {
+            var car = await _service.CreateAsync(dto);
+            return CreatedAtAction(nameof(Get), new { id = car.Id }, car);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, CreateCarDto dto)
     {
-        var car = await _service.UpdateAsync(id, dto);
-        return car is null ? NotFound() : Ok(car);
+        try
+        {
+            var car = await _service.UpdateAsync(id, dto);
+            return car is null ? NotFound() : Ok(car);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        return await _service.DeleteAsync(id) ? NoContent() : NotFound();
+        try
+        {
+            return await _service.DeleteAsync(id) ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using ERPWebAppData.Entity;
 using WebApp.Data.Entity;
 
 namespace WebApp.Data.SeedData
@@ -23,6 +24,7 @@ namespace WebApp.Data.SeedData
             _dbContext.Database.EnsureCreated();
             await SeedRoles();
             await SeedUsers();
+            await SeedCarCategories();
         }
 
         public async Task SeedRoles()
@@ -63,6 +65,36 @@ namespace WebApp.Data.SeedData
                 }
             }
             catch (Exception ) { throw ; }
+        }
+
+        public async Task SeedCarCategories()
+        {
+            var defaultCategories = new[]
+            {
+                "Hatchback",
+                "Sedan",
+                "SUV",
+                "MUV",
+                "Luxury",
+                "Electric"
+            };
+
+            var existingNames = await _dbContext.Categories
+                .Select(category => category.Name)
+                .ToListAsync();
+
+            var categoriesToAdd = defaultCategories
+                .Where(name => !existingNames.Contains(name, StringComparer.OrdinalIgnoreCase))
+                .Select(name => new Category { Name = name })
+                .ToList();
+
+            if (categoriesToAdd.Count == 0)
+            {
+                return;
+            }
+
+            _dbContext.Categories.AddRange(categoriesToAdd);
+            await _dbContext.SaveChangesAsync();
         }
 
     }

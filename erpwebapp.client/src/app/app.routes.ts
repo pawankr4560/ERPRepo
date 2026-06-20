@@ -14,6 +14,8 @@ import { ItemMaster } from './item/item-master/item-master';
 import { Emi } from './EMI/emi/emi';
 import { authGuard } from './auth/guards/auth.guard';
 import { roleGuard } from './auth/guards/role.guard';
+import { CarMaster } from './booking/car/car-master/car-master';
+import { BookingMaster } from './booking/booking/booking-master/booking-master';
 
 
 export const routes: Routes = [
@@ -41,6 +43,7 @@ export const routes: Routes = [
       { path: 'settings', component: Setting, canActivate: [roleGuard], data: { roles: ['admin'] } },
 
       // Inventory under Home
+      { path: 'booking/cars', component: CarMaster, canActivate: [roleGuard], data: { roles: ['admin'] } },
       { path: 'inventory/product', component: Product, canActivate: [roleGuard], data: { roles: ['admin'] } },
       { path: 'inventory/item', component: ItemMaster, canActivate: [roleGuard], data: { roles: ['admin'] } },
       {
@@ -62,6 +65,8 @@ export const routes: Routes = [
         data: { roles: ['admin'] }
       },
       { path: 'inventory/emi', component: Emi, canActivate: [roleGuard], data: { roles: ['admin'] } },
+     
+      { path: 'booking/list', component: BookingMaster, canActivate: [roleGuard], data: { roles: ['admin'] } },
 
 
       // Other pages

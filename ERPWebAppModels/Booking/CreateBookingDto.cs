@@ -1,10 +1,18 @@
-﻿namespace ERPWebAppModels.Booking
+using System.ComponentModel.DataAnnotations;
+
+namespace ERPWebAppModels.Booking;
+
+public class CreateBookingDto
 {
-    public class CreateBookingDto
-    {
-        public int CarId { get; set; }
-        public string UserId { get; set; } = string.Empty;
-        public DateTime PickupDate { get; set; }
-        public DateTime ReturnDate { get; set; }
-    }
+    [Range(1, int.MaxValue)]
+    public int CarId { get; set; }
+
+    [Required]
+    public string UserId { get; set; } = string.Empty;
+
+    [Required]
+    public DateTime PickupDate { get; set; }
+
+    [Required]
+    public DateTime ReturnDate { get; set; }
 }

@@ -1,0 +1,34 @@
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 16px;
+  padding-top: 8px;
+}
+
+.full-row {
+  grid-column: 1 / -1;
+}
+
+.image-preview {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.image-preview img {
+  width: 100%;
+  max-width: 420px;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+@media (max-width: 600px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .full-row {
+    grid-column: auto;
+  }
+}
