@@ -67,6 +67,15 @@ export const routes: Routes = [
       { path: 'inventory/emi', component: Emi, canActivate: [roleGuard], data: { roles: ['admin'] } },
      
       { path: 'booking/list', component: BookingMaster, canActivate: [roleGuard], data: { roles: ['admin'] } },
+      {
+        path: 'booking/payments',
+        loadComponent: () =>
+          import('./booking/payment/booking-payment/booking-payment').then(
+            (component) => component.BookingPaymentComponent
+          ),
+        canActivate: [roleGuard],
+        data: { roles: ['admin'] }
+      },
 
 
       // Other pages

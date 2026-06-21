@@ -9,9 +9,6 @@ public class BookingService : IBookingService
     private static readonly string[] ValidStatuses =
         ["Pending", "Confirmed", "Completed", "Cancelled"];
 
-    private static readonly string[] ValidPaymentStatuses =
-        ["Pending", "Paid", "Refunded", "Failed"];
-
     private readonly WebAppDbContext _context;
 
     public BookingService(WebAppDbContext context)
@@ -29,6 +26,40 @@ public class BookingService : IBookingService
     public Task<BookingDto?> GetByIdAsync(int id)
     {
         return BookingQuery().FirstOrDefaultAsync(x => x.Id == id);
+    }
+
+    public async Task<BookingOptionsDto> GetOptionsAsync()
+    {
+        return new BookingOptionsDto
+        {
+            Cars = await _context.Cars
+                .AsNoTracking()
+                .Where(x => x.Status != "Maintenance" && x.Status != "Inactive")
+                .OrderBy(x => x.Brand)
+                .ThenBy(x => x.Model)
+                .Select(x => new BookingOptionCarDto
+                {
+                    Id = x.Id,
+                    Brand = x.Brand,
+                    Model = x.Model,
+                    PricePerDay = x.PricePerDay,
+                    Status = x.Status
+                })
+                .ToListAsync(),
+            Users = await _context.Users
+                .AsNoTracking()
+                .Where(x => x.IsActive && !x.IsDeleted)
+                .OrderBy(x => x.FirstName)
+                .ThenBy(x => x.LastName)
+                .Select(x => new BookingOptionUserDto
+                {
+                    Id = x.Id,
+                    FirstName = x.FirstName ?? "",
+                    LastName = x.LastName ?? "",
+                    Email = x.Email
+                })
+                .ToListAsync()
+        };
     }
 
     public async Task<BookingDto> CreateBookingAsync(CreateBookingDto dto)
@@ -69,7 +100,7 @@ public class BookingService : IBookingService
     public async Task<BookingDto?> UpdateBookingAsync(int id, UpdateBookingDto dto)
     {
         ValidateDates(dto.PickupDate, dto.ReturnDate, false);
-        ValidateStatus(dto.Status, dto.PaymentStatus);
+        ValidateStatus(dto.Status);
         await ValidateUserAsync(dto.UserId);
 
         var booking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
@@ -102,7 +133,7 @@ public class BookingService : IBookingService
         booking.TotalDays = totalDays;
         booking.Amount = totalDays * car.PricePerDay;
         booking.Status = Normalize(dto.Status);
-        booking.PaymentStatus = Normalize(dto.PaymentStatus);
+        await RefreshPaymentStatusAsync(booking);
 
         await _context.SaveChangesAsync();
         await RefreshCarStatusAsync(oldCarId);
@@ -209,6 +240,33 @@ public class BookingService : IBookingService
         await _context.SaveChangesAsync();
     }
 
+    private async Task RefreshPaymentStatusAsync(
+        ERPWebAppData.Entity.Booking booking)
+    {
+        var payments = await _context.BookingPayments
+            .Where(x => x.BookingId == booking.Id)
+            .Select(x => new { x.Amount, x.Status })
+            .ToListAsync();
+
+        var paid = payments
+            .Where(x => x.Status == "Paid")
+            .Sum(x => x.Amount);
+
+        if (paid > booking.Amount)
+        {
+            throw new InvalidOperationException(
+                "The updated booking amount cannot be less than the amount already paid.");
+        }
+
+        booking.PaymentStatus = paid >= booking.Amount
+            ? "Paid"
+            : payments.Any(x => x.Status == "Failed")
+                ? "Failed"
+                : payments.Any(x => x.Status == "Refunded") && paid == 0
+                    ? "Refunded"
+                    : "Pending";
+    }
+
     private async Task<string> GenerateBookingNumberAsync()
     {
         string bookingNumber;
@@ -249,18 +307,11 @@ public class BookingService : IBookingService
         return Math.Max(1, (int)Math.Ceiling((returnDate - pickupDate).TotalDays));
     }
 
-    private static void ValidateStatus(string status, string paymentStatus)
+    private static void ValidateStatus(string status)
     {
         if (!ValidStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("Invalid booking status.");
-        }
-
-        if (!ValidPaymentStatuses.Contains(
-            paymentStatus,
-            StringComparer.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("Invalid payment status.");
         }
     }
 

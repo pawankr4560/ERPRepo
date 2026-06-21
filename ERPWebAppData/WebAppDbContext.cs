@@ -33,5 +33,6 @@ namespace WebApp.Data
         public DbSet<Car> Cars { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<Booking> Bookings { get; set; }
+        public DbSet<BookingPayment> BookingPayments { get; set; }
     }
 }

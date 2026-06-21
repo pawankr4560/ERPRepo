@@ -67,16 +67,6 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-form-field *ngIf="!isCreateMode" appearance="outline">
-      <mat-label>Payment Status</mat-label>
-      <mat-select formControlName="paymentStatus">
-        <mat-option value="Pending">Pending</mat-option>
-        <mat-option value="Paid">Paid</mat-option>
-        <mat-option value="Refunded">Refunded</mat-option>
-        <mat-option value="Failed">Failed</mat-option>
-      </mat-select>
-    </mat-form-field>
-
     <div class="summary full-row">
       <div>
         <span>Duration</span>

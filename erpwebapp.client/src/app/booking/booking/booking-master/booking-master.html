@@ -4,7 +4,7 @@
       <h1>Booking Master</h1>
       <p>Create and manage car reservations.</p>
     </div>
-    <button mat-raised-button color="primary" (click)="createBooking()">
+    <button mat-raised-button color="primary" [disabled]="isLoading" (click)="createBooking()">
       <mat-icon>add</mat-icon>
       Create Booking
     </button>
@@ -78,6 +78,14 @@
           </button>
           <button mat-icon-button color="primary" (click)="editBooking(booking)" aria-label="Edit booking">
             <mat-icon>edit</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            color="accent"
+            (click)="managePayments(booking)"
+            aria-label="Manage booking payments"
+          >
+            <mat-icon>payments</mat-icon>
           </button>
           <button mat-icon-button color="warn" (click)="deleteBooking(booking)" aria-label="Delete booking">
             <mat-icon>delete</mat-icon>

@@ -9,6 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { Subject, takeUntil } from 'rxjs';
+import { Router } from '@angular/router';
 
 import { ConfirmDialogComponent } from '../../../users/confirm-dialog-component/confirm-dialog-component';
 import { BookingDialog } from '../booking-dialog/booking-dialog';
@@ -54,7 +55,8 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
     private breakpointObserver: BreakpointObserver,
     private bookingService: BookingService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -96,17 +98,38 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
   }
 
   createBooking(): void {
-    if (this.users.length === 0) {
-      this.notify('No active users are available for booking.');
-      return;
-    }
+    this.isLoading = true;
+    this.bookingService.loadDialogOptions().subscribe({
+      next: ({ cars, users }) => {
+        this.isLoading = false;
+        this.cars = cars;
+        this.users = users;
 
-    if (!this.cars.some((car) => !['Maintenance', 'Inactive'].includes(car.status))) {
-      this.notify('No bookable cars are currently available.');
-      return;
-    }
+        if (users.length === 0) {
+          this.notify('No active users are available for booking.');
+          return;
+        }
 
-    this.openDialog('create');
+        if (cars.length === 0) {
+          this.notify(
+            'No available cars. Add a car or change its status from Maintenance/Inactive in Car Master.'
+          );
+          return;
+        }
+
+        this.openDialog('create');
+      },
+      error: (error) => {
+        this.isLoading = false;
+        this.notify(this.errorMessage(error, 'Unable to load booking options'));
+      },
+    });
+  }
+
+  managePayments(booking: Booking): void {
+    this.router.navigate(['/home/booking/payments'], {
+      queryParams: { bookingId: booking.id },
+    });
   }
 
   viewBooking(booking: Booking): void {
@@ -130,7 +153,10 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
       if (!confirmed) return;
 
       this.bookingService.deleteBooking(booking.id).subscribe({
-        next: () => this.notify('Booking deleted successfully'),
+        next: () => {
+          this.notify('Booking deleted successfully');
+          this.refreshOptions();
+        },
         error: (error) => this.notify(this.errorMessage(error, 'Delete failed')),
       });
     });
@@ -181,12 +207,7 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
               ? 'Booking created successfully'
               : 'Booking updated successfully'
           );
-          this.bookingService.loadDialogOptions().subscribe({
-            next: ({ cars, users }) => {
-              this.cars = cars;
-              this.users = users;
-            },
-          });
+          this.refreshOptions();
         },
         error: (error) =>
           this.notify(
@@ -196,6 +217,15 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
             )
           ),
       });
+    });
+  }
+
+  private refreshOptions(): void {
+    this.bookingService.loadDialogOptions().subscribe({
+      next: ({ cars, users }) => {
+        this.cars = cars;
+        this.users = users;
+      },
     });
   }
 

@@ -8,7 +8,4 @@ public class UpdateBookingDto : CreateBookingDto
     [MaxLength(20)]
     public string Status { get; set; } = "Pending";
 
-    [Required]
-    [MaxLength(20)]
-    public string PaymentStatus { get; set; } = "Pending";
 }

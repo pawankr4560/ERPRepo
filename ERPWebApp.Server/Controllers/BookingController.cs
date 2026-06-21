@@ -28,6 +28,12 @@ public class BookingController : ControllerBase
         return booking is null ? NotFound() : Ok(booking);
     }
 
+    [HttpGet("options")]
+    public async Task<IActionResult> GetOptions()
+    {
+        return Ok(await _service.GetOptionsAsync());
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(CreateBookingDto dto)
     {

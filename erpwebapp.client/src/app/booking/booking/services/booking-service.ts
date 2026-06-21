@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, forkJoin, map, tap } from 'rxjs';
+import { BehaviorSubject, map, tap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { Car } from '../../car/interfaces/car';
@@ -25,31 +25,37 @@ export class BookingService {
   constructor(private http: HttpClient) {}
 
   loadBookings() {
-    return this.http.get<Booking[]>(this.apiUrl, { headers: this.headers }).pipe(
-      tap((bookings) => this.bookingsSubject.next(bookings ?? []))
+    return this.http.get<any>(this.apiUrl, { headers: this.headers }).pipe(
+      map((response) =>
+        this.unwrapArray(response).map((booking) => this.normalizeBooking(booking))
+      ),
+      tap((bookings) => this.bookingsSubject.next(bookings))
     );
   }
 
   loadDialogOptions() {
-    return forkJoin({
-      cars: this.http.get<Car[]>(`${environment.apiUrl}/api/Car`, {
-        headers: this.headers,
-      }),
-      usersResponse: this.http.get<any>(`${environment.apiUrl}/api/Auth/UserList`, {
-        headers: this.headers,
-      }),
-    }).pipe(
-      map(({ cars, usersResponse }) => ({
-        cars: cars ?? [],
-        users: (usersResponse?.data ?? usersResponse ?? []) as BookingUser[],
-      }))
-    );
+    return this.http
+      .get<any>(`${this.apiUrl}/options`, { headers: this.headers })
+      .pipe(
+        map((response) => {
+          const data = response?.data ?? response?.Data ?? response ?? {};
+          return {
+            cars: this.unwrapArray(data.cars ?? data.Cars).map((car) =>
+              this.normalizeCar(car)
+            ),
+            users: this.unwrapArray(data.users ?? data.Users).map((user) =>
+              this.normalizeUser(user)
+            ),
+          };
+        })
+      );
   }
 
   createBooking(booking: Booking) {
-    return this.http.post<Booking>(this.apiUrl, this.toCreatePayload(booking), {
+    return this.http.post<any>(this.apiUrl, this.toCreatePayload(booking), {
       headers: this.headers,
     }).pipe(
+      map((response) => this.normalizeBooking(response?.data ?? response)),
       tap((created) =>
         this.bookingsSubject.next([created, ...this.bookingsSubject.value])
       )
@@ -57,15 +63,15 @@ export class BookingService {
   }
 
   updateBooking(booking: Booking) {
-    return this.http.put<Booking>(
+    return this.http.put<any>(
       `${this.apiUrl}/${booking.id}`,
       {
         ...this.toCreatePayload(booking),
         status: booking.status,
-        paymentStatus: booking.paymentStatus,
       },
       { headers: this.headers }
     ).pipe(
+      map((response) => this.normalizeBooking(response?.data ?? response)),
       tap((updated) =>
         this.bookingsSubject.next(
           this.bookingsSubject.value.map((current) =>
@@ -94,6 +100,55 @@ export class BookingService {
       userId: booking.userId,
       pickupDate: booking.pickupDate,
       returnDate: booking.returnDate,
+    };
+  }
+
+  private unwrapArray(value: any): any[] {
+    const data = value?.data ?? value?.Data ?? value;
+    return Array.isArray(data) ? data : [];
+  }
+
+  private normalizeBooking(value: any): Booking {
+    return {
+      id: value?.id ?? value?.Id ?? 0,
+      bookingNumber: value?.bookingNumber ?? value?.BookingNumber ?? '',
+      userId: value?.userId ?? value?.UserId ?? '',
+      userName: value?.userName ?? value?.UserName ?? '',
+      carId: value?.carId ?? value?.CarId ?? 0,
+      carName: value?.carName ?? value?.CarName ?? '',
+      pickupDate: value?.pickupDate ?? value?.PickupDate ?? '',
+      returnDate: value?.returnDate ?? value?.ReturnDate ?? '',
+      totalDays: value?.totalDays ?? value?.TotalDays ?? 0,
+      amount: value?.amount ?? value?.Amount ?? 0,
+      status: value?.status ?? value?.Status ?? 'Pending',
+      paymentStatus:
+        value?.paymentStatus ?? value?.PaymentStatus ?? 'Pending',
+      createdDate: value?.createdDate ?? value?.CreatedDate ?? '',
+    };
+  }
+
+  private normalizeCar(value: any): Car {
+    return {
+      id: value?.id ?? value?.Id ?? 0,
+      brand: value?.brand ?? value?.Brand ?? '',
+      model: value?.model ?? value?.Model ?? '',
+      year: value?.year ?? value?.Year ?? 0,
+      categoryId: value?.categoryId ?? value?.CategoryId ?? 0,
+      transmission: value?.transmission ?? value?.Transmission ?? '',
+      fuelType: value?.fuelType ?? value?.FuelType ?? '',
+      seats: value?.seats ?? value?.Seats ?? 0,
+      pricePerDay: value?.pricePerDay ?? value?.PricePerDay ?? 0,
+      imageUrl: value?.imageUrl ?? value?.ImageUrl ?? null,
+      status: value?.status ?? value?.Status ?? 'Available',
+    };
+  }
+
+  private normalizeUser(value: any): BookingUser {
+    return {
+      id: value?.id ?? value?.Id ?? '',
+      firstName: value?.firstName ?? value?.FirstName ?? '',
+      lastName: value?.lastName ?? value?.LastName ?? '',
+      email: value?.email ?? value?.Email ?? null,
     };
   }
 }
