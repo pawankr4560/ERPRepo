@@ -36,6 +36,18 @@ The publish target builds Angular and places its output under `wwwroot`.
 5. Bind the required hostname and HTTPS certificate.
 6. Give `IIS AppPool\ERPWebApp` read and execute permission on the site folder.
 
+Alternatively, copy `deploy/iis/Install-ERPWebApp.ps1` to the IIS server and
+run it from an elevated PowerShell window:
+
+```powershell
+.\Install-ERPWebApp.ps1 `
+  -PublishPath "C:\Deploy\ERPWebApp" `
+  -ConnectionString "YOUR_PRODUCTION_CONNECTION_STRING" `
+  -JwtKey "YOUR_LONG_RANDOM_JWT_KEY" `
+  -JwtIssuer "https://your-domain.example" `
+  -JwtAudience "https://your-domain.example"
+```
+
 ## Database access
 
 The application currently uses Windows integrated SQL authentication. Grant the

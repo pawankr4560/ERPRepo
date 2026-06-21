@@ -17,6 +17,15 @@ namespace WebApp.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Loan>()
+                .HasIndex(x => new { x.IsDeleted, x.Status, x.Active });
+
+            modelBuilder.Entity<LoanEMISchedule>()
+                .HasIndex(x => new { x.IsDeleted, x.IsPaid, x.DueDate });
+
+            modelBuilder.Entity<LoanPayment>()
+                .HasIndex(x => new { x.IsDeleted, x.PaymentStatus, x.PaymentDate });
         }
 
         public DbSet<Product> Products { get; set; }

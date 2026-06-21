@@ -1,0 +1,37 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260621131638
+Username: DESKTOP-0EM9L6A\acer
+RunAs User: DESKTOP-0EM9L6A\acer
+Configuration Name: 
+Machine: DESKTOP-0EM9L6A (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File D:\Project\New folder\ERPWebApp\deploy\iis\Enable-IIS-Prerequisites.ps1
+Process ID: 19836
+PSVersion: 5.1.26100.8457
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.8457
+BuildVersion: 10.0.26100.8457
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is D:\Project\New folder\ERPWebApp\deploy\iis\Enable-IIS-Prerequisites.log
+WARNING: Restart is suppressed because NoRestart is specified.
+WARNING: Restart is suppressed because NoRestart is specified.
+WARNING: Restart is suppressed because NoRestart is specified.
+WARNING: Restart is suppressed because NoRestart is specified.
+WARNING: Restart is suppressed because NoRestart is specified.
+WARNING: Restart is suppressed because NoRestart is specified.
+WARNING: Restart is suppressed because NoRestart is specified.
+WARNING: Restart is suppressed because NoRestart is specified.
+WARNING: Restart is suppressed because NoRestart is specified.
+WARNING: Restart is suppressed because NoRestart is specified.
+Found an existing package already installed. Trying to upgrade the installed package...
+No available upgrade found.
+No newer package versions are available from the configured sources.
+PS>TerminatingError(Enable-IIS-Prerequisites.ps1): "The running command stopped because the preference variable "ErrorActionPreference" or common parameter is set to Stop: The term 'C:\WINDOWS\System32\iisreset.exe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again."
+**********************
+Windows PowerShell transcript end
+End time: 20260621131655
+**********************

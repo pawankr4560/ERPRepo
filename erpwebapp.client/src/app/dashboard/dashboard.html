@@ -1,33 +1,197 @@
-<div class="dashboard">
-
-  <!-- KPI SECTION -->
- <div class="kpi-grid" cdkDropList (cdkDropListDropped)="drop($event)">
-  <mat-card class="kpi-card" cdkDropListOrientation="mixed" *ngFor="let kpi of kpis" cdkDrag>
-    <div class="kpi-icon" [ngClass]="kpi.bg">
-      <mat-icon>{{ kpi.icon }}</mat-icon>
+<section class="dashboard">
+  <header class="dashboard-header">
+    <div>
+      <span class="eyebrow">Loan Management</span>
+      <h1>Portfolio Dashboard</h1>
+      <p>Monitor disbursements, collections, installments, and portfolio health.</p>
     </div>
-    <div class="kpi-content">
-      <span class="kpi-title">{{ kpi.title }}</span>
-      <span class="kpi-value">{{ kpi.value }}</span>
-      <span class="kpi-trend" [ngClass]="kpi.trendClass">{{ kpi.trend }}</span>
-    </div>
-  </mat-card>
-</div>
-
-  <!-- CHART SECTION -->
- <!-- CHART GRID -->
-<div class="chart-grid" cdkDropList (cdkDropListDropped)="dropChart($event)">
-  <mat-card class="chart-card" *ngFor="let chart of charts" cdkDrag>
-    <div class="chart-header">
-      <h3>{{ chart.title }}</h3>
-      <button mat-icon-button>
-        <mat-icon>more_vert</mat-icon>
+    <div class="header-actions">
+      <button mat-stroked-button type="button" (click)="refresh()" [disabled]="isLoading">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+      <button mat-raised-button color="primary" type="button" (click)="navigate('loans')">
+        <mat-icon>add</mat-icon>
+        New Loan
       </button>
     </div>
-    <div class="chart-body">
-      {{ chart.body }}
-    </div>
-  </mat-card>
-</div>
+  </header>
 
-</div>
+  <div *ngIf="isLoading" class="loading-state">
+    <mat-progress-spinner mode="indeterminate" diameter="42"></mat-progress-spinner>
+    <span>Loading portfolio data...</span>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <div class="kpi-grid">
+      <article class="kpi-card portfolio">
+        <div class="kpi-icon"><mat-icon>account_balance</mat-icon></div>
+        <div>
+          <span>Total Portfolio</span>
+          <strong>{{ totalPortfolio | currency:'INR':'symbol':'1.0-0' }}</strong>
+          <small>{{ summary.totalLoans }} total loan(s)</small>
+        </div>
+      </article>
+
+      <article class="kpi-card collected">
+        <div class="kpi-icon"><mat-icon>payments</mat-icon></div>
+        <div>
+          <span>Total Collected</span>
+          <strong>{{ totalCollected | currency:'INR':'symbol':'1.0-0' }}</strong>
+          <small>{{ collectionRate | number:'1.0-1' }}% collection rate</small>
+        </div>
+      </article>
+
+      <article class="kpi-card outstanding">
+        <div class="kpi-icon"><mat-icon>account_balance_wallet</mat-icon></div>
+        <div>
+          <span>Outstanding</span>
+          <strong>{{ outstandingPortfolio | currency:'INR':'symbol':'1.0-0' }}</strong>
+          <small>{{ activeLoans }} active loan(s)</small>
+        </div>
+      </article>
+
+      <article class="kpi-card overdue">
+        <div class="kpi-icon"><mat-icon>warning</mat-icon></div>
+        <div>
+          <span>Overdue EMI</span>
+          <strong>{{ overdueAmount | currency:'INR':'symbol':'1.0-0' }}</strong>
+          <small>{{ overdueInstallmentCount }} overdue installment(s)</small>
+        </div>
+      </article>
+    </div>
+
+    <div class="dashboard-grid">
+      <article class="panel portfolio-health">
+        <div class="panel-heading">
+          <div>
+            <h2>Portfolio Health</h2>
+            <p>Loan distribution by current status</p>
+          </div>
+          <button mat-button type="button" (click)="navigate('loans')">View loans</button>
+        </div>
+
+        <div class="health-content">
+          <div
+            class="donut"
+            [style.--collection-rate]="collectionRate + '%'"
+          >
+            <div>
+              <strong>{{ collectionRate | number:'1.0-0' }}%</strong>
+              <span>Collected</span>
+            </div>
+          </div>
+
+          <div class="status-breakdown">
+            <div class="status-row" *ngFor="let status of loanStatusBreakdown">
+              <div class="status-label">
+                <span class="dot" [style.background]="status.color"></span>
+                <span>{{ status.label }}</span>
+                <strong>{{ status.value }}</strong>
+              </div>
+              <div class="progress-track">
+                <span
+                  [style.width.%]="status.percentage"
+                  [style.background]="status.color"
+                ></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel summary-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Loan Summary</h2>
+            <p>At-a-glance application status</p>
+          </div>
+        </div>
+        <div class="summary-list">
+          <div>
+            <span class="summary-icon active"><mat-icon>verified</mat-icon></span>
+            <span>Active loans</span>
+            <strong>{{ activeLoans }}</strong>
+          </div>
+          <div>
+            <span class="summary-icon pending"><mat-icon>hourglass_top</mat-icon></span>
+            <span>Pending approval</span>
+            <strong>{{ pendingLoans }}</strong>
+          </div>
+          <div>
+            <span class="summary-icon completed"><mat-icon>task_alt</mat-icon></span>
+            <span>Completed loans</span>
+            <strong>{{ completedLoans }}</strong>
+          </div>
+          <div>
+            <span class="summary-icon overdue"><mat-icon>event_busy</mat-icon></span>
+            <span>Overdue installments</span>
+            <strong>{{ overdueInstallmentCount }}</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel upcoming-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Upcoming EMI</h2>
+            <p>Installments due in the next 30 days</p>
+          </div>
+          <button mat-button type="button" (click)="navigate('payments')">Record payment</button>
+        </div>
+
+        <div class="data-list" *ngIf="upcomingInstallments.length; else noUpcoming">
+          <div class="data-row" *ngFor="let item of upcomingInstallments">
+            <div class="date-badge">
+              <strong>{{ item.dueDate | date:'dd' }}</strong>
+              <span>{{ item.dueDate | date:'MMM' }}</span>
+            </div>
+            <div class="row-main">
+              <strong>{{ item.loanNumber }}</strong>
+              <span>{{ item.customerName }} · Installment {{ item.installmentNo }}</span>
+            </div>
+            <strong class="amount">{{ item.emiAmount | currency:'INR':'symbol':'1.0-0' }}</strong>
+          </div>
+        </div>
+        <ng-template #noUpcoming>
+          <div class="empty-state">
+            <mat-icon>event_available</mat-icon>
+            <span>No installments are due in the next 30 days.</span>
+          </div>
+        </ng-template>
+      </article>
+
+      <article class="panel payments-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>Recent Payments</h2>
+            <p>Latest collection activity</p>
+          </div>
+          <button mat-button type="button" (click)="navigate('payments')">View all</button>
+        </div>
+
+        <div class="data-list" *ngIf="recentPayments.length; else noPayments">
+          <div class="data-row" *ngFor="let payment of recentPayments">
+            <span class="payment-icon"><mat-icon>receipt_long</mat-icon></span>
+            <div class="row-main">
+              <strong>{{ payment.loanNumber }}</strong>
+              <span>{{ payment.customerName }} · {{ payment.paymentDate | date:'dd MMM yyyy' }}</span>
+            </div>
+            <div class="payment-value">
+              <strong>{{ payment.amountPaid | currency:'INR':'symbol':'1.0-0' }}</strong>
+              <span class="status-pill" [ngClass]="paymentStatusClass(payment.paymentStatus)">
+                {{ payment.paymentStatus }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <ng-template #noPayments>
+          <div class="empty-state">
+            <mat-icon>payments</mat-icon>
+            <span>No loan payments have been recorded yet.</span>
+          </div>
+        </ng-template>
+      </article>
+    </div>
+  </ng-container>
+</section>

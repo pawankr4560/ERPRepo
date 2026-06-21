@@ -169,6 +169,7 @@ builder.Services.AddTransient<IProductService, WebApp.Service.Product.ProductSer
 builder.Services.AddTransient<IOrderService, OrderService>();
 builder.Services.AddTransient<ILoanService, LoanService>();
 builder.Services.AddTransient<ILoanPaymentService, LoanPaymentService>();
+builder.Services.AddScoped<ILoanDashboardService, LoanDashboardService>();
 builder.Services.AddTransient<ILoanEMIScheduleService, LoanEMIScheduleService>();
 builder.Services.AddTransient<IStripeService, StripeService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
