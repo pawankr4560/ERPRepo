@@ -6,6 +6,10 @@
       <p>Monitor disbursements, collections, installments, and portfolio health.</p>
     </div>
     <div class="header-actions">
+      <button mat-stroked-button type="button" (click)="createUser()">
+        <mat-icon>person_add</mat-icon>
+        Create User
+      </button>
       <button mat-stroked-button type="button" (click)="refresh()" [disabled]="isLoading">
         <mat-icon>refresh</mat-icon>
         Refresh

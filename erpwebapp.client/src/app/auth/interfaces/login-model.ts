@@ -16,9 +16,6 @@ export interface SignupModel {
     password : string;
     confirmPassword : string;
     phone:number,
-    weight:number,
-    height:number,
-    calorie:number,
     gender : string;
     address : string
 }

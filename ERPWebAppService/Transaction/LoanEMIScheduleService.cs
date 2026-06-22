@@ -50,6 +50,8 @@ namespace WebApp.Service.Transaction
                 on loan.Id equals add.LoanId
                 where loan.LoanNumber == loanNumber
                       && !loan.IsDeleted
+                      && loan.Active
+                      && loan.Status == "Active"
                       && !schedule.IsDeleted
                 orderby schedule.InstallmentNo
                 select new LoanEMIScheduleDto

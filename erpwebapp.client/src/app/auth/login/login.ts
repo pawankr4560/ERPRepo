@@ -88,8 +88,4 @@ login() {
   // }
 }
 
-redirect()
-{
-  this.router.navigate(['/auth/signup']);
-}
 }

@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using WebApp.Model.Transaction;
 using WebApp.Service.Message;
 using WebApp.Service.Transaction;
@@ -54,6 +56,46 @@ namespace WebApp.Server.Controllers
             var result = await _loanService.UpdateLoan(model);
 
             return result ? Ok() : NotFound();
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id:int}/approve")]
+        public async Task<IActionResult> Approve(int id)
+        {
+            try
+            {
+                var userId = User.FindFirst("Id")?.Value
+                    ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? string.Empty;
+                var result = await _loanService.ApproveLoan(id, userId);
+                return result
+                    ? Ok(new { success = true, message = "Loan approved successfully." })
+                    : NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { success = false, message = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id:int}/reject")]
+        public async Task<IActionResult> Reject(int id)
+        {
+            try
+            {
+                var userId = User.FindFirst("Id")?.Value
+                    ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? string.Empty;
+                var result = await _loanService.RejectLoan(id, userId);
+                return result
+                    ? Ok(new { success = true, message = "Loan rejected successfully." })
+                    : NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { success = false, message = ex.Message });
+            }
         }
 
         [HttpDelete]

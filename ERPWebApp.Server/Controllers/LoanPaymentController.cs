@@ -38,9 +38,15 @@ namespace WebApp.Server.Controllers
         public async Task<IActionResult> Create(
             [FromBody] LoanPaymentDto model)
         {
-            var result = await _loanPaymentService.AddAsync(model);
-
-            return Ok(result);
+            try
+            {
+                var result = await _loanPaymentService.AddAsync(model);
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { success = false, message = ex.Message });
+            }
         }
 
         [HttpPut("{id:int}")]

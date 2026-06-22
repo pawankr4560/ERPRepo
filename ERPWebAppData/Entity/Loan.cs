@@ -19,11 +19,21 @@ namespace WebApp.Data.Entity
 
         public double EMI { get; set; }
 
+        public bool IsReducingInterest { get; set; }
+
         public DateTime StartDate { get; set; }
 
         public DateTime EndDate { get; set; }
 
         public string Status { get; set; } = "Pending";
+
+        public DateTime? ApprovedAtUtc { get; set; }
+
+        public string? ApprovedByUserId { get; set; }
+
+        public DateTime? RejectedAtUtc { get; set; }
+
+        public string? RejectedByUserId { get; set; }
 
         public bool Active { get; set; }
 

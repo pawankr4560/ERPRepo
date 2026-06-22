@@ -133,6 +133,10 @@ export class Dashboard implements OnInit, OnDestroy {
       });
   }
 
+  createUser(): void {
+    this.router.navigate(['/auth/signup']);
+  }
+
   navigate(path: 'loans' | 'payments'): void {
     this.router.navigate([
       path === 'loans'

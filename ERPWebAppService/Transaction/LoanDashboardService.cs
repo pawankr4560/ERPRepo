@@ -31,11 +31,14 @@ public class LoanDashboardService : ILoanDashboardService
             .Select(group => new
             {
                 TotalLoans = group.Count(),
-                TotalPortfolio = group.Sum(loan => loan.LoanAmount),
+                TotalPortfolio = group
+                    .Where(loan =>
+                        loan.Status != "Pending"
+                        && loan.Status != "Rejected")
+                    .Sum(loan => loan.LoanAmount),
                 ActiveLoans = group.Count(loan =>
                     loan.Active
-                    && loan.Status != "Pending"
-                    && !CompletedStatuses.Contains(loan.Status)),
+                    && loan.Status == "Active"),
                 PendingLoans = group.Count(loan =>
                     loan.Status == "Pending"),
                 CompletedLoans = group.Count(loan =>
@@ -52,12 +55,17 @@ public class LoanDashboardService : ILoanDashboardService
                 payment => (decimal?)payment.AmountPaid,
                 cancellationToken) ?? 0;
 
-        var overdueStats = await _dbContext.LoanEMISchedule
-            .AsNoTracking()
-            .Where(schedule =>
-                !schedule.IsDeleted
-                && !schedule.IsPaid
-                && schedule.DueDate < today)
+        var overdueStats = await (
+            from schedule in _dbContext.LoanEMISchedule.AsNoTracking()
+            join loan in _dbContext.Loan.AsNoTracking()
+                on schedule.LoanId equals loan.Id
+            where !schedule.IsDeleted
+                  && !schedule.IsPaid
+                  && schedule.DueDate < today
+                  && !loan.IsDeleted
+                  && loan.Active
+                  && loan.Status == "Active"
+            select schedule)
             .GroupBy(_ => 1)
             .Select(group => new
             {
@@ -75,6 +83,8 @@ public class LoanDashboardService : ILoanDashboardService
             where !schedule.IsDeleted
                   && !schedule.IsPaid
                   && !loan.IsDeleted
+                  && loan.Active
+                  && loan.Status == "Active"
                   && schedule.DueDate >= today
                   && schedule.DueDate <= upcomingCutoff
             orderby schedule.DueDate, schedule.InstallmentNo
@@ -97,7 +107,10 @@ public class LoanDashboardService : ILoanDashboardService
                 on payment.LoanId equals loan.Id
             join user in _dbContext.Users.AsNoTracking()
                 on loan.UserId equals user.Id
-            where !payment.IsDeleted && !loan.IsDeleted
+            where !payment.IsDeleted
+                  && !loan.IsDeleted
+                  && loan.Status != "Pending"
+                  && loan.Status != "Rejected"
             orderby payment.PaymentDate descending, payment.Id descending
             select new LoanDashboardPaymentDto
             {

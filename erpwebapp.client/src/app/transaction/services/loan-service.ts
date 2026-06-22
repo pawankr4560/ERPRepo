@@ -24,6 +24,10 @@ export interface Loan {
   updatedDateTime?: string;
   createdBy?: number;
   updatedBy?: number;
+  approvedAtUtc?: string | null;
+  approvedByUserId?: string | null;
+  rejectedAtUtc?: string | null;
+  rejectedByUserId?: string | null;
   emiSchedules?: LoanEMISchedule[];
   payments?: LoanPayment[];
   customerDetail?: LoanCustomerDetail;
@@ -99,16 +103,23 @@ export class LoanService {
     return environment.apiKey;
   }
 
-  private headers!: HttpHeaders;
-
   private loansSubject = new BehaviorSubject<Loan[]>([]);
   loans$ = this.loansSubject.asObservable();
 
-  constructor(private http: HttpClient) {
-    this.headers = new HttpHeaders({
+  constructor(private http: HttpClient) {}
+
+  private get headers(): HttpHeaders {
+    let headers = new HttpHeaders({
       'Content-Type': 'application/json; charset=utf-8',
       api_key: this.apiKey,
     } as any);
+
+    const token = localStorage.getItem('jwt');
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    return headers;
   }
 
   loadLoans() {
@@ -177,6 +188,22 @@ export class LoanService {
           );
         })
       );
+  }
+
+  approveLoan(id: number) {
+    return this.http.post<any>(
+      `${this.apiUrl}/api/Loan/${id}/approve`,
+      {},
+      { headers: this.headers }
+    );
+  }
+
+  rejectLoan(id: number) {
+    return this.http.post<any>(
+      `${this.apiUrl}/api/Loan/${id}/reject`,
+      {},
+      { headers: this.headers }
+    );
   }
 
   getLoanData() {
@@ -273,6 +300,10 @@ export class LoanService {
       updatedDateTime: loan?.F_Updated_Date_Time ?? loan?.updatedDateTime,
       createdBy: loan?.F_User_Index_Created ?? loan?.createdBy,
       updatedBy: loan?.F_User_Index_Update ?? loan?.updatedBy,
+      approvedAtUtc: loan?.ApprovedAtUtc ?? loan?.approvedAtUtc ?? null,
+      approvedByUserId: loan?.ApprovedByUserId ?? loan?.approvedByUserId ?? null,
+      rejectedAtUtc: loan?.RejectedAtUtc ?? loan?.rejectedAtUtc ?? null,
+      rejectedByUserId: loan?.RejectedByUserId ?? loan?.rejectedByUserId ?? null,
       emiSchedules: this.normalizeSchedules(
         loan?.LoanEMISchedules ?? loan?.loanEMISchedules ?? loan?.emiSchedules ?? loan?.schedules
       ),

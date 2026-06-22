@@ -46,9 +46,6 @@ export class Signup implements OnInit {
   gender: ['', Validators.required],
   address: ['', Validators.required],
   phone: ['', [Validators.required, Validators.maxLength(10)]],
-  weight: [null, [Validators.required, Validators.min(1)]],
-  height: [null, [Validators.required, Validators.min(1)]],
-  calorie: [null, [Validators.required, Validators.min(1)]],
   status: [true]
   });
   }
@@ -88,10 +85,7 @@ export class Signup implements OnInit {
     lastName: formValue.lastName,
     gender: formValue.gender,
     address: formValue.address,
-    phone: formValue.phone,
-    weight: Number(formValue.weight),
-    height: Number(formValue.height),
-    calorie: Number(formValue.calorie)
+    phone: formValue.phone
   };
   this.authService.signup(user).pipe().subscribe({
    next: (res) => {

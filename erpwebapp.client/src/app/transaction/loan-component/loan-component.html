@@ -134,15 +134,6 @@
         <mat-error *ngIf="tenureControl.errors?.['max']">Tenure cannot exceed 50 years.</mat-error>
       </mat-form-field>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Status</mat-label>
-        <mat-select [(ngModel)]="current.status" name="status" required>
-          <mat-option *ngFor="let status of loanStatuses" [value]="status">
-            {{ status }}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-
       <div class="active-field">
         <span>EMI Amount</span>
         <strong>INR {{ current.emi || 0 | number:'1.2-2' }}</strong>
@@ -610,7 +601,30 @@
             </div>
           </td>
           <td class="actions-col">
-            <button mat-icon-button color="primary" (click)="$event.stopPropagation(); startEdit(loan)" aria-label="Edit loan">
+            <button
+              *ngIf="isPending(loan)"
+              mat-icon-button
+              color="primary"
+              (click)="$event.stopPropagation(); approve(loan)"
+              [disabled]="approvalActionLoanId !== null"
+              aria-label="Approve loan">
+              <mat-icon>check_circle</mat-icon>
+            </button>
+            <button
+              *ngIf="isPending(loan)"
+              mat-icon-button
+              color="warn"
+              (click)="$event.stopPropagation(); reject(loan)"
+              [disabled]="approvalActionLoanId !== null"
+              aria-label="Reject loan">
+              <mat-icon>cancel</mat-icon>
+            </button>
+            <button
+              *ngIf="loan.status !== 'Rejected'"
+              mat-icon-button
+              color="primary"
+              (click)="$event.stopPropagation(); startEdit(loan)"
+              aria-label="Edit loan">
               <mat-icon>edit</mat-icon>
             </button>
             <button mat-icon-button color="warn" (click)="$event.stopPropagation(); remove(loan)" aria-label="Delete loan">

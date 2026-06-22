@@ -16,6 +16,8 @@
 
         public double EMI { get; set; }
 
+        public bool InterestCalculationType { get; set; }
+
         public int Tenure { get; set; }
 
         public DateTime StartDate { get; set; }
@@ -23,6 +25,14 @@
         public DateTime EndDate { get; set; }
 
         public string Status { get; set; } = string.Empty;
+
+        public DateTime? ApprovedAtUtc { get; set; }
+
+        public string? ApprovedByUserId { get; set; }
+
+        public DateTime? RejectedAtUtc { get; set; }
+
+        public string? RejectedByUserId { get; set; }
 
         public bool Active { get; set; }
 

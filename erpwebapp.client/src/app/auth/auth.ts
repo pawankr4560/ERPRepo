@@ -47,7 +47,11 @@ constructor(private http: HttpClient) {
      return false;
    }
    const decodeToken: any = jwtDecode(validToken);
-   return decodeToken["Role"].toLowerCase();
+   const role =
+     decodeToken["role"] ??
+     decodeToken["Role"] ??
+     decodeToken["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+   return typeof role === 'string' ? role.toLowerCase() : false;
  }
 }
 

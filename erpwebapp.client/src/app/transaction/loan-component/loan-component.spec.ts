@@ -35,7 +35,16 @@ describe('LoanComponent', () => {
     loans$ = new BehaviorSubject<Loan[]>([]);
     loanService = jasmine.createSpyObj<LoanService>(
       'LoanService',
-      ['loadLoans', 'getLoanData', 'createLoan', 'updateLoan', 'deleteLoan', 'getScheduleByLoanNumber'],
+      [
+        'loadLoans',
+        'getLoanData',
+        'createLoan',
+        'updateLoan',
+        'deleteLoan',
+        'approveLoan',
+        'rejectLoan',
+        'getScheduleByLoanNumber',
+      ],
       { loans$: loans$.asObservable() }
     );
     interestService = jasmine.createSpyObj<InterestSettingService>('InterestSettingService', ['load', 'calculateEmi']);
@@ -167,6 +176,38 @@ describe('LoanComponent', () => {
     request.next({});
     request.complete();
     expect(component.isDeleting).toBeFalse();
+  });
+
+  it('approves a pending loan after confirmation', () => {
+    const pendingLoan = { ...loan(5), status: 'Pending', active: false };
+    const request = new Subject<any>();
+    dialog.open.and.returnValue({ afterClosed: () => of(true) } as any);
+    loanService.approveLoan.and.returnValue(request);
+
+    component.approve(pendingLoan);
+
+    expect(component.approvalActionLoanId).toBe(5);
+    expect(loanService.approveLoan).toHaveBeenCalledWith(5);
+    request.next({ message: 'Loan approved successfully.' });
+    request.complete();
+    expect(component.approvalActionLoanId).toBeNull();
+    expect(loanService.loadLoans).toHaveBeenCalled();
+  });
+
+  it('rejects a pending loan after confirmation', () => {
+    const pendingLoan = { ...loan(6), status: 'Pending', active: false };
+    const request = new Subject<any>();
+    dialog.open.and.returnValue({ afterClosed: () => of(true) } as any);
+    loanService.rejectLoan.and.returnValue(request);
+
+    component.reject(pendingLoan);
+
+    expect(component.approvalActionLoanId).toBe(6);
+    expect(loanService.rejectLoan).toHaveBeenCalledWith(6);
+    request.next({ message: 'Loan rejected successfully.' });
+    request.complete();
+    expect(component.approvalActionLoanId).toBeNull();
+    expect(loanService.loadLoans).toHaveBeenCalled();
   });
 
   it('calculates EMI schedule totals consistently', () => {

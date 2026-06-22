@@ -66,12 +66,12 @@ export class LoanComponent implements OnInit {
 
   displayedColumns = ['loanNumber', 'customerName', 'tenureMonths', 'emi', 'dueDate', 'actions'];
   customers: LoanCustomer[] = [];
-  loanStatuses = ['Pending', 'Active', 'Closed', 'Defaulted'];
   isSaving = false;
   isLoading = false;
   isLoadingLoanData = false;
   isLoadingInterestSetting = false;
   isDeleting = false;
+  approvalActionLoanId: number | null = null;
   systemInterestType: InterestCalculationType = 'Reducing';
   customerDetail: LoanCustomerDetail = this.createEmptyCustomerDetail();
 
@@ -112,7 +112,7 @@ export class LoanComponent implements OnInit {
 
   get isBusy(): boolean {
     return this.isLoading || this.isLoadingLoanData || this.isLoadingInterestSetting ||
-      this.isSaving || this.isDeleting;
+      this.isSaving || this.isDeleting || this.approvalActionLoanId !== null;
   }
 
   get isCustomerAadhaarDuplicate(): boolean {
@@ -322,6 +322,82 @@ export class LoanComponent implements OnInit {
 
   getStatusClass(status: string | null | undefined): string {
     return `status-${(status ?? 'Pending').toLowerCase()}`;
+  }
+
+  isPending(loan: Loan): boolean {
+    return (loan.status ?? 'Pending').toLowerCase() === 'pending';
+  }
+
+  approve(loan: Loan): void {
+    if (!loan.id || !this.isPending(loan) || this.approvalActionLoanId !== null) {
+      return;
+    }
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: 'Approve Loan',
+        message: `Approve ${loan.loanNumber}? This will activate the loan and generate its EMI schedule.`,
+        confirmText: 'Approve',
+        icon: 'check_circle',
+        confirmColor: 'primary',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (!confirmed || !loan.id) {
+        return;
+      }
+
+      this.approvalActionLoanId = loan.id;
+      this.loanService.approveLoan(loan.id)
+        .pipe(finalize(() => (this.approvalActionLoanId = null)))
+        .subscribe({
+          next: (response) => {
+            this.snackBar.open(response?.message || 'Loan approved successfully.', 'Close', {
+              duration: 3000,
+            });
+            this.load();
+          },
+          error: (error) => this.showApiError('Unable to approve loan.', error),
+        });
+    });
+  }
+
+  reject(loan: Loan): void {
+    if (!loan.id || !this.isPending(loan) || this.approvalActionLoanId !== null) {
+      return;
+    }
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: 'Reject Loan',
+        message: `Reject ${loan.loanNumber}? The loan will remain inactive and no EMI schedule will be created.`,
+        confirmText: 'Reject',
+        icon: 'cancel',
+        confirmColor: 'warn',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (!confirmed || !loan.id) {
+        return;
+      }
+
+      this.approvalActionLoanId = loan.id;
+      this.loanService.rejectLoan(loan.id)
+        .pipe(finalize(() => (this.approvalActionLoanId = null)))
+        .subscribe({
+          next: (response) => {
+            this.snackBar.open(response?.message || 'Loan rejected successfully.', 'Close', {
+              duration: 3000,
+            });
+            this.load();
+          },
+          error: (error) => this.showApiError('Unable to reject loan.', error),
+        });
+    });
   }
 
   private buildPrintPage(loan: Loan): string {

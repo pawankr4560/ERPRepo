@@ -9,6 +9,10 @@ namespace WebApp.Service.Transaction
 {
     public class LoanService : ILoanService
     {
+        private const string PendingStatus = "Pending";
+        private const string ActiveStatus = "Active";
+        private const string RejectedStatus = "Rejected";
+
         private readonly WebAppDbContext _dbContext;
         private readonly IMapper _mapper;
         private readonly IMessageService _messageService;
@@ -43,8 +47,16 @@ namespace WebApp.Service.Transaction
                         LoanAmount = loan.LoanAmount,
                         Rate = loan.Rate,
                         EMI = loan.EMI,
+                        InterestCalculationType = loan.IsReducingInterest,
                         Tenure = loan.Tenure,
+                        StartDate = loan.StartDate,
+                        EndDate = loan.EndDate,
+                        Status = loan.Status,
                         Active = loan.Active,
+                        ApprovedAtUtc = loan.ApprovedAtUtc,
+                        ApprovedByUserId = loan.ApprovedByUserId,
+                        RejectedAtUtc = loan.RejectedAtUtc,
+                        RejectedByUserId = loan.RejectedByUserId,
                         CreatedDateTime = loan.F_Created_Date_Time,
                         UpdatedDateTime = loan.F_Updated_Date_Time
                     }).ToListAsync();
@@ -77,11 +89,16 @@ namespace WebApp.Service.Transaction
                         LoanAmount = item.LoanAmount,
                         Rate = item.Rate,
                         EMI = item.EMI,
+                        InterestCalculationType = item.IsReducingInterest,
                         Tenure = item.Tenure,
                         StartDate = item.StartDate,
                         EndDate = item.EndDate,
                         Status = item.Status,
                         Active = item.Active,
+                        ApprovedAtUtc = item.ApprovedAtUtc,
+                        ApprovedByUserId = item.ApprovedByUserId,
+                        RejectedAtUtc = item.RejectedAtUtc,
+                        RejectedByUserId = item.RejectedByUserId,
                         CreatedDateTime = item.F_Created_Date_Time,
                         UpdatedDateTime = item.F_Updated_Date_Time,
                         CreatedBy = item.F_User_Index_Created
@@ -172,7 +189,9 @@ namespace WebApp.Service.Transaction
 
                 var entity = _mapper.Map<Data.Entity.Loan>(model);
 
-                entity.Active = true;
+                entity.Status = PendingStatus;
+                entity.Active = false;
+                entity.IsReducingInterest = model.interestCalculationType;
                 entity.IsDeleted = false;
                 entity.F_Created_Date_Time = DateTime.UtcNow;
                 entity.F_Updated_Date_Time = DateTime.UtcNow;
@@ -182,24 +201,6 @@ namespace WebApp.Service.Transaction
                 var isSavedSuccessfully =
                     await _dbContext.SaveChangesAsync() > 0;
 
-                if (isSavedSuccessfully)
-                {
-                    //var user = await _dbContext.Users
-                    //    .FirstOrDefaultAsync(x => x.Id == model.UserId);
-
-                    //if (user != null &&
-                    //    !string.IsNullOrWhiteSpace(user.PhoneNumber))
-                    //{
-                    //    await _messageService.SendLoanSmsAsync(
-                    //        user.PhoneNumber,
-                    //        entity.LoanNumber,
-                    //        entity.LoanAmount.ToString());
-                    //}
-                    if (model.interestCalculationType)
-                        await GenerateReducingEMIScheduleAsync(entity);
-                    else
-                        await GenerateEMIScheduleAsync(entity);
-                }
                 var customerDetail = new LoanCustomerDetail
                 {
                     LoanId = entity.Id,
@@ -321,11 +322,10 @@ namespace WebApp.Service.Transaction
                 loan.LoanAmount = model.LoanAmount;
                 loan.Rate = model.Rate;
                 loan.EMI = model.EMI;
+                loan.IsReducingInterest = model.interestCalculationType;
                 loan.Tenure = model.Tenure;
                 loan.StartDate = model.StartDate;
                 loan.EndDate = model.EndDate;
-                loan.Status = model.Status;
-                loan.Active = model.Active;
                 loan.F_Updated_Date_Time = DateTime.UtcNow;
 
                 var oldSchedules = await _dbContext.LoanEMISchedule
@@ -339,13 +339,16 @@ namespace WebApp.Service.Transaction
 
                 await _dbContext.SaveChangesAsync();
 
-                if (model.interestCalculationType)
+                if (loan.Status == ActiveStatus)
                 {
-                    await GenerateReducingEMIScheduleAsync(loan);
-                }
-                else
-                {
-                    await GenerateEMIScheduleAsync(loan);
+                    if (loan.IsReducingInterest)
+                    {
+                        await GenerateReducingEMIScheduleAsync(loan);
+                    }
+                    else
+                    {
+                        await GenerateEMIScheduleAsync(loan);
+                    }
                 }
 
                 return true;
@@ -354,6 +357,87 @@ namespace WebApp.Service.Transaction
             {
                 throw new Exception($"Error while updating loan Id {model.Id}.", ex);
             }
+        }
+
+        #endregion
+
+        #region Approval
+
+        public async Task<bool> ApproveLoan(int id, string approvedByUserId)
+        {
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+            var loan = await _dbContext.Loan
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+            if (loan == null)
+                return false;
+
+            if (loan.Status != PendingStatus)
+                throw new InvalidOperationException("Only pending loans can be approved.");
+
+            var hasPaidEmi = await _dbContext.LoanEMISchedule
+                .AnyAsync(x => x.LoanId == id && x.IsPaid && !x.IsDeleted);
+
+            if (hasPaidEmi)
+                throw new InvalidOperationException("A loan with paid installments cannot be approved.");
+
+            loan.Status = ActiveStatus;
+            loan.Active = true;
+            loan.ApprovedAtUtc = DateTime.UtcNow;
+            loan.ApprovedByUserId = approvedByUserId;
+            loan.RejectedAtUtc = null;
+            loan.RejectedByUserId = null;
+            loan.F_Updated_Date_Time = DateTime.UtcNow;
+
+            var legacySchedules = await _dbContext.LoanEMISchedule
+                .Where(x => x.LoanId == id && !x.IsDeleted)
+                .ToListAsync();
+
+            if (legacySchedules.Count == 0)
+            {
+                await _dbContext.SaveChangesAsync();
+
+                if (loan.IsReducingInterest)
+                    await GenerateReducingEMIScheduleAsync(loan);
+                else
+                    await GenerateEMIScheduleAsync(loan);
+            }
+            else
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+
+            await transaction.CommitAsync();
+            return true;
+        }
+
+        public async Task<bool> RejectLoan(int id, string rejectedByUserId)
+        {
+            var loan = await _dbContext.Loan
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+            if (loan == null)
+                return false;
+
+            if (loan.Status != PendingStatus)
+                throw new InvalidOperationException("Only pending loans can be rejected.");
+
+            var hasPaidEmi = await _dbContext.LoanEMISchedule
+                .AnyAsync(x => x.LoanId == id && x.IsPaid && !x.IsDeleted);
+
+            if (hasPaidEmi)
+                throw new InvalidOperationException("A loan with paid installments cannot be rejected.");
+
+            loan.Status = RejectedStatus;
+            loan.Active = false;
+            loan.RejectedAtUtc = DateTime.UtcNow;
+            loan.RejectedByUserId = rejectedByUserId;
+            loan.ApprovedAtUtc = null;
+            loan.ApprovedByUserId = null;
+            loan.F_Updated_Date_Time = DateTime.UtcNow;
+
+            return await _dbContext.SaveChangesAsync() > 0;
         }
 
         #endregion

@@ -346,7 +346,8 @@
   color: #8a5a00;
 }
 
-.status-defaulted {
+.status-defaulted,
+.status-rejected {
   background: #ffebee;
   color: #b42318;
 }

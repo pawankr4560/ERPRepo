@@ -106,7 +106,7 @@ namespace WebApp.Service.Auth
 
             foreach (var role in roles)
             {
-                claims.Add(new Claim("Role", role));
+                claims.Add(new Claim(ClaimTypes.Role, role));
             }
 
             user.LoginCount += 1;

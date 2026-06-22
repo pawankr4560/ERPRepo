@@ -43,6 +43,29 @@ namespace WebApp.Service.Transaction
 
         public async Task<LoanPaymentDto> AddAsync(LoanPaymentDto model)
         {
+            var loan = await _dbContext.Loan
+                .FirstOrDefaultAsync(x =>
+                    x.Id == model.LoanId &&
+                    !x.IsDeleted);
+
+            if (loan == null)
+                throw new InvalidOperationException("Loan does not exist.");
+
+            if (!loan.Active || loan.Status != "Active")
+                throw new InvalidOperationException("Payments can only be recorded for approved active loans.");
+
+            var schedule = await _dbContext.LoanEMISchedule
+                .FirstOrDefaultAsync(x =>
+                    x.Id == model.ScheduleId &&
+                    x.LoanId == model.LoanId &&
+                    !x.IsDeleted);
+
+            if (schedule == null)
+                throw new InvalidOperationException("The selected installment does not belong to this loan.");
+
+            if (schedule.IsPaid)
+                throw new InvalidOperationException("The selected installment is already paid.");
+
             var entity = _mapper.Map<LoanPayment>(model);
 
             entity.Active = true;
@@ -50,6 +73,15 @@ namespace WebApp.Service.Transaction
             entity.F_Created_Date_Time = DateTime.UtcNow;
 
             await _dbContext.LoanPayment.AddAsync(entity);
+
+            if (string.Equals(model.PaymentStatus, "Success", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(model.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase))
+            {
+                schedule.IsPaid = true;
+                schedule.PaidDate = model.PaymentDate;
+                schedule.F_Updated_Date_Time = DateTime.UtcNow;
+            }
+
             await _dbContext.SaveChangesAsync();
 
             return _mapper.Map<LoanPaymentDto>(entity);
