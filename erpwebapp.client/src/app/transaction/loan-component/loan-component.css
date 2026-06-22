@@ -1,4 +1,5 @@
 .loan-container {
+  position: relative;
   min-height: calc(100vh - 80px);
   padding: 24px;
   background: #f5f7fb;
@@ -278,12 +279,36 @@
   border-bottom: none;
 }
 
-.selected-row {
-  background: #f7fbff;
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
-.select-col {
-  width: 48px;
+.api-loader-overlay {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.api-loader-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  border-radius: 10px;
+  background: #fff;
+  color: #1f3a6f;
+  font-weight: 700;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.2);
+}
+
+.clickable-row:hover,
+.clickable-row:focus-visible {
+  background: #f3f8ff;
+  outline: none;
 }
 
 .actions-col {

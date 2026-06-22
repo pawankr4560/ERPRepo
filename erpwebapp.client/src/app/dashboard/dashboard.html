@@ -10,14 +10,14 @@
         <mat-icon>refresh</mat-icon>
         Refresh
       </button>
-      <button mat-raised-button color="primary" type="button" (click)="navigate('loans')">
+      <button mat-raised-button color="primary" type="button" (click)="navigate('loans')" [disabled]="isLoading">
         <mat-icon>add</mat-icon>
         New Loan
       </button>
     </div>
   </header>
 
-  <div *ngIf="isLoading" class="loading-state">
+  <div *ngIf="isLoading" class="loading-state" role="status" aria-live="polite">
     <mat-progress-spinner mode="indeterminate" diameter="42"></mat-progress-spinner>
     <span>Loading portfolio data...</span>
   </div>

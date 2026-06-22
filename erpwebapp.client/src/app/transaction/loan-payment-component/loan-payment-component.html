@@ -1,10 +1,20 @@
 <section class="payment-page">
+  <div class="api-loader-overlay" *ngIf="isBusy" role="status" aria-live="polite">
+    <div class="api-loader-card">
+      <mat-spinner diameter="42"></mat-spinner>
+      <span>
+        {{ isSaving ? 'Saving payment...' :
+           isDeleting ? 'Deleting payment...' :
+           isLoadingInstallments ? 'Loading installments...' : 'Loading payment data...' }}
+      </span>
+    </div>
+  </div>
   <header class="page-header">
     <div>
       <h1>Loan Payments</h1>
       <p>Record and manage payments against generated EMI installments.</p>
     </div>
-    <button mat-raised-button color="primary" type="button" (click)="startCreate()">
+    <button mat-raised-button color="primary" type="button" (click)="startCreate()" [disabled]="isBusy">
       <mat-icon>add</mat-icon>
       Record Payment
     </button>

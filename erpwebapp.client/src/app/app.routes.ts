@@ -56,6 +56,15 @@ export const routes: Routes = [
         data: { roles: ['admin'] }
       },
       {
+        path: 'inventory/transactions/:id',
+        loadComponent: () =>
+          import('./transaction/loan-details/loan-details').then(
+            (component) => component.LoanDetailsComponent
+          ),
+        canActivate: [roleGuard],
+        data: { roles: ['admin'] }
+      },
+      {
         path: 'inventory/payments',
         loadComponent: () =>
           import('./transaction/loan-payment-component/loan-payment-component').then(

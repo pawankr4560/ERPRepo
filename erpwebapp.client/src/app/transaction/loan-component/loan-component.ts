@@ -8,9 +8,11 @@ import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSelectModule } from '@angular/material/select';
 import { MatStepperModule } from '@angular/material/stepper';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { Router } from '@angular/router';
 import {
   LoanService,
   Loan,
@@ -24,6 +26,7 @@ import {
   InterestCalculationType,
   InterestSettingService,
 } from '../../setting/interest-setting.service';
+import { finalize } from 'rxjs';
 
 interface EmiPreviewRow {
   installmentNo: number;
@@ -47,6 +50,7 @@ interface EmiPreviewRow {
     MatIconModule,
     MatSelectModule,
     MatStepperModule,
+    MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTableModule,
     MatDialogModule,
@@ -64,6 +68,10 @@ export class LoanComponent implements OnInit {
   customers: LoanCustomer[] = [];
   loanStatuses = ['Pending', 'Active', 'Closed', 'Defaulted'];
   isSaving = false;
+  isLoading = false;
+  isLoadingLoanData = false;
+  isLoadingInterestSetting = false;
+  isDeleting = false;
   systemInterestType: InterestCalculationType = 'Reducing';
   customerDetail: LoanCustomerDetail = this.createEmptyCustomerDetail();
 
@@ -100,6 +108,11 @@ export class LoanComponent implements OnInit {
 
   get hasGuarantor(): boolean {
     return !!this.customerDetail.guarantorName?.trim();
+  }
+
+  get isBusy(): boolean {
+    return this.isLoading || this.isLoadingLoanData || this.isLoadingInterestSetting ||
+      this.isSaving || this.isDeleting;
   }
 
   get isCustomerAadhaarDuplicate(): boolean {
@@ -158,12 +171,16 @@ export class LoanComponent implements OnInit {
     private loanService: LoanService,
     private dialog: MatDialog,
     private interestSettingService: InterestSettingService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
     this.loanService.loans$.subscribe((l) => (this.loans = l ?? []));
-    this.interestSettingService.load().subscribe((type) => {
+    this.isLoadingInterestSetting = true;
+    this.interestSettingService.load()
+      .pipe(finalize(() => (this.isLoadingInterestSetting = false)))
+      .subscribe((type) => {
       this.systemInterestType = type;
       if (!this.current.id) {
         this.current.interestCalculationType = type;
@@ -174,7 +191,12 @@ export class LoanComponent implements OnInit {
   }
 
   load() {
-    this.loanService.loadLoans().subscribe({ error: (e) => console.error('Load loans failed', e) });
+    this.isLoading = true;
+    this.loanService.loadLoans()
+      .pipe(finalize(() => (this.isLoading = false)))
+      .subscribe({
+        error: (error) => this.showApiError('Unable to load loans.', error),
+      });
   }
 
   get filteredLoans(): Loan[] {
@@ -235,6 +257,14 @@ export class LoanComponent implements OnInit {
     this.current.userId = userId;
     const selected = this.customers.find((customer) => customer.id === userId);
     this.current.userName = selected?.customerName ?? '';
+  }
+
+  openLoanDetails(loan: Loan): void {
+    if (loan.id == null) {
+      return;
+    }
+
+    this.router.navigate(['/home/inventory/transactions', loan.id]);
   }
 
   get selectedLoanCount(): number {
@@ -619,7 +649,10 @@ export class LoanComponent implements OnInit {
   }
 
   private loadLoanData() {
-    this.loanService.getLoanData().subscribe({
+    this.isLoadingLoanData = true;
+    this.loanService.getLoanData()
+      .pipe(finalize(() => (this.isLoadingLoanData = false)))
+      .subscribe({
       next: (data) => {
         this.customers = data.customerList ?? [];
         if (!this.current.id) {
@@ -636,7 +669,7 @@ export class LoanComponent implements OnInit {
           }
         }
       },
-      error: (e) => console.error('Failed to load loan data', e),
+      error: (error) => this.showApiError('Unable to load loan form data.', error),
     });
   }
 
@@ -901,11 +934,14 @@ export class LoanComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe((result) => {
       if (result) {
-        this.loanService.deleteLoan(loan.id as number).subscribe({
+        this.isDeleting = true;
+        this.loanService.deleteLoan(loan.id as number)
+          .pipe(finalize(() => (this.isDeleting = false)))
+          .subscribe({
           next: () => {
             this.load();
           },
-          error: (e) => console.error(e),
+          error: (error) => this.showApiError('Unable to delete the loan.', error),
         });
       }
     });

@@ -63,12 +63,91 @@ namespace WebApp.Service.Transaction
         {
             try
             {
-                var loan = await _dbContext.Loan
-                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+                var loan = await (
+                    from item in _dbContext.Loan.AsNoTracking()
+                    join user in _dbContext.Users.AsNoTracking()
+                        on item.UserId equals user.Id
+                    where item.Id == id && !item.IsDeleted
+                    select new LoanDto
+                    {
+                        Id = item.Id,
+                        UserId = item.UserId,
+                        UserName = $"{user.FirstName} {user.LastName}",
+                        LoanNumber = item.LoanNumber,
+                        LoanAmount = item.LoanAmount,
+                        Rate = item.Rate,
+                        EMI = item.EMI,
+                        Tenure = item.Tenure,
+                        StartDate = item.StartDate,
+                        EndDate = item.EndDate,
+                        Status = item.Status,
+                        Active = item.Active,
+                        CreatedDateTime = item.F_Created_Date_Time,
+                        UpdatedDateTime = item.F_Updated_Date_Time,
+                        CreatedBy = item.F_User_Index_Created
+                    })
+                    .FirstOrDefaultAsync();
 
-                return loan == null
-                    ? null
-                    : _mapper.Map<LoanDto>(loan);
+                if (loan == null)
+                    return null;
+
+                loan.CustomerDetail = await _dbContext.LoanCustomerDetail
+                    .AsNoTracking()
+                    .Where(x => x.LoanId == id && !x.IsDeleted)
+                    .Select(x => new LoanCustomerDetailRequestModel
+                    {
+                        CustomerAadhaarNo = x.CustomerAadhaarNo,
+                        CustomerMobileNo = x.CustomerMobileNo,
+                        CustomerAddress = x.CustomerAddress,
+                        CustomerCity = x.CustomerCity,
+                        CustomerState = x.CustomerState,
+                        CustomerPinCode = x.CustomerPinCode,
+                        GuarantorName = x.GuarantorName,
+                        GuarantorAadhaarNo = x.GuarantorAadhaarNo,
+                        GuarantorMobileNo = x.GuarantorMobileNo,
+                        GuarantorAddress = x.GuarantorAddress,
+                        GuarantorRelationship = x.GuarantorRelationship
+                    })
+                    .FirstOrDefaultAsync();
+
+                loan.EmiSchedules = await _dbContext.LoanEMISchedule
+                    .AsNoTracking()
+                    .Where(x => x.LoanId == id && !x.IsDeleted)
+                    .OrderBy(x => x.InstallmentNo)
+                    .Select(x => new LoanEMIScheduleDto
+                    {
+                        Id = x.Id,
+                        LoanId = x.LoanId,
+                        InstallmentNo = x.InstallmentNo,
+                        DueDate = x.DueDate,
+                        EMIAmount = x.EMIAmount,
+                        PrincipalAmount = x.PrincipalAmount,
+                        InterestAmount = x.InterestAmount,
+                        OutstandingBalance = x.OutstandingBalance,
+                        IsPaid = x.IsPaid,
+                        PaidDate = x.PaidDate
+                    })
+                    .ToListAsync();
+
+                loan.Payments = await _dbContext.LoanPayment
+                    .AsNoTracking()
+                    .Where(x => x.LoanId == id && !x.IsDeleted)
+                    .OrderByDescending(x => x.PaymentDate)
+                    .Select(x => new LoanPaymentDto
+                    {
+                        Id = x.Id,
+                        LoanId = x.LoanId,
+                        ScheduleId = x.ScheduleId,
+                        AmountPaid = x.AmountPaid,
+                        PaymentDate = x.PaymentDate,
+                        TransactionId = x.TransactionId,
+                        PaymentMode = x.PaymentMode,
+                        PaymentStatus = x.PaymentStatus,
+                        Remarks = x.Remarks
+                    })
+                    .ToListAsync();
+
+                return loan;
             }
             catch (Exception ex)
             {

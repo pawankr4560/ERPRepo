@@ -8,7 +8,7 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { Subject, takeUntil } from 'rxjs';
+import { finalize, Subject, switchMap, takeUntil } from 'rxjs';
 import { Router } from '@angular/router';
 
 import { ConfirmDialogComponent } from '../../../users/confirm-dialog-component/confirm-dialog-component';
@@ -36,6 +36,11 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
   cars: Car[] = [];
   users: BookingUser[] = [];
   isLoading = false;
+  isMutating = false;
+
+  get isBusy(): boolean {
+    return this.isLoading || this.isMutating;
+  }
 
   displayedColumns = [
     'bookingNumber',
@@ -99,9 +104,10 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
 
   createBooking(): void {
     this.isLoading = true;
-    this.bookingService.loadDialogOptions().subscribe({
+    this.bookingService.loadDialogOptions()
+      .pipe(finalize(() => (this.isLoading = false)))
+      .subscribe({
       next: ({ cars, users }) => {
-        this.isLoading = false;
         this.cars = cars;
         this.users = users;
 
@@ -120,7 +126,6 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
         this.openDialog('create');
       },
       error: (error) => {
-        this.isLoading = false;
         this.notify(this.errorMessage(error, 'Unable to load booking options'));
       },
     });
@@ -152,7 +157,10 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
     ref.afterClosed().subscribe((confirmed) => {
       if (!confirmed) return;
 
-      this.bookingService.deleteBooking(booking.id).subscribe({
+      this.isMutating = true;
+      this.bookingService.deleteBooking(booking.id)
+        .pipe(finalize(() => (this.isMutating = false)))
+        .subscribe({
         next: () => {
           this.notify('Booking deleted successfully');
           this.refreshOptions();
@@ -164,21 +172,16 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
 
   private loadData(): void {
     this.isLoading = true;
-    this.bookingService.loadDialogOptions().subscribe({
-      next: ({ cars, users }) => {
+    this.bookingService.loadDialogOptions().pipe(
+      switchMap(({ cars, users }) => {
         this.cars = cars;
         this.users = users;
-        this.bookingService.loadBookings().subscribe({
-          next: () => (this.isLoading = false),
-          error: (error) => {
-            this.isLoading = false;
-            this.notify(this.errorMessage(error, 'Unable to load bookings'));
-          },
-        });
-      },
+        return this.bookingService.loadBookings();
+      }),
+      finalize(() => (this.isLoading = false))
+    ).subscribe({
       error: (error) => {
-        this.isLoading = false;
-        this.notify(this.errorMessage(error, 'Unable to load booking options'));
+        this.notify(this.errorMessage(error, 'Unable to load booking data'));
       },
     });
   }
@@ -200,7 +203,8 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
           ? this.bookingService.createBooking(result)
           : this.bookingService.updateBooking(result);
 
-      request.subscribe({
+      this.isMutating = true;
+      request.pipe(finalize(() => (this.isMutating = false))).subscribe({
         next: () => {
           this.notify(
             mode === 'create'
@@ -221,11 +225,16 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private refreshOptions(): void {
-    this.bookingService.loadDialogOptions().subscribe({
+    this.isLoading = true;
+    this.bookingService.loadDialogOptions()
+      .pipe(finalize(() => (this.isLoading = false)))
+      .subscribe({
       next: ({ cars, users }) => {
         this.cars = cars;
         this.users = users;
       },
+      error: (error) =>
+        this.notify(this.errorMessage(error, 'Unable to refresh booking options')),
     });
   }
 

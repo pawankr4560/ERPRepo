@@ -128,6 +128,12 @@ export class LoanService {
       );
   }
 
+  getLoanById(id: number) {
+    return this.http
+      .get<any>(`${this.apiUrl}/api/Loan/${id}`, { headers: this.headers })
+      .pipe(map((loan) => this.normalizeLoan(loan)));
+  }
+
   createLoan(loan: Loan) {
     return this.http
       .post<any>(`${this.apiUrl}/api/Loan`, this.toLoanPayload(loan), { headers: this.headers })

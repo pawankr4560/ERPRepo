@@ -10,7 +10,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
-import { forkJoin, Subject, takeUntil } from 'rxjs';
+import { finalize, forkJoin, Subject, takeUntil } from 'rxjs';
 
 import { ConfirmDialogComponent } from '../../../users/confirm-dialog-component/confirm-dialog-component';
 import { Booking } from '../../booking/interfaces/booking';
@@ -48,7 +48,12 @@ export class BookingPaymentComponent implements OnInit, OnDestroy {
   editing = false;
   isLoading = false;
   isSaving = false;
+  isDeleting = false;
   selectedBookingId?: number;
+
+  get isBusy(): boolean {
+    return this.isLoading || this.isSaving || this.isDeleting;
+  }
 
   private readonly destroy$ = new Subject<void>();
 
@@ -131,15 +136,13 @@ export class BookingPaymentComponent implements OnInit, OnDestroy {
     forkJoin({
       bookings: this.bookingService.loadBookings(),
       payments: this.paymentService.loadPayments(this.selectedBookingId),
-    }).subscribe({
+    }).pipe(finalize(() => (this.isLoading = false))).subscribe({
       next: () => {
-        this.isLoading = false;
         if (this.selectedBookingId && !this.editing) {
           this.startCreate(this.selectedBookingId);
         }
       },
       error: (error) => {
-        this.isLoading = false;
         this.showError(error, 'Unable to load booking payments.');
       },
     });
@@ -252,7 +255,10 @@ export class BookingPaymentComponent implements OnInit, OnDestroy {
     ref.afterClosed().subscribe((confirmed) => {
       if (!confirmed) return;
 
-      this.paymentService.deletePayment(payment.id).subscribe({
+      this.isDeleting = true;
+      this.paymentService.deletePayment(payment.id)
+        .pipe(finalize(() => (this.isDeleting = false)))
+        .subscribe({
         next: () => {
           this.snackBar.open('Payment deleted successfully.', 'Close', {
             duration: 3000,

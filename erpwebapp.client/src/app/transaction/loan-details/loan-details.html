@@ -1,0 +1,87 @@
+<div class="details-page">
+  <div class="loading-card" *ngIf="isLoading" role="status" aria-live="polite">
+    <mat-spinner diameter="42"></mat-spinner>
+    <span>Loading loan details...</span>
+  </div>
+  <div class="loading-card error-card" *ngIf="!isLoading && loadError">
+    <mat-icon>error_outline</mat-icon><p>{{ loadError }}</p>
+    <button mat-stroked-button type="button" (click)="backToLoans()">Back to loans</button>
+  </div>
+
+  <ng-container *ngIf="!isLoading && loan as item">
+    <header class="details-header">
+      <div class="title-block">
+        <button mat-icon-button type="button" (click)="backToLoans()" aria-label="Back to loan list"><mat-icon>arrow_back</mat-icon></button>
+        <div><h1>{{ item.loanNumber }}</h1><p>{{ item.userName || item.userId || '-' }}</p></div>
+      </div>
+      <div class="export-actions">
+        <button mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Print</button>
+        <button mat-stroked-button class="pdf-button" type="button" (click)="exportPdf()"><mat-icon>picture_as_pdf</mat-icon> Export PDF</button>
+        <button mat-stroked-button class="excel-button" type="button" (click)="exportExcel()"><mat-icon>table_chart</mat-icon> Export Excel</button>
+      </div>
+    </header>
+
+    <section class="summary-grid">
+      <div><span>Loan Amount</span><strong>INR {{ item.loanAmount | number:'1.2-2' }}</strong></div>
+      <div><span>Interest Rate</span><strong>{{ item.rate || 0 | number:'1.2-2' }}%</strong></div>
+      <div><span>Tenure</span><strong>{{ item.tenure || 0 }} months</strong></div>
+      <div><span>Monthly EMI</span><strong>INR {{ item.emi || 0 | number:'1.2-2' }}</strong></div>
+      <div><span>Start Date</span><strong>{{ item.startDate | date:'dd MMM yyyy' }}</strong></div>
+      <div><span>End Date</span><strong>{{ item.endDate | date:'dd MMM yyyy' }}</strong></div>
+      <div><span>Status</span><strong class="status-pill" [ngClass]="getStatusClass(item.status)">{{ item.status || 'Pending' }}</strong></div>
+      <div><span>Total Interest</span><strong>INR {{ totalInterest | number:'1.2-2' }}</strong></div>
+    </section>
+
+    <section class="progress-card">
+      <div><h2>Repayment progress</h2><p>{{ paidCount }} of {{ schedules.length }} installments paid</p></div>
+      <div class="progress-value">{{ paidProgress }}%</div>
+      <div class="progress-track"><div class="progress-fill" [style.width.%]="paidProgress"></div></div>
+    </section>
+
+    <section class="verification-grid" *ngIf="item.customerDetail as detail">
+      <div class="card"><h2>Customer Verification</h2><dl>
+        <div><dt>Aadhaar</dt><dd>{{ detail.customerAadhaarNo || '-' }}</dd></div>
+        <div><dt>Mobile</dt><dd>{{ detail.customerMobileNo || '-' }}</dd></div>
+        <div><dt>Address</dt><dd>{{ detail.customerAddress || '-' }}</dd></div>
+        <div><dt>City</dt><dd>{{ detail.customerCity || '-' }}</dd></div>
+        <div><dt>State</dt><dd>{{ detail.customerState || '-' }}</dd></div>
+        <div><dt>PIN Code</dt><dd>{{ detail.customerPinCode || '-' }}</dd></div>
+      </dl></div>
+      <div class="card"><h2>Guarantor</h2>
+        <dl *ngIf="detail.guarantorName; else noGuarantor">
+          <div><dt>Name</dt><dd>{{ detail.guarantorName }}</dd></div>
+          <div><dt>Aadhaar</dt><dd>{{ detail.guarantorAadhaarNo || '-' }}</dd></div>
+          <div><dt>Mobile</dt><dd>{{ detail.guarantorMobileNo || '-' }}</dd></div>
+          <div><dt>Address</dt><dd>{{ detail.guarantorAddress || '-' }}</dd></div>
+          <div><dt>Relationship</dt><dd>{{ detail.guarantorRelationship || '-' }}</dd></div>
+        </dl><ng-template #noGuarantor><p class="muted">No guarantor recorded.</p></ng-template>
+      </div>
+    </section>
+
+    <section class="card table-card"><h2>EMI Schedule</h2><div class="table-wrap"><table>
+      <thead><tr><th>No.</th><th>Due Date</th><th>EMI</th><th>Principal</th><th>Interest</th><th>Balance</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr *ngIf="!schedules.length"><td colspan="7" class="empty-row">No EMI schedule found.</td></tr>
+        <tr *ngFor="let schedule of schedules">
+          <td>{{ schedule.installmentNo }}</td><td>{{ schedule.dueDate | date:'dd MMM yyyy' }}</td>
+          <td>INR {{ schedule.emiAmount | number:'1.2-2' }}</td><td>INR {{ schedule.principalAmount | number:'1.2-2' }}</td>
+          <td>INR {{ schedule.interestAmount | number:'1.2-2' }}</td><td>INR {{ schedule.outstandingBalance | number:'1.2-2' }}</td>
+          <td><span class="payment-status" [class.paid]="schedule.isPaid">{{ schedule.isPaid ? 'Paid' : 'Pending' }}</span></td>
+        </tr>
+      </tbody>
+      <tfoot *ngIf="schedules.length"><tr><td colspan="2">Total</td><td>INR {{ totalEmi | number:'1.2-2' }}</td><td></td>
+        <td>INR {{ totalInterest | number:'1.2-2' }}</td><td colspan="2"></td></tr></tfoot>
+    </table></div></section>
+
+    <section class="card"><h2>Payments</h2>
+      <p class="muted" *ngIf="!item.payments?.length">No payments recorded.</p>
+      <div class="payment-list" *ngIf="item.payments?.length">
+        <div class="payment-row" *ngFor="let payment of item.payments">
+          <strong>INR {{ payment.amountPaid | number:'1.2-2' }}</strong><span>{{ payment.paymentDate | date:'dd MMM yyyy' }}</span>
+          <span>{{ payment.paymentMode || 'Mode N/A' }}</span><span>{{ payment.transactionId }}</span>
+          <span class="payment-status paid">{{ payment.paymentStatus }}</span>
+        </div>
+      </div>
+    </section>
+  </ng-container>
+</div>

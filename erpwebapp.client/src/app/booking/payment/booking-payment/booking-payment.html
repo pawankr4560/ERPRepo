@@ -163,7 +163,7 @@
       mat-icon-button
       type="button"
       matTooltip="Refresh payments"
-      [disabled]="isLoading"
+      [disabled]="isBusy"
       (click)="refresh()"
     >
       <mat-icon>refresh</mat-icon>

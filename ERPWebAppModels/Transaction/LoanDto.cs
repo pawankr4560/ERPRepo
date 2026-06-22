@@ -33,5 +33,11 @@
         public int CreatedBy { get; set; }
 
         public int UpdatedBy { get; set; }
+
+        public LoanCustomerDetailRequestModel? CustomerDetail { get; set; }
+
+        public List<LoanEMIScheduleDto> EmiSchedules { get; set; } = [];
+
+        public List<LoanPaymentDto> Payments { get; set; } = [];
     }
 }

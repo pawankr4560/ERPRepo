@@ -7,6 +7,9 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
+    "test:loan": "ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/transaction/loan-component/loan-component.spec.ts --include=src/app/transaction/loan-details/loan-details.spec.ts --include=src/app/transaction/loan-payment-component/loan-payment-component.spec.ts",
+    "test:dashboard": "ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/dashboard/dashboard.spec.ts --include=src/app/dashboard/dashboard-service.spec.ts",
+    "test:booking": "ng test --watch=false --browsers=ChromeHeadlessCI --include=src/app/booking/**/*.spec.ts",
     "prestart": "node aspnetcore-https",
     "start:windows": "ng serve --ssl --ssl-cert \"%APPDATA%\\ASP.NET\\https\\%npm_package_name%.pem\" --ssl-key \"%APPDATA%\\ASP.NET\\https\\%npm_package_name%.key\" --host=127.0.0.1",
     "start:default": "ng serve --ssl --ssl-cert \"$HOME/.aspnet/https/${npm_package_name}.pem\" --ssl-key \"$HOME/.aspnet/https/${npm_package_name}.key\" --host=127.0.0.1"

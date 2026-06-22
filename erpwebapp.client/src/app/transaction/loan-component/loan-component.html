@@ -1,11 +1,17 @@
 <div class="loan-container">
+  <div class="api-loader-overlay" *ngIf="isBusy" role="status" aria-live="polite">
+    <div class="api-loader-card">
+      <mat-spinner diameter="42"></mat-spinner>
+      <span>{{ isSaving ? 'Saving loan...' : isDeleting ? 'Deleting loan...' : 'Loading loan data...' }}</span>
+    </div>
+  </div>
   <div class="loan-header">
     <div>
       <h1>Loan Transactions</h1>
       <p>Manage loans, EMI schedules, and payment tracking.</p>
     </div>
 
-    <button mat-raised-button color="primary" (click)="startCreate()">
+    <button mat-raised-button color="primary" (click)="startCreate()" [disabled]="isBusy">
       <mat-icon>add</mat-icon>
       New Loan
     </button>
@@ -32,17 +38,8 @@
     </mat-form-field>
 
     <div class="toolbar-actions">
-      <button mat-icon-button class="toolbar-icon refresh-action" (click)="load()" aria-label="Refresh loans">
+      <button mat-icon-button class="toolbar-icon refresh-action" (click)="load()" [disabled]="isBusy" aria-label="Refresh loans">
         <mat-icon>refresh</mat-icon>
-      </button>
-      <button mat-icon-button class="toolbar-icon print-action" (click)="printSelected()" [disabled]="selectedLoanCount === 0" aria-label="Print selected loan">
-        <mat-icon>print</mat-icon>
-      </button>
-      <button mat-icon-button class="toolbar-icon pdf-action" (click)="exportSelectedAsPdf()" [disabled]="selectedLoanCount === 0" aria-label="Export selected loan to PDF">
-        <mat-icon>picture_as_pdf</mat-icon>
-      </button>
-      <button mat-icon-button class="toolbar-icon csv-action" (click)="exportSelectedAsExcel()" [disabled]="selectedLoanCount === 0" aria-label="Export selected loan to CSV">
-        <mat-icon>table_chart</mat-icon>
       </button>
     </div>
   </div>
@@ -564,7 +561,6 @@
     <table class="loan-table">
       <thead>
         <tr>
-          <th class="select-col"></th>
           <th>Loan</th>
           <th>Customer</th>
           <th>Amount</th>
@@ -578,17 +574,17 @@
       </thead>
       <tbody>
         <tr *ngIf="!pagedLoans.length">
-          <td colspan="9" class="empty-row">No loans found.</td>
+          <td colspan="8" class="empty-row">No loans found.</td>
         </tr>
 
-        <tr *ngFor="let loan of pagedLoans" [class.selected-row]="loan.isSelected">
-          <td class="select-col">
-            <mat-checkbox
-              [checked]="loan.isSelected"
-              (change)="onLoanSelected(loan)"
-              [aria-label]="'Select loan ' + loan.loanNumber"
-            ></mat-checkbox>
-          </td>
+        <tr
+          *ngFor="let loan of pagedLoans"
+          class="clickable-row"
+          tabindex="0"
+          (click)="openLoanDetails(loan)"
+          (keydown.enter)="openLoanDetails(loan)"
+          [attr.aria-label]="'View details for loan ' + loan.loanNumber"
+        >
           <td>
             <strong>{{ loan.loanNumber }}</strong>
           </td>
@@ -614,10 +610,10 @@
             </div>
           </td>
           <td class="actions-col">
-            <button mat-icon-button color="primary" (click)="startEdit(loan)" aria-label="Edit loan">
+            <button mat-icon-button color="primary" (click)="$event.stopPropagation(); startEdit(loan)" aria-label="Edit loan">
               <mat-icon>edit</mat-icon>
             </button>
-            <button mat-icon-button color="warn" (click)="remove(loan)" aria-label="Delete loan">
+            <button mat-icon-button color="warn" (click)="$event.stopPropagation(); remove(loan)" aria-label="Delete loan">
               <mat-icon>delete</mat-icon>
             </button>
           </td>

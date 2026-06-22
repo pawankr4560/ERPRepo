@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
-import { Subject, takeUntil } from 'rxjs';
+import { finalize, Subject, takeUntil } from 'rxjs';
 
 import {
   DashboardInstallment,
@@ -112,14 +112,15 @@ export class Dashboard implements OnInit, OnDestroy {
     this.isLoading = true;
     this.dashboardService
       .loadSummary()
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => (this.isLoading = false))
+      )
       .subscribe({
         next: (summary) => {
           this.summary = summary;
-          this.isLoading = false;
         },
         error: (error) => {
-          this.isLoading = false;
           const message =
             error?.error?.errorMessage ||
             error?.error?.message ||

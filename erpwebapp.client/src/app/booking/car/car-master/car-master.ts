@@ -14,7 +14,7 @@ import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { Subject, takeUntil } from 'rxjs';
+import { finalize, Subject, switchMap, takeUntil } from 'rxjs';
 
 import { ConfirmDialogComponent } from '../../../users/confirm-dialog-component/confirm-dialog-component';
 import { CarDialog } from '../car-dialog/car-dialog';
@@ -39,6 +39,11 @@ export class CarMaster implements OnInit, AfterViewInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
 
   isLoading = false;
+  isMutating = false;
+
+  get isBusy(): boolean {
+    return this.isLoading || this.isMutating;
+  }
   categories: CarCategory[] = [];
   displayedColumns = [
     'image',
@@ -130,7 +135,10 @@ export class CarMaster implements OnInit, AfterViewInit, OnDestroy {
     dialogRef.afterClosed().subscribe((confirmed) => {
       if (!confirmed) return;
 
-      this.carService.deleteCar(car.id).subscribe({
+      this.isMutating = true;
+      this.carService.deleteCar(car.id)
+        .pipe(finalize(() => (this.isMutating = false)))
+        .subscribe({
         next: () => {
           this.paginator?.firstPage();
           this.notify('Car deleted successfully');
@@ -142,20 +150,15 @@ export class CarMaster implements OnInit, AfterViewInit, OnDestroy {
 
   private loadData(): void {
     this.isLoading = true;
-    this.carService.loadCategories().subscribe({
-      next: (categories) => {
+    this.carService.loadCategories().pipe(
+      switchMap((categories) => {
         this.categories = categories ?? [];
-        this.carService.loadCars().subscribe({
-          next: () => (this.isLoading = false),
-          error: (error) => {
-            this.isLoading = false;
-            this.notify(this.errorMessage(error, 'Unable to load cars'));
-          },
-        });
-      },
+        return this.carService.loadCars();
+      }),
+      finalize(() => (this.isLoading = false))
+    ).subscribe({
       error: (error) => {
-        this.isLoading = false;
-        this.notify(this.errorMessage(error, 'Unable to load car categories'));
+        this.notify(this.errorMessage(error, 'Unable to load car data'));
       },
     });
   }
@@ -177,7 +180,8 @@ export class CarMaster implements OnInit, AfterViewInit, OnDestroy {
           ? this.carService.createCar(result)
           : this.carService.updateCar(result);
 
-      request.subscribe({
+      this.isMutating = true;
+      request.pipe(finalize(() => (this.isMutating = false))).subscribe({
         next: () =>
           this.notify(
             mode === 'create'

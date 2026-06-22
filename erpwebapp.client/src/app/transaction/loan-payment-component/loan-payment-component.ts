@@ -6,10 +6,11 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { Subject, takeUntil } from 'rxjs';
+import { finalize, forkJoin, Subject, takeUntil } from 'rxjs';
 import { ConfirmDialogComponent } from '../../users/confirm-dialog-component/confirm-dialog-component';
 import {
   Loan,
@@ -33,6 +34,7 @@ import {
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatProgressSpinnerModule,
     MatSelectModule,
     MatSnackBarModule,
     MatTooltipModule,
@@ -48,6 +50,8 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
   isLoading = false;
   isSaving = false;
   isLoadingInstallments = false;
+  isLoadingPayment = false;
+  isDeleting = false;
   unpaidInstallments: UnpaidInstallment[] = [];
 
   readonly paymentModes = ['Cash', 'Bank Transfer', 'UPI', 'Card', 'Cheque'];
@@ -56,6 +60,11 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
 
   current: LoanPayment = this.createEmptyPayment();
   private readonly destroyed$ = new Subject<void>();
+
+  get isBusy(): boolean {
+    return this.isLoading || this.isSaving || this.isLoadingInstallments ||
+      this.isLoadingPayment || this.isDeleting;
+  }
 
   constructor(
     private paymentService: LoanPaymentService,
@@ -145,14 +154,12 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
 
   refresh(): void {
     this.isLoading = true;
-    this.loanService.loadLoans().subscribe({
-      error: (error) => this.showError('Unable to load loans.', error),
-    });
-    this.paymentService.loadPayments().subscribe({
-      next: () => (this.isLoading = false),
+    forkJoin({
+      loans: this.loanService.loadLoans(),
+      payments: this.paymentService.loadPayments(),
+    }).pipe(finalize(() => (this.isLoading = false))).subscribe({
       error: (error) => {
-        this.isLoading = false;
-        this.showError('Unable to load payments.', error);
+        this.showError('Unable to load loans and payments.', error);
       },
     });
   }
@@ -168,7 +175,10 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.paymentService.getPayment(payment.id).subscribe({
+    this.isLoadingPayment = true;
+    this.paymentService.getPayment(payment.id)
+      .pipe(finalize(() => (this.isLoadingPayment = false)))
+      .subscribe({
       next: (result) => {
         this.current = {
           ...result,
@@ -280,7 +290,10 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
         return;
       }
 
-      this.paymentService.deletePayment(payment.id as number).subscribe({
+      this.isDeleting = true;
+      this.paymentService.deletePayment(payment.id as number)
+        .pipe(finalize(() => (this.isDeleting = false)))
+        .subscribe({
         next: () => {
           this.snackBar.open('Payment deleted successfully.', 'Close', {
             duration: 3000,
