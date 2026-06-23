@@ -916,7 +916,7 @@ export class LoanComponent implements OnInit {
       rate > 0 &&
       rate <= 100 &&
       Number.isFinite(tenure) &&
-      tenure >= 12 &&
+      tenure >= 6 &&
       tenure <= 600 &&
       !!this.current.status?.trim()
     );
@@ -986,7 +986,7 @@ export class LoanComponent implements OnInit {
       Number(this.current.loanAmount) > 0 &&
       Number(this.current.rate) > 0 &&
       Number(this.current.rate) <= 100 &&
-      Number(this.current.tenure) >= 12 &&
+      Number(this.current.tenure) >= 6 &&
       Number(this.current.tenure) <= 600 &&
       !!this.current.startDate &&
       !!this.current.interestCalculationType

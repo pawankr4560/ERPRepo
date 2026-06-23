@@ -239,4 +239,19 @@ describe('LoanComponent', () => {
     expect(component.previewTotalPayable).toBeGreaterThan(0);
     expect(component.previewTotalInterest).toBeGreaterThanOrEqual(0);
   });
+
+  it('accepts a six-month tenure and rejects shorter tenure', () => {
+    component.current = {
+      ...loan(1),
+      tenure: 6,
+      startDate: '2026-01-01',
+      interestCalculationType: 'Reducing',
+    };
+
+    expect(component.tenureYears).toBe(0.5);
+    expect(component.isLoanStepValid()).toBeTrue();
+
+    component.current.tenure = 5;
+    expect(component.isLoanStepValid()).toBeFalse();
+  });
 });

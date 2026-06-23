@@ -124,13 +124,13 @@
           [(ngModel)]="tenureYears"
           name="tenure"
           #tenureControl="ngModel"
-          min="1"
+          min="0.5"
           max="50"
-          step="1"
+          step="0.5"
           required
         />
         <mat-error *ngIf="tenureControl.errors?.['required']">Tenure is required.</mat-error>
-        <mat-error *ngIf="tenureControl.errors?.['min']">Tenure must be at least one year.</mat-error>
+        <mat-error *ngIf="tenureControl.errors?.['min']">Tenure must be at least 6 months.</mat-error>
         <mat-error *ngIf="tenureControl.errors?.['max']">Tenure cannot exceed 50 years.</mat-error>
       </mat-form-field>
 
@@ -418,12 +418,12 @@
                 matInput
                 type="number"
                 [(ngModel)]="tenureYears"
-                min="1"
+                min="0.5"
                 max="50"
-                step="1"
+                step="0.5"
                 required
               />
-              <mat-error>Tenure must be between 1 and 50 years.</mat-error>
+              <mat-error>Tenure must be between 6 months and 50 years.</mat-error>
             </mat-form-field>
 
             <mat-form-field appearance="outline">

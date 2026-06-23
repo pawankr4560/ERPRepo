@@ -14,6 +14,10 @@
         public double Rate { get; set; }
         public bool interestCalculationType { get; set; }
 
+        [System.ComponentModel.DataAnnotations.Range(
+            6,
+            600,
+            ErrorMessage = "Tenure must be between 6 and 600 months.")]
         public int Tenure { get; set; }
 
         public DateTime StartDate { get; set; }
