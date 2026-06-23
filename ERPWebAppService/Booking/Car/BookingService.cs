@@ -1,64 +1,48 @@
 using ERPWebAppModels.Booking;
-using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
 using WebApp.Data;
+using WebApp.Data.Entity;
+using BookingEntity = ERPWebAppData.Entity.Booking;
+using CarEntity = ERPWebAppData.Entity.Car;
 
 namespace ERPWebAppService.Booking.Car;
 
 public class BookingService : IBookingService
 {
-    private static readonly string[] ValidStatuses =
-        ["Pending", "Confirmed", "Completed", "Cancelled"];
+    private static readonly string[] ValidStatuses = ["Pending", "Confirmed", "Completed", "Cancelled"];
+    private readonly MongoDbContext _context;
+    private readonly IMongoSequenceService _sequences;
 
-    private readonly WebAppDbContext _context;
-
-    public BookingService(WebAppDbContext context)
+    public BookingService(MongoDbContext context, IMongoSequenceService sequences)
     {
         _context = context;
+        _sequences = sequences;
     }
 
-    public async Task<IEnumerable<BookingDto>> GetAllAsync()
-    {
-        return await BookingQuery()
-            .OrderByDescending(x => x.CreatedDate)
-            .ToListAsync();
-    }
+    public async Task<IEnumerable<BookingDto>> GetAllAsync() =>
+        (await BuildDtosAsync(await _context.Bookings.Find(Builders<BookingEntity>.Filter.Empty)
+            .SortByDescending(x => x.CreatedDate).ToListAsync()));
 
-    public Task<BookingDto?> GetByIdAsync(int id)
-    {
-        return BookingQuery().FirstOrDefaultAsync(x => x.Id == id);
-    }
+    public async Task<BookingDto?> GetByIdAsync(int id) =>
+        (await BuildDtosAsync(await _context.Bookings.Find(x => x.Id == id).ToListAsync()))
+        .FirstOrDefault();
 
     public async Task<BookingOptionsDto> GetOptionsAsync()
     {
+        var cars = await _context.Cars.Find(x =>
+            x.Status != "Maintenance" && x.Status != "Inactive").ToListAsync();
+        var users = await _context.Users.Find(x => x.IsActive && !x.IsDeleted).ToListAsync();
         return new BookingOptionsDto
         {
-            Cars = await _context.Cars
-                .AsNoTracking()
-                .Where(x => x.Status != "Maintenance" && x.Status != "Inactive")
-                .OrderBy(x => x.Brand)
-                .ThenBy(x => x.Model)
-                .Select(x => new BookingOptionCarDto
-                {
-                    Id = x.Id,
-                    Brand = x.Brand,
-                    Model = x.Model,
-                    PricePerDay = x.PricePerDay,
-                    Status = x.Status
-                })
-                .ToListAsync(),
-            Users = await _context.Users
-                .AsNoTracking()
-                .Where(x => x.IsActive && !x.IsDeleted)
-                .OrderBy(x => x.FirstName)
-                .ThenBy(x => x.LastName)
-                .Select(x => new BookingOptionUserDto
-                {
-                    Id = x.Id,
-                    FirstName = x.FirstName ?? "",
-                    LastName = x.LastName ?? "",
-                    Email = x.Email
-                })
-                .ToListAsync()
+            Cars = cars.OrderBy(x => x.Brand).ThenBy(x => x.Model).Select(x => new BookingOptionCarDto
+            {
+                Id = x.Id, Brand = x.Brand, Model = x.Model,
+                PricePerDay = x.PricePerDay, Status = x.Status
+            }).ToList(),
+            Users = users.OrderBy(x => x.FirstName).ThenBy(x => x.LastName).Select(x => new BookingOptionUserDto
+            {
+                Id = x.Id, FirstName = x.FirstName, LastName = x.LastName, Email = x.Email
+            }).ToList()
         };
     }
 
@@ -66,34 +50,23 @@ public class BookingService : IBookingService
     {
         ValidateDates(dto.PickupDate, dto.ReturnDate, true);
         await ValidateUserAsync(dto.UserId);
-
         var car = await GetCarAsync(dto.CarId);
         if (car.Status is "Maintenance" or "Inactive")
-        {
             throw new InvalidOperationException("Car is not available for booking.");
-        }
-
         await EnsureCarIsAvailableAsync(dto.CarId, dto.PickupDate, dto.ReturnDate);
-
-        var totalDays = CalculateTotalDays(dto.PickupDate, dto.ReturnDate);
-        var booking = new ERPWebAppData.Entity.Booking
+        var days = CalculateTotalDays(dto.PickupDate, dto.ReturnDate);
+        var booking = new BookingEntity
         {
+            Id = await _sequences.GetNextAsync("Bookings"),
             BookingNumber = await GenerateBookingNumberAsync(),
-            UserId = dto.UserId.Trim(),
-            CarId = dto.CarId,
-            PickupDate = dto.PickupDate,
-            ReturnDate = dto.ReturnDate,
-            TotalDays = totalDays,
-            Amount = totalDays * car.PricePerDay,
-            Status = "Pending",
-            PaymentStatus = "Pending",
-            CreatedDate = DateTime.UtcNow
+            UserId = dto.UserId.Trim(), CarId = dto.CarId,
+            PickupDate = dto.PickupDate, ReturnDate = dto.ReturnDate,
+            TotalDays = days, Amount = days * car.PricePerDay,
+            Status = "Pending", PaymentStatus = "Pending", CreatedDate = DateTime.UtcNow
         };
-
-        _context.Bookings.Add(booking);
-        car.Status = "Booked";
-        await _context.SaveChangesAsync();
-
+        await _context.Bookings.InsertOneAsync(booking);
+        await _context.Cars.UpdateOneAsync(x => x.Id == car.Id,
+            Builders<CarEntity>.Update.Set(x => x.Status, "Booked"));
         return (await GetByIdAsync(booking.Id))!;
     }
 
@@ -102,219 +75,127 @@ public class BookingService : IBookingService
         ValidateDates(dto.PickupDate, dto.ReturnDate, false);
         ValidateStatus(dto.Status);
         await ValidateUserAsync(dto.UserId);
-
-        var booking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
-        if (booking is null)
-        {
-            return null;
-        }
-
+        var booking = await _context.Bookings.Find(x => x.Id == id).FirstOrDefaultAsync();
+        if (booking == null) return null;
         var oldCarId = booking.CarId;
         var car = await GetCarAsync(dto.CarId);
         if (car.Status is "Maintenance" or "Inactive")
-        {
             throw new InvalidOperationException("Car is not available for booking.");
-        }
-
         if (!dto.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
-        {
-            await EnsureCarIsAvailableAsync(
-                dto.CarId,
-                dto.PickupDate,
-                dto.ReturnDate,
-                booking.Id);
-        }
+            await EnsureCarIsAvailableAsync(dto.CarId, dto.PickupDate, dto.ReturnDate, id);
 
-        var totalDays = CalculateTotalDays(dto.PickupDate, dto.ReturnDate);
+        var days = CalculateTotalDays(dto.PickupDate, dto.ReturnDate);
         booking.UserId = dto.UserId.Trim();
         booking.CarId = dto.CarId;
         booking.PickupDate = dto.PickupDate;
         booking.ReturnDate = dto.ReturnDate;
-        booking.TotalDays = totalDays;
-        booking.Amount = totalDays * car.PricePerDay;
+        booking.TotalDays = days;
+        booking.Amount = days * car.PricePerDay;
         booking.Status = Normalize(dto.Status);
         await RefreshPaymentStatusAsync(booking);
-
-        await _context.SaveChangesAsync();
+        await _context.Bookings.ReplaceOneAsync(x => x.Id == id, booking);
         await RefreshCarStatusAsync(oldCarId);
-        if (dto.CarId != oldCarId)
-        {
-            await RefreshCarStatusAsync(dto.CarId);
-        }
-
+        if (oldCarId != dto.CarId) await RefreshCarStatusAsync(dto.CarId);
         return await GetByIdAsync(id);
     }
 
     public async Task<bool> DeleteBookingAsync(int id)
     {
-        var booking = await _context.Bookings.FirstOrDefaultAsync(x => x.Id == id);
-        if (booking is null)
-        {
-            return false;
-        }
-
-        var carId = booking.CarId;
-        _context.Bookings.Remove(booking);
-        await _context.SaveChangesAsync();
-        await RefreshCarStatusAsync(carId);
+        var booking = await _context.Bookings.Find(x => x.Id == id).FirstOrDefaultAsync();
+        if (booking == null) return false;
+        await _context.Bookings.DeleteOneAsync(x => x.Id == id);
+        await RefreshCarStatusAsync(booking.CarId);
         return true;
     }
 
-    private IQueryable<BookingDto> BookingQuery()
+    private async Task<List<BookingDto>> BuildDtosAsync(List<BookingEntity> bookings)
     {
-        return _context.Bookings
-            .AsNoTracking()
-            .Select(x => new BookingDto
+        var users = await _context.Users.Find(Builders<User>.Filter.In(
+            x => x.Id, bookings.Select(x => x.UserId).Distinct())).ToListAsync();
+        var cars = await _context.Cars.Find(Builders<CarEntity>.Filter.In(
+            x => x.Id, bookings.Select(x => x.CarId).Distinct())).ToListAsync();
+        var userById = users.ToDictionary(x => x.Id);
+        var carById = cars.ToDictionary(x => x.Id);
+        return bookings.Select(x =>
+        {
+            userById.TryGetValue(x.UserId, out var user);
+            carById.TryGetValue(x.CarId, out var car);
+            return new BookingDto
             {
-                Id = x.Id,
-                BookingNumber = x.BookingNumber,
-                UserId = x.UserId,
-                UserName = x.User == null
-                    ? ""
-                    : (x.User.FirstName + " " + x.User.LastName).Trim(),
-                CarId = x.CarId,
-                CarName = x.Car == null ? "" : $"{x.Car.Brand} {x.Car.Model}",
-                PickupDate = x.PickupDate,
-                ReturnDate = x.ReturnDate,
-                TotalDays = x.TotalDays,
-                Amount = x.Amount,
-                Status = x.Status,
-                PaymentStatus = x.PaymentStatus,
+                Id = x.Id, BookingNumber = x.BookingNumber, UserId = x.UserId,
+                UserName = user == null ? "" : $"{user.FirstName} {user.LastName}".Trim(),
+                CarId = x.CarId, CarName = car == null ? "" : $"{car.Brand} {car.Model}",
+                PickupDate = x.PickupDate, ReturnDate = x.ReturnDate, TotalDays = x.TotalDays,
+                Amount = x.Amount, Status = x.Status, PaymentStatus = x.PaymentStatus,
                 CreatedDate = x.CreatedDate
-            });
+            };
+        }).ToList();
     }
 
-    private async Task<ERPWebAppData.Entity.Car> GetCarAsync(int carId)
-    {
-        var car = await _context.Cars.FirstOrDefaultAsync(x => x.Id == carId);
-        return car ?? throw new InvalidOperationException("Car not found.");
-    }
+    private async Task<CarEntity> GetCarAsync(int id) =>
+        await _context.Cars.Find(x => x.Id == id).FirstOrDefaultAsync()
+        ?? throw new InvalidOperationException("Car not found.");
 
-    private async Task ValidateUserAsync(string userId)
+    private async Task ValidateUserAsync(string id)
     {
-        if (string.IsNullOrWhiteSpace(userId))
-        {
-            throw new InvalidOperationException("User is required.");
-        }
-
-        if (!await _context.Users.AnyAsync(x => x.Id == userId))
-        {
+        if (string.IsNullOrWhiteSpace(id) || !await _context.Users.Find(x => x.Id == id).AnyAsync())
             throw new InvalidOperationException("User not found.");
-        }
     }
 
     private async Task EnsureCarIsAvailableAsync(
-        int carId,
-        DateTime pickupDate,
-        DateTime returnDate,
-        int? bookingId = null)
+        int carId, DateTime pickup, DateTime returned, int? bookingId = null)
     {
-        var hasOverlap = await _context.Bookings.AnyAsync(x =>
-            x.CarId == carId
-            && (!bookingId.HasValue || x.Id != bookingId.Value)
-            && x.Status != "Cancelled"
-            && pickupDate < x.ReturnDate
-            && returnDate > x.PickupDate);
-
-        if (hasOverlap)
-        {
-            throw new InvalidOperationException(
-                "The selected car is already booked for these dates.");
-        }
+        if (await _context.Bookings.Find(x =>
+            x.CarId == carId && (!bookingId.HasValue || x.Id != bookingId.Value)
+            && x.Status != "Cancelled" && pickup < x.ReturnDate && returned > x.PickupDate).AnyAsync())
+            throw new InvalidOperationException("The selected car is already booked for these dates.");
     }
 
     private async Task RefreshCarStatusAsync(int carId)
     {
-        var car = await _context.Cars.FirstOrDefaultAsync(x => x.Id == carId);
-        if (car is null || car.Status is "Maintenance" or "Inactive")
-        {
-            return;
-        }
-
-        var hasActiveBooking = await _context.Bookings.AnyAsync(x =>
-            x.CarId == carId
-            && x.Status != "Cancelled"
-            && x.Status != "Completed");
-
-        car.Status = hasActiveBooking ? "Booked" : "Available";
-        await _context.SaveChangesAsync();
+        var car = await _context.Cars.Find(x => x.Id == carId).FirstOrDefaultAsync();
+        if (car == null || car.Status is "Maintenance" or "Inactive") return;
+        var booked = await _context.Bookings.Find(x =>
+            x.CarId == carId && x.Status != "Cancelled" && x.Status != "Completed").AnyAsync();
+        await _context.Cars.UpdateOneAsync(x => x.Id == carId,
+            Builders<CarEntity>.Update.Set(x => x.Status, booked ? "Booked" : "Available"));
     }
 
-    private async Task RefreshPaymentStatusAsync(
-        ERPWebAppData.Entity.Booking booking)
+    private async Task RefreshPaymentStatusAsync(BookingEntity booking)
     {
-        var payments = await _context.BookingPayments
-            .Where(x => x.BookingId == booking.Id)
-            .Select(x => new { x.Amount, x.Status })
-            .ToListAsync();
-
-        var paid = payments
-            .Where(x => x.Status == "Paid")
-            .Sum(x => x.Amount);
-
+        var payments = await _context.BookingPayments.Find(x => x.BookingId == booking.Id).ToListAsync();
+        var paid = payments.Where(x => x.Status == "Paid").Sum(x => x.Amount);
         if (paid > booking.Amount)
-        {
-            throw new InvalidOperationException(
-                "The updated booking amount cannot be less than the amount already paid.");
-        }
-
-        booking.PaymentStatus = paid >= booking.Amount
-            ? "Paid"
-            : payments.Any(x => x.Status == "Failed")
-                ? "Failed"
-                : payments.Any(x => x.Status == "Refunded") && paid == 0
-                    ? "Refunded"
-                    : "Pending";
+            throw new InvalidOperationException("The updated booking amount cannot be less than the amount already paid.");
+        booking.PaymentStatus = paid >= booking.Amount ? "Paid"
+            : payments.Any(x => x.Status == "Failed") ? "Failed"
+            : payments.Any(x => x.Status == "Refunded") && paid == 0 ? "Refunded" : "Pending";
     }
 
     private async Task<string> GenerateBookingNumberAsync()
     {
-        string bookingNumber;
-        do
-        {
-            bookingNumber = $"BK-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
-        }
-        while (await _context.Bookings.AnyAsync(x => x.BookingNumber == bookingNumber));
-
-        return bookingNumber;
+        string number;
+        do number = $"BK-{DateTime.UtcNow:yyyyMMddHHmmssfff}";
+        while (await _context.Bookings.Find(x => x.BookingNumber == number).AnyAsync());
+        return number;
     }
 
-    private static void ValidateDates(
-        DateTime pickupDate,
-        DateTime returnDate,
-        bool requireFuturePickup)
+    private static void ValidateDates(DateTime pickup, DateTime returned, bool future)
     {
-        if (requireFuturePickup && pickupDate.Date < DateTime.Today)
-        {
+        if (future && pickup.Date < DateTime.Today)
             throw new InvalidOperationException("Pickup date cannot be in the past.");
-        }
-
-        if (returnDate <= pickupDate)
-        {
-            throw new InvalidOperationException(
-                "Return date must be later than pickup date.");
-        }
-
-        if ((returnDate - pickupDate).TotalDays > 365)
-        {
-            throw new InvalidOperationException(
-                "A booking cannot exceed 365 days.");
-        }
+        if (returned <= pickup)
+            throw new InvalidOperationException("Return date must be later than pickup date.");
+        if ((returned - pickup).TotalDays > 365)
+            throw new InvalidOperationException("A booking cannot exceed 365 days.");
     }
-
-    private static int CalculateTotalDays(DateTime pickupDate, DateTime returnDate)
-    {
-        return Math.Max(1, (int)Math.Ceiling((returnDate - pickupDate).TotalDays));
-    }
-
+    private static int CalculateTotalDays(DateTime pickup, DateTime returned) =>
+        Math.Max(1, (int)Math.Ceiling((returned - pickup).TotalDays));
     private static void ValidateStatus(string status)
     {
         if (!ValidStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
-        {
             throw new InvalidOperationException("Invalid booking status.");
-        }
     }
-
     private static string Normalize(string value)
     {
         var normalized = value.Trim().ToLowerInvariant();

@@ -1,142 +1,57 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using WebApp.Data;
-using WebApp.Data.Entity;
+using Microsoft.AspNetCore.Mvc;
 using WebApp.Model.Common;
 using WebApp.Model.Menu;
+using WebApp.Service.Menu;
 
-namespace WebApp.Server.Controllers
+namespace WebApp.Server.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class MenuController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class MenuController : ControllerBase
+    private readonly IMenuItemService _service;
+    public MenuController(IMenuItemService service) => _service = service;
+
+    [HttpGet]
+    public async Task<IActionResult> GetMenus() =>
+        Ok(new ApiResponse(true, null, await _service.GetTreeAsync()));
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetMenu(int id)
     {
-        private readonly WebAppDbContext _context;
+        var menu = await _service.GetByIdAsync(id);
+        return menu == null
+            ? NotFound(new ApiResponse(false, "Menu not found", null))
+            : Ok(new ApiResponse(true, null, menu));
+    }
 
-        public MenuController(WebAppDbContext context)
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] MenuItemDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new ApiResponse(false, "Invalid data", null));
+        return Ok(new ApiResponse(true, "Menu created successfully",
+            await _service.CreateAsync(dto)));
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] MenuItemDto dto) =>
+        await _service.UpdateAsync(id, dto)
+            ? Ok(new ApiResponse(true, "Menu updated successfully", null))
+            : NotFound(new ApiResponse(false, "Menu not found", null));
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        try
         {
-            _context = context;
+            return await _service.DeleteAsync(id)
+                ? Ok(new ApiResponse(true, "Menu deleted successfully", null))
+                : NotFound(new ApiResponse(false, "Menu not found", null));
         }
-
-        // ✅ GET ALL ROOT MENUS (TREE)
-        [HttpGet]
-        public async Task<IActionResult> GetMenus()
+        catch (InvalidOperationException ex)
         {
-            var menus = await _context.MenuItem
-      .Where(x => x.IsActive)
-      .OrderBy(x => x.OrderNumber)
-      .Select(x => new MenuTreeDto
-      {
-          Id = x.Id,
-          Title = x.Title,
-          Route = x.Route,
-          IconClass = x.IconClass,
-          OrderNumber = x.OrderNumber,
-          ParentId = x.ParentId,
-          Children = new List<MenuTreeDto>()
-      })
-      .ToListAsync();
-
-            var lookup = menus.ToDictionary(x => x.Id);
-            var result = new List<MenuTreeDto>();
-
-            foreach (var menu in menus)
-            {
-                if (menu.ParentId == null || menu.ParentId == 0)
-                {
-                    result.Add(menu);
-                }
-                else if (lookup.ContainsKey(menu.ParentId.Value))
-                {
-                    lookup[menu.ParentId.Value].Children.Add(menu);
-                }
-            }
-
-            return Ok(new ApiResponse(true, null, result));
-        }
-
-
-        // ✅ GET BY ID
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetMenu(int id)
-        {
-            var menu = await _context.MenuItem
-                .Where(x => x.Id == id)
-                .Select(x => new MenuItemDto
-                {
-                    ParentId = x.ParentId,
-                    Title = x.Title,
-                    Route = x.Route,
-                    IconClass = x.IconClass,
-                    OrderNumber = x.OrderNumber,
-                    IsActive = x.IsActive
-                })
-                .FirstOrDefaultAsync();
-
-            if (menu == null)
-                return NotFound(new ApiResponse(false, "Menu not found", null));
-
-            return Ok(new ApiResponse(true, null, menu));
-        }
-
-        // ✅ CREATE
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] MenuItemDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(new ApiResponse(false, "Invalid data", null));
-
-            var menu = new MenuItems
-            {
-                ParentId = dto.ParentId,
-                Title = dto.Title,
-                Route = dto.Route,
-                IconClass = dto.IconClass,
-                OrderNumber = dto.OrderNumber,
-                IsActive = dto.IsActive
-            };
-
-            _context.MenuItem.Add(menu);
-            await _context.SaveChangesAsync();
-
-            return Ok(new ApiResponse(true, "Menu created successfully", menu.Id));
-        }
-
-        // ✅ UPDATE
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] MenuItemDto dto)
-        {
-            var menu = await _context.MenuItem.FindAsync(id);
-
-            if (menu == null)
-                return NotFound(new ApiResponse(false, "Menu not found", null));
-
-            menu.ParentId = dto.ParentId;
-            menu.Title = dto.Title;
-            menu.Route = dto.Route;
-            menu.IconClass = dto.IconClass;
-            menu.OrderNumber = dto.OrderNumber;
-            menu.IsActive = dto.IsActive;
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new ApiResponse(true, "Menu updated successfully", null));
-        }
-
-        // ✅ DELETE (PREVENT DELETE IF CHILD EXISTS)
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var menu = await _context.MenuItem
-                .FirstOrDefaultAsync(x => x.Id == id);
-
-            if (menu == null)
-                return NotFound(new ApiResponse(false, "Menu not found", null));
-
-
-            await _context.SaveChangesAsync();
-
-            return Ok(new ApiResponse(true, "Menu deleted successfully", null));
+            return Conflict(new ApiResponse(false, ex.Message, null));
         }
     }
 }

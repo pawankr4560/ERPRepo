@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
 using WebApp.Data;
 
 namespace ERPWebApp.Server.Controllers;
@@ -8,26 +8,17 @@ namespace ERPWebApp.Server.Controllers;
 [ApiController]
 public class CarCategoryController : ControllerBase
 {
-    private readonly WebAppDbContext _context;
-
-    public CarCategoryController(WebAppDbContext context)
-    {
-        _context = context;
-    }
+    private readonly MongoDbContext _context;
+    public CarCategoryController(MongoDbContext context) => _context = context;
 
     [HttpGet]
     public async Task<IActionResult> Get()
     {
         var categories = await _context.Categories
-            .AsNoTracking()
-            .OrderBy(category => category.Name)
-            .Select(category => new
-            {
-                category.Id,
-                category.Name
-            })
+            .Find(Builders<ERPWebAppData.Entity.Category>.Filter.Empty)
+            .SortBy(x => x.Name)
+            .Project(x => new { x.Id, x.Name })
             .ToListAsync();
-
         return Ok(categories);
     }
 }

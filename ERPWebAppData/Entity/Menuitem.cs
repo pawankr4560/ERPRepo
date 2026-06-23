@@ -27,5 +27,6 @@ namespace WebApp.Data.Entity
 
         [Column("F_Active")]
         public bool IsActive { get; set; }
+        public bool IsDeleted { get; set; }
     }
 }

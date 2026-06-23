@@ -1,86 +1,64 @@
-﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
+using AutoMapper;
+using MongoDB.Driver;
 using WebApp.Data;
 using WebApp.Model.Product;
 
-namespace WebApp.Service.Product
+namespace WebApp.Service.Product;
+
+public class ProductService : IProductService
 {
-    public class ProductService : IProductService
+    private readonly MongoDbContext _context;
+    private readonly IMapper _mapper;
+
+    public ProductService(MongoDbContext context, IMapper mapper)
     {
-        private readonly WebAppDbContext _dbContext;
-        private readonly IMapper _mapper;
+        _context = context;
+        _mapper = mapper;
+    }
 
-        public ProductService(WebAppDbContext dbContext,
-            IMapper mapper)
+    public async Task<IEnumerable<Data.Entity.Product>> ProductList() =>
+        await _context.Products.Find(x => !x.IsDeleted).ToListAsync();
+
+    public async Task<bool> Add(CreateProductRequestModel model)
+    {
+        var product = _mapper.Map<Data.Entity.Product>(model);
+        product.Id = Guid.NewGuid();
+        product.CreatedOn = DateTime.UtcNow;
+
+        if (model.ProfileImage != null)
         {
-            _dbContext = dbContext;
-            _mapper = mapper;
+            var uploadsFolder = Path.Combine("wwwroot", "uploads", "images");
+            Directory.CreateDirectory(uploadsFolder);
+            var uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(model.ProfileImage.FileName)}";
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+            await using var fileStream = new FileStream(filePath, FileMode.Create);
+            await model.ProfileImage.CopyToAsync(fileStream);
+            product.Image = Path.Combine("uploads", "images", uniqueFileName).Replace("\\", "/");
         }
 
-        public async Task<IEnumerable<Data.Entity.Product>> ProductList()
-        {
-            try
-            {
-                return await _dbContext.Products.Where(x=>!x.IsDeleted).ToListAsync();
-            }
-            catch (Exception) { throw; }
-        }
+        await _context.Products.InsertOneAsync(product);
+        return true;
+    }
 
-        public async Task<bool> Add(CreateProductRequestModel model)
-        {
-            try
-            {
-                var reuqest = _mapper.Map<Data.Entity.Product>(model);
-                reuqest.Id = Guid.NewGuid();
-                if (model.ProfileImage != null)
-                {
-                    var uploadsFolder = Path.Combine("wwwroot", "uploads", "images");
-                    Directory.CreateDirectory(uploadsFolder); 
+    public async Task<Data.Entity.Product> Update(UpdateProductModel model)
+    {
+        var id = Guid.Parse(model.Id);
+        var existing = await _context.Products
+            .Find(x => x.Id == id && !x.IsDeleted)
+            .FirstOrDefaultAsync()
+            ?? throw new InvalidOperationException("No data found.");
 
-                    var uniqueFileName = $"{Guid.NewGuid()}_{model.ProfileImage.FileName}";
-                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+        _mapper.Map(model, existing);
+        existing.Id = id;
+        await _context.Products.ReplaceOneAsync(x => x.Id == id, existing);
+        return existing;
+    }
 
-                    using (var fileStream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await model.ProfileImage.CopyToAsync(fileStream);
-                    }
-
-                    reuqest.Image = Path.Combine("uploads", "images", uniqueFileName).Replace("\\", "/");
-                }
-
-                await _dbContext.Products.AddAsync(reuqest);
-                await _dbContext.SaveChangesAsync();
-                return true;
-            }
-            catch (Exception) { throw; }
-        }
-
-        public async Task<Data.Entity.Product> Update(UpdateProductModel model)
-        {
-            try
-            {
-                var data = _mapper.Map<Data.Entity.Product>(model);
-                data.Id = Guid.Parse(model.Id);
-                _dbContext.Products.Update(data);
-                await _dbContext.SaveChangesAsync();
-                return data;
-            }
-            catch (Exception) { throw; }
-        }
-
-        public async Task<bool> Delete(Guid id)
-        {
-            try
-            {
-                var data = await _dbContext.Products.Where(x => x.Id == id).FirstOrDefaultAsync();
-                if (data == null)
-                    throw new Exception("No data found.");
-                data.IsDeleted = true;
-                _dbContext.Products.Update(data);
-                await _dbContext.SaveChangesAsync();
-                return true;
-            }
-            catch (Exception) { throw; }
-        }
+    public async Task<bool> Delete(Guid id)
+    {
+        var result = await _context.Products.UpdateOneAsync(
+            x => x.Id == id && !x.IsDeleted,
+            Builders<Data.Entity.Product>.Update.Set(x => x.IsDeleted, true));
+        return result.ModifiedCount > 0;
     }
 }

@@ -1,74 +1,57 @@
-﻿using global::WebApp.Data.Entity;
-using global::WebApp.Data;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using MongoDB.Driver;
+using WebApp.Data;
+using WebApp.Data.Entity;
 using WebApp.Model.Transaction;
 
-namespace WebApp.Server.Controllers
+namespace WebApp.Server.WebApp.Api.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class LoanSettingController : ControllerBase
 {
-    namespace WebApp.Api.Controllers
+    private readonly MongoDbContext _context;
+    private readonly IMongoSequenceService _sequences;
+
+    public LoanSettingController(MongoDbContext context, IMongoSequenceService sequences)
     {
-        [Route("api/[controller]")]
-        [ApiController]
-        public class LoanSettingController : ControllerBase
+        _context = context;
+        _sequences = sequences;
+    }
+
+    [HttpGet("interest-calculation-type")]
+    public async Task<IActionResult> GetInterestCalculationType()
+    {
+        var setting = await _context.LoanSettings
+            .Find(Builders<LoanSetting>.Filter.Empty).FirstOrDefaultAsync();
+        return Ok(new
         {
-            private readonly WebAppDbContext _dbContext;
+            interestCalculationType = setting?.InterestCalculationType ?? false
+        });
+    }
 
-            public LoanSettingController(WebAppDbContext dbContext)
+    [HttpPut("interest-calculation-type")]
+    public async Task<IActionResult> SaveInterestCalculationType(
+        [FromBody] InterestCalculationTypeRequest model)
+    {
+        var setting = await _context.LoanSettings
+            .Find(Builders<LoanSetting>.Filter.Empty).FirstOrDefaultAsync();
+        if (setting == null)
+        {
+            setting = new LoanSetting
             {
-                _dbContext = dbContext;
-            }
-
-            [HttpGet("interest-calculation-type")]
-            public async Task<IActionResult> GetInterestCalculationType()
-            {
-                var setting = await _dbContext.LoanSetting
-                    .FirstOrDefaultAsync();
-
-                if (setting == null)
-                {
-                    return Ok(new
-                    {
-                        interestCalculationType = "Flat"
-                    });
-                }
-
-                return Ok(new
-                {
-                    interestCalculationType = setting.InterestCalculationType
-                });
-            }
-
-            [HttpPut("interest-calculation-type")]
-            public async Task<IActionResult> SaveInterestCalculationType(
-                [FromBody] InterestCalculationTypeRequest model)
-            {
-                var setting = await _dbContext.LoanSetting
-                    .FirstOrDefaultAsync();
-
-                if (setting == null)
-                {
-                    setting = new LoanSetting
-                    {
-                        InterestCalculationType = model.InterestCalculationType,
-                        UpdatedOn = DateTime.UtcNow
-                    };
-
-                    await _dbContext.LoanSetting.AddAsync(setting);
-                }
-                else
-                {
-                    setting.InterestCalculationType = model.InterestCalculationType;
-                    setting.UpdatedOn = DateTime.UtcNow;
-                }
-
-                await _dbContext.SaveChangesAsync();
-
-                return Ok(new
-                {
-                    interestCalculationType = setting.InterestCalculationType
-                });
-            }
+                Id = await _sequences.GetNextAsync("LoanSettings"),
+                InterestCalculationType = model.InterestCalculationType,
+                UpdatedOn = DateTime.UtcNow
+            };
+            await _context.LoanSettings.InsertOneAsync(setting);
         }
+        else
+        {
+            setting.InterestCalculationType = model.InterestCalculationType;
+            setting.UpdatedOn = DateTime.UtcNow;
+            await _context.LoanSettings.ReplaceOneAsync(x => x.Id == setting.Id, setting);
+        }
+        return Ok(new { interestCalculationType = setting.InterestCalculationType });
     }
 }

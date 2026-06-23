@@ -1,20 +1,18 @@
 using AutoMapper;
 using ERPWebAppService.Booking.Car;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using MongoDB.Driver;
 using Stripe;
 using System.Text;
 using WebApp.Data;
 using WebApp.Data.Entity;
-using WebApp.Data.Repository;
 using WebApp.Data.SeedData;
 using WebApp.Service.Auth;
 using WebApp.Service.Message;
+using WebApp.Service.Menu;
 using WebApp.Service.Order;
 using WebApp.Service.Product;
 using WebApp.Service.Transaction;
@@ -47,21 +45,38 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Database
-var connectionString = configuration.GetConnectionString("Default");
+// MongoDB
+var mongoSettings = configuration
+    .GetSection(MongoDbSettings.SectionName)
+    .Get<MongoDbSettings>()
+    ?? throw new InvalidOperationException("MongoDbSettings configuration is missing.");
 
-if (string.IsNullOrWhiteSpace(connectionString))
+if (string.IsNullOrWhiteSpace(mongoSettings.ConnectionString)
+    || string.IsNullOrWhiteSpace(mongoSettings.DatabaseName))
 {
-    throw new Exception("Connection string 'Default' not found.");
+    throw new InvalidOperationException(
+        "MongoDbSettings:ConnectionString and DatabaseName are required.");
 }
 
-builder.Services.AddDbContext<WebAppDbContext>(options =>
+builder.Services.Configure<MongoDbSettings>(
+    configuration.GetSection(MongoDbSettings.SectionName));
+builder.Services.AddSingleton<IMongoClient>(_ =>
 {
-    options.UseSqlServer(connectionString);
+    var clientSettings = MongoClientSettings.FromConnectionString(
+        mongoSettings.ConnectionString);
+    clientSettings.ServerSelectionTimeout = TimeSpan.FromSeconds(
+        Math.Max(1, mongoSettings.ServerSelectionTimeoutSeconds));
+    return new MongoClient(clientSettings);
 });
+builder.Services.AddSingleton(sp =>
+    sp.GetRequiredService<IMongoClient>().GetDatabase(mongoSettings.DatabaseName));
+builder.Services.AddSingleton<MongoDbContext>();
+builder.Services.AddSingleton<IMongoSequenceService, MongoSequenceService>();
+builder.Services.AddSingleton<MongoDbInitializer>();
 
 // Seed Data
 builder.Services.AddScoped<SeedData>();
+builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
 
 // Http Context
 builder.Services.AddHttpContextAccessor();
@@ -84,20 +99,6 @@ builder.Services.AddHttpClient("MSG91Client", client =>
     client.DefaultRequestHeaders.Add("authkey", msg91["AuthKey"] ?? "");
     client.DefaultRequestHeaders.Add("accept", "application/json");
 });
-
-// Identity
-builder.Services.AddIdentity<User, IdentityRole>(options =>
-{
-    options.Password.RequireDigit = false;
-    options.Password.RequiredLength = 5;
-    options.Password.RequireLowercase = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireNonAlphanumeric = false;
-
-    options.SignIn.RequireConfirmedEmail = true;
-})
-.AddEntityFrameworkStores<WebAppDbContext>()
-.AddDefaultTokenProviders();
 
 // JWT Authentication
 builder.Services.AddAuthentication(options =>
@@ -158,15 +159,12 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Generic Repository
-builder.Services.AddTransient<
-    IGenericRepository<StripeCustomer>,
-    GenericRepository<StripeCustomer>>();
-
 // Application Services
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddTransient<IAuthService, AuthService>();
 builder.Services.AddTransient<IProductService, WebApp.Service.Product.ProductService>();
 builder.Services.AddTransient<IOrderService, OrderService>();
+builder.Services.AddScoped<IMenuItemService, MenuItemService>();
 builder.Services.AddTransient<ILoanService, LoanService>();
 builder.Services.AddTransient<ILoanPaymentService, LoanPaymentService>();
 builder.Services.AddScoped<ILoanDashboardService, LoanDashboardService>();
@@ -198,17 +196,26 @@ if (!string.IsNullOrWhiteSpace(stripeSecretKey))
 
 var app = builder.Build();
 
-// Database Seeding
+// MongoDB indexes and seed data
 using (var scope = app.Services.CreateScope())
 {
     try
     {
+        var initializer = scope.ServiceProvider.GetRequiredService<MongoDbInitializer>();
+        await initializer.CreateIndexesAsync();
         var seeder = scope.ServiceProvider.GetRequiredService<SeedData>();
         await seeder.SeedAsync();
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "Database seeding failed");
+        app.Logger.LogCritical(
+            ex,
+            "MongoDB startup failed. Verify MongoDbSettings:ConnectionString and ensure MongoDB is running.");
+        throw new InvalidOperationException(
+            $"Cannot connect to MongoDB database '{mongoSettings.DatabaseName}' "
+            + $"using the configured connection string. Start MongoDB or update "
+            + $"{MongoDbSettings.SectionName}:ConnectionString.",
+            ex);
     }
 }
 

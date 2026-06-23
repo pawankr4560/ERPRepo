@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Stripe;
+using MongoDB.Driver;
+using WebApp.Data;
 using WebApp.Data.Entity;
-using WebApp.Data.Repository;
 using WebApp.Model.Constant;
 using WebApp.Model.Order;
 using WebApp.Service.Auth;
@@ -10,7 +11,7 @@ public class StripeService : IStripeService
 {
     private readonly IAuthService _authService;
     private readonly CustomerService _customerService;
-    private readonly IGenericRepository<StripeCustomer> _customerRepo;
+    private readonly MongoDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly Stripe.ProductService _productService;
     private readonly PriceService _priceService;
@@ -22,7 +23,7 @@ public class StripeService : IStripeService
     public StripeService(
         IAuthService authService,
         CustomerService customerService,
-        IGenericRepository<StripeCustomer> customerRepo,
+        MongoDbContext context,
         IHttpContextAccessor httpContextAccessor,
         Stripe.ProductService productService,
         PriceService priceService,
@@ -30,7 +31,7 @@ public class StripeService : IStripeService
     {
         _authService = authService ?? throw new ArgumentNullException(nameof(authService));
         _customerService = customerService ?? throw new ArgumentNullException(nameof(customerService));
-        _customerRepo = customerRepo ?? throw new ArgumentNullException(nameof(customerRepo));
+        _context = context ?? throw new ArgumentNullException(nameof(context));
         _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
         _productService = productService ?? throw new ArgumentNullException(nameof(productService));
         _priceService = priceService ?? throw new ArgumentNullException(nameof(priceService));
@@ -82,8 +83,7 @@ public class StripeService : IStripeService
                 CreatedOn = DateTime.UtcNow,
             };
 
-            _customerRepo.Insert(customer);
-            _customerRepo.Save();
+            await _context.StripeCustomers.InsertOneAsync(customer);
             return result.Id;
         }
         catch (Exception ex)

@@ -1,42 +1,42 @@
-﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore;
+using AutoMapper;
+using MongoDB.Driver;
 using WebApp.Data;
 using WebApp.Data.Entity;
 using WebApp.Model.Order;
 
-namespace WebApp.Service.Order
+namespace WebApp.Service.Order;
+
+public class OrderService : IOrderService
 {
-    public class OrderService : IOrderService
+    private readonly IMapper _mapper;
+    private readonly MongoDbContext _context;
+
+    public OrderService(IMapper mapper, MongoDbContext context)
     {
-        private readonly IMapper _mapper;
-        private readonly WebAppDbContext _dbContext;
-
-        public OrderService(IMapper mapper,
-            WebAppDbContext dbContext)
-        {
-            _mapper = mapper;
-            _dbContext = dbContext;
-        }
-
-        public async Task<bool> CreateOrder(List<CreateOrderRequestModel> model)
-        {
-            try
-            {
-                var request = _mapper.Map<List<OrderHistory>>(model);
-                _dbContext.OrderHistory.AddRange(request);
-                await _dbContext.SaveChangesAsync();
-                return true;
-            }
-            catch (Exception) { throw; }
-        }
-
-        public async Task<dynamic> GetOrders()
-        {
-            try
-            {
-               return await _dbContext.OrderHistory.OrderByDescending(x=>x.CreatedOn).ToListAsync();
-            }
-            catch (Exception) { throw; }
-        }
+        _mapper = mapper;
+        _context = context;
     }
+
+    public async Task<bool> CreateOrder(List<CreateOrderRequestModel> model)
+    {
+        var orders = _mapper.Map<List<OrderHistory>>(model);
+        var now = DateTime.UtcNow;
+        foreach (var order in orders)
+        {
+            if (order.Id == Guid.Empty) order.Id = Guid.NewGuid();
+            order.CreatedOn = now;
+            order.IsActive = true;
+            order.IsDeleted = false;
+        }
+
+        if (orders.Count > 0)
+            await _context.OrderHistory.InsertManyAsync(orders);
+        return true;
+    }
+
+    public async Task<dynamic> GetOrders() =>
+        await _context.OrderHistory
+            .Find(x => !x.IsDeleted)
+            .SortByDescending(x => x.CreatedOn)
+            .ToListAsync();
 }
