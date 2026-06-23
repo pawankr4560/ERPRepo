@@ -161,7 +161,7 @@ export class LoanService {
 
   updateLoan(loan: Loan) {
     return this.http
-      .put<any>(`${this.apiUrl}/api/Loan`, this.toLoanPayload(loan), { headers: this.headers })
+      .put<any>(`${this.apiUrl}/api/Loan`, this.toLoanUpdatePayload(loan), { headers: this.headers })
       .pipe(
         map((res) => {
           const data = res?.data ?? res;
@@ -255,6 +255,24 @@ export class LoanService {
               loan.customerDetail.guarantorRelationship?.trim() || null,
           }
         : null,
+    };
+  }
+
+  private toLoanUpdatePayload(loan: Loan) {
+    return {
+      id: loan.id ?? 0,
+      userId: loan.userId ?? '',
+      loanNumber: loan.loanNumber ?? '',
+      loanAmount: Number(loan.loanAmount ?? 0),
+      emi: Number(loan.emi ?? 0),
+      rate: Number(loan.rate ?? 0),
+      interestCalculationType: (loan.interestCalculationType ?? 'Flat') === 'Reducing',
+      tenure: Number(loan.tenure ?? 0),
+      startDate: this.toApiDateTime(loan.startDate) ?? new Date().toISOString(),
+      endDate:
+        this.toApiDateTime(loan.endDate) ??
+        this.toApiDateTime(loan.startDate) ??
+        new Date().toISOString(),
     };
   }
 

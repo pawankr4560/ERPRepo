@@ -328,6 +328,10 @@ export class LoanComponent implements OnInit {
     return (loan.status ?? 'Pending').toLowerCase() === 'pending';
   }
 
+  isApproved(loan: Loan): boolean {
+    return (loan.status ?? '').toLowerCase() === 'active';
+  }
+
   approve(loan: Loan): void {
     if (!loan.id || !this.isPending(loan) || this.approvalActionLoanId !== null) {
       return;
@@ -795,6 +799,10 @@ export class LoanComponent implements OnInit {
   }
 
   startEdit(loan: Loan) {
+    if (this.isApproved(loan)) {
+      return;
+    }
+
     this.editing = true;
     this.current = { ...loan };
     this.current.startDate = this.toDateInputValue(loan.startDate);
@@ -996,7 +1004,7 @@ export class LoanComponent implements OnInit {
   }
 
   remove(loan: Loan) {
-    if (!loan || loan.id == null || !Number.isFinite(loan.id)) {
+    if (!loan || this.isApproved(loan) || loan.id == null || !Number.isFinite(loan.id)) {
       return;
     }
 

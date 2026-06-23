@@ -9,7 +9,7 @@ namespace WebApp.Service.Transaction
         Task<CreateLoanDTO> GetLoanNumber();
         Task<LoanDto?> GetLoanById(int id);
         Task<List<LoanDto>> LoanList();
-        Task<bool> UpdateLoan(LoanRequestModel model);
+        Task<bool> UpdateLoan(LoanUpdateRequestModel model);
         Task<bool> ApproveLoan(int id, string approvedByUserId);
         Task<bool> RejectLoan(int id, string rejectedByUserId);
     }

@@ -294,7 +294,7 @@ namespace WebApp.Service.Transaction
 
         #region Update
 
-        public async Task<bool> UpdateLoan(LoanRequestModel model)
+        public async Task<bool> UpdateLoan(LoanUpdateRequestModel model)
         {
             try
             {
@@ -305,6 +305,9 @@ namespace WebApp.Service.Transaction
 
                 if (loan == null)
                     return false;
+
+                if (loan.Status == ActiveStatus)
+                    throw new InvalidOperationException("Approved loans cannot be updated.");
 
                 var hasPaidEmi = await _dbContext.LoanEMISchedule
                     .AnyAsync(x =>
@@ -322,7 +325,7 @@ namespace WebApp.Service.Transaction
                 loan.LoanAmount = model.LoanAmount;
                 loan.Rate = model.Rate;
                 loan.EMI = model.EMI;
-                loan.IsReducingInterest = model.interestCalculationType;
+                loan.IsReducingInterest = model.InterestCalculationType;
                 loan.Tenure = model.Tenure;
                 loan.StartDate = model.StartDate;
                 loan.EndDate = model.EndDate;
@@ -352,6 +355,10 @@ namespace WebApp.Service.Transaction
                 }
 
                 return true;
+            }
+            catch (InvalidOperationException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -456,6 +463,9 @@ namespace WebApp.Service.Transaction
                 if (loan == null)
                     return false;
 
+                if (loan.Status == ActiveStatus)
+                    throw new InvalidOperationException("Approved loans cannot be deleted.");
+
                 loan.IsDeleted = true;
                 loan.Active = false;
                 loan.F_Updated_Date_Time = DateTime.UtcNow;
@@ -463,6 +473,10 @@ namespace WebApp.Service.Transaction
                 _dbContext.Loan.Update(loan);
 
                 return await _dbContext.SaveChangesAsync() > 0;
+            }
+            catch (InvalidOperationException)
+            {
+                throw;
             }
             catch (Exception ex)
             {

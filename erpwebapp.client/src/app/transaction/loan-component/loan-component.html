@@ -624,10 +624,16 @@
               mat-icon-button
               color="primary"
               (click)="$event.stopPropagation(); startEdit(loan)"
+              [disabled]="isApproved(loan) || isBusy"
               aria-label="Edit loan">
               <mat-icon>edit</mat-icon>
             </button>
-            <button mat-icon-button color="warn" (click)="$event.stopPropagation(); remove(loan)" aria-label="Delete loan">
+            <button
+              mat-icon-button
+              color="warn"
+              (click)="$event.stopPropagation(); remove(loan)"
+              [disabled]="isApproved(loan) || isBusy"
+              aria-label="Delete loan">
               <mat-icon>delete</mat-icon>
             </button>
           </td>

@@ -170,7 +170,7 @@ describe('LoanComponent', () => {
     dialog.open.and.returnValue({ afterClosed: () => of(true) } as any);
     loanService.deleteLoan.and.returnValue(request);
 
-    component.remove(loan(4));
+    component.remove({ ...loan(4), status: 'Pending', active: false });
     expect(component.isDeleting).toBeTrue();
     expect(loanService.deleteLoan).toHaveBeenCalledWith(4);
     request.next({});
@@ -208,6 +208,22 @@ describe('LoanComponent', () => {
     request.complete();
     expect(component.approvalActionLoanId).toBeNull();
     expect(loanService.loadLoans).toHaveBeenCalled();
+  });
+
+  it('does not open edit mode for an approved loan', () => {
+    const approvedLoan = { ...loan(7), status: 'Active', active: true };
+
+    component.startEdit(approvedLoan);
+
+    expect(component.editing).toBeFalse();
+  });
+
+  it('does not delete an approved loan', () => {
+    const approvedLoan = { ...loan(8), status: 'Active', active: true };
+
+    component.remove(approvedLoan);
+
+    expect(loanService.deleteLoan).not.toHaveBeenCalled();
   });
 
   it('calculates EMI schedule totals consistently', () => {

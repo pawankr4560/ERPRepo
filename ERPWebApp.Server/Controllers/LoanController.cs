@@ -51,11 +51,17 @@ namespace WebApp.Server.Controllers
         }
 
         [HttpPut]
-        public async Task<IActionResult> Update([FromBody] LoanRequestModel model)
+        public async Task<IActionResult> Update([FromBody] LoanUpdateRequestModel model)
         {
-            var result = await _loanService.UpdateLoan(model);
-
-            return result ? Ok() : NotFound();
+            try
+            {
+                var result = await _loanService.UpdateLoan(model);
+                return result ? Ok() : NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { success = false, message = ex.Message });
+            }
         }
 
         [Authorize(Roles = "Admin")]
@@ -101,8 +107,15 @@ namespace WebApp.Server.Controllers
         [HttpDelete]
         public async Task<IActionResult> Delete([FromQuery] int id)
         {
-            var result = await _loanService.DeleteLoan(id);
-            return result ? Ok() : NotFound();
+            try
+            {
+                var result = await _loanService.DeleteLoan(id);
+                return result ? Ok() : NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { success = false, message = ex.Message });
+            }
         }
 
         [HttpPost("notify-creation")]
