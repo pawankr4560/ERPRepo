@@ -315,7 +315,7 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
 
   getCustomerName(loanId: number): string {
     const loan = this.loans.find((item) => item.id === Number(loanId));
-    return loan?.userName || loan?.userId || '-';
+    return loan?.userName || (loan?.userId ? String(loan.userId) : '-');
   }
 
   getScheduleLabel(payment: LoanPayment): string {

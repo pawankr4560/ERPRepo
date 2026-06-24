@@ -1,81 +1,90 @@
-<div class="mat-elevation-z8">
+<section class="user-details-page">
+  <header class="page-header">
+    <div>
+      <h1>User Details</h1>
+      <p>Create customers for loan selection.</p>
+    </div>
+    <div class="header-actions">
+      <button mat-stroked-button type="button" (click)="createLoan()">
+        <mat-icon>request_quote</mat-icon>
+        Create Loan
+      </button>
+      <button mat-stroked-button type="button" (click)="loadUsers()" [disabled]="isLoading">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+  </header>
 
-  <table mat-table [dataSource]="dataSource" class="full-width-table">
+  <form class="user-form" [formGroup]="form" (ngSubmit)="save(userForm)" #userForm="ngForm">
+      <mat-form-field appearance="outline">
+      <mat-label>FirstName</mat-label>
+      <input matInput formControlName="firstName" />
+      <mat-error>First name is required.</mat-error>
+    </mat-form-field>
 
-    <!-- ID -->
-    <ng-container matColumnDef="id">
-      <th mat-header-cell *matHeaderCellDef> ID </th>
-      <td mat-cell *matCellDef="let user"> {{ user.id }} </td>
-    </ng-container>
+    <mat-form-field appearance="outline">
+      <mat-label>LastName</mat-label>
+      <input matInput formControlName="lastName" />
+      <mat-error>Last name is required.</mat-error>
+    </mat-form-field>
 
-    <!-- Name -->
-    <ng-container matColumnDef="name">
-      <th mat-header-cell *matHeaderCellDef> Name </th>
-      <td mat-cell *matCellDef="let user"> {{ user.name }} </td>
-    </ng-container>
+    <mat-form-field appearance="outline">
+      <mat-label>Mobile</mat-label>
+      <input matInput formControlName="mobile" inputmode="numeric" maxlength="10" (input)="keepMobileDigits()" />
+      <mat-error>Enter 10 digit mobile number.</mat-error>
+    </mat-form-field>
 
-    <!-- Gender -->
-    <ng-container matColumnDef="gender">
-      <th mat-header-cell *matHeaderCellDef> Gender </th>
-      <td mat-cell *matCellDef="let user"> {{ user.gender }} </td>
-    </ng-container>
+    <mat-form-field appearance="outline" class="address-field">
+      <mat-label>Address</mat-label>
+      <textarea matInput formControlName="address" rows="2"></textarea>
+      <mat-error>Address is required.</mat-error>
+    </mat-form-field>
 
-    <!-- Weight -->
-    <ng-container matColumnDef="weight">
-      <th mat-header-cell *matHeaderCellDef> Weight (kg) </th>
-      <td mat-cell *matCellDef="let user"> {{ user.weight }} </td>
-    </ng-container>
+    <div class="form-actions">
+      <button mat-raised-button color="primary" type="submit" [disabled]="isSaving">
+        <mat-icon>save</mat-icon>
+        {{ isSaving ? 'Saving...' : 'Save' }}
+      </button>
+    </div>
+  </form>
 
-    <!-- Height -->
-    <ng-container matColumnDef="height">
-      <th mat-header-cell *matHeaderCellDef> Height (cm) </th>
-      <td mat-cell *matCellDef="let user"> {{ user.height }} </td>
-    </ng-container>
+  <div class="table-wrap">
+    <table mat-table [dataSource]="dataSource" class="full-width-table">
+      <ng-container matColumnDef="id">
+        <th mat-header-cell *matHeaderCellDef>Id</th>
+        <td mat-cell *matCellDef="let user">{{ user.id }}</td>
+      </ng-container>
 
-    <!-- Calorie -->
-    <ng-container matColumnDef="calorie">
-      <th mat-header-cell *matHeaderCellDef> Calories </th>
-      <td mat-cell *matCellDef="let user"> {{ user.calorie }} </td>
-    </ng-container>
+      <ng-container matColumnDef="firstName">
+        <th mat-header-cell *matHeaderCellDef>FirstName</th>
+        <td mat-cell *matCellDef="let user">{{ user.firstName }}</td>
+      </ng-container>
 
-    <!-- Status -->
-    <ng-container matColumnDef="isActive">
-      <th mat-header-cell *matHeaderCellDef> Status </th>
-      <td mat-cell *matCellDef="let user">
-        <span [class.active]="user.isActive"
-              [class.inactive]="!user.isActive">
-          {{ user.isActive ? 'Active' : 'Inactive' }}
-        </span>
-      </td>
-    </ng-container>
-    
-    <!-- Actions Column -->
-    <ng-container matColumnDef="actions">
-    <th mat-header-cell *matHeaderCellDef> Actions </th>
-    <td mat-cell *matCellDef="let user">
+      <ng-container matColumnDef="lastName">
+        <th mat-header-cell *matHeaderCellDef>LastName</th>
+        <td mat-cell *matCellDef="let user">{{ user.lastName }}</td>
+      </ng-container>
 
-        <button mat-icon-button color="primary" 
-                (click)="editUser(user)">
-          <mat-icon>edit</mat-icon>
-        </button>
+      <ng-container matColumnDef="mobile">
+        <th mat-header-cell *matHeaderCellDef>Mobile</th>
+        <td mat-cell *matCellDef="let user">{{ user.mobile }}</td>
+      </ng-container>
 
-        <button mat-icon-button color="warn"
-                (click)="deleteUser(user)"
-                aria-label="Delete">
-        <mat-icon>delete</mat-icon>
-        </button>
+      <ng-container matColumnDef="address">
+        <th mat-header-cell *matHeaderCellDef>Address</th>
+        <td mat-cell *matCellDef="let user">{{ user.address }}</td>
+      </ng-container>
 
-    </td>
-    </ng-container>
-    
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
 
-  </table>
+    <div class="empty-state" *ngIf="!isLoading && !dataSource.data.length">
+      <mat-icon>person_search</mat-icon>
+      <span>No users created yet.</span>
+    </div>
 
-  <mat-paginator
-    [pageSizeOptions]="[5, 10, 20]"
-    showFirstLastButtons>
-  </mat-paginator>
-
-</div>
+    <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
+  </div>
+</section>

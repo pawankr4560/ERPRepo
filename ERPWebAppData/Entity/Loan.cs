@@ -7,7 +7,7 @@ namespace WebApp.Data.Entity
         [Key]
         public int Id { get; set; }
 
-        public string UserId { get; set; } = string.Empty;
+        public int UserId { get; set; }
 
         public string LoanNumber { get; set; } = string.Empty;
 

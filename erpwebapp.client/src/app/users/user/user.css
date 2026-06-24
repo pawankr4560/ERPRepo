@@ -1,12 +1,83 @@
-
-
-.active {
-  color: green;
-  font-weight: 600;
+.user-details-page {
+  padding: 24px;
 }
 
-.inactive {
-  color: red;
-  font-weight: 600;
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
+.page-header h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.page-header p {
+  margin: 4px 0 0;
+  color: #64748b;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.user-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr));
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 24px;
+}
+
+.address-field {
+  grid-column: span 2;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+}
+
+.full-width-table {
+  width: 100%;
+}
+
+.empty-state {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: #64748b;
+}
+
+@media (max-width: 900px) {
+  .page-header,
+  .user-form {
+    display: block;
+  }
+
+  .header-actions {
+    justify-content: flex-start;
+    margin-top: 12px;
+  }
+
+  .user-form mat-form-field,
+  .form-actions {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+}

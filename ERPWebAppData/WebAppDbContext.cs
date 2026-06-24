@@ -36,6 +36,7 @@ namespace WebApp.Data
         public DbSet<Loan> Loan { get; set; }
         public DbSet<LoanCustomerDetail> LoanCustomerDetail { get; set; }
         public DbSet<LoanSetting> LoanSetting { get; set; }
+        public DbSet<UserDetails> UserDetails { get; set; }
         public DbSet<UnitOfMeasure> UnitOfMeasure { get; set; }
         public DbSet<OrderHistory> OrderHistory { get; set; }
         public DbSet<StripeCustomer> StripeCustomer { get; set; }

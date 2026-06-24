@@ -12,7 +12,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   LoanService,
   Loan,
@@ -79,7 +79,7 @@ export class LoanComponent implements OnInit {
   editing: boolean = false;
   current: Loan = {
     id: 0,
-    userId: '',
+    userId: null,
     userName: '',
     loanNumber: '',
     loanAmount: 0,
@@ -172,6 +172,7 @@ export class LoanComponent implements OnInit {
     private dialog: MatDialog,
     private interestSettingService: InterestSettingService,
     private snackBar: MatSnackBar,
+    private route: ActivatedRoute,
     private router: Router
   ) {}
 
@@ -188,6 +189,9 @@ export class LoanComponent implements OnInit {
       }
     });
     this.load();
+    if (this.route.snapshot.queryParamMap.get('create') === 'true') {
+      this.startCreate();
+    }
   }
 
   load() {
@@ -253,10 +257,12 @@ export class LoanComponent implements OnInit {
     this.pageIndex = 0;
   }
 
-  onCustomerChange(userId: string) {
+  onCustomerChange(userId: number | null) {
     this.current.userId = userId;
     const selected = this.customers.find((customer) => customer.id === userId);
     this.current.userName = selected?.customerName ?? '';
+    this.customerDetail.customerMobileNo = selected?.mobile ?? '';
+    this.customerDetail.customerAddress = selected?.address ?? '';
   }
 
   openLoanDetails(loan: Loan): void {
@@ -501,10 +507,6 @@ export class LoanComponent implements OnInit {
       (sum, item) => sum + item.principalAmount,
       0
     );
-    const totalInterest = schedule.reduce(
-      (sum, item) => sum + item.interestAmount,
-      0
-    );
 
     return `
       <div class="print-page">
@@ -517,8 +519,6 @@ export class LoanComponent implements OnInit {
             <div class="print-meta">
               <div><strong>Customer</strong><span>${loan.userName ?? '-'}</span></div>
               <div><strong>Loan Amount</strong><span>INR ${loan.loanAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
-              <div><strong>Rate</strong><span>${Number(loan.rate ?? 0).toFixed(2)}%</span></div>
-              <div><strong>Interest Type</strong><span>${loan.interestCalculationType ?? '-'}</span></div>
             </div>
           </div>
           <table class="print-table">
@@ -528,7 +528,6 @@ export class LoanComponent implements OnInit {
                 <th>Due Date</th>
                 <th>EMI</th>
                 <th>Principal</th>
-                <th>Interest</th>
                 <th>Balance</th>
                 <th>Status</th>
               </tr>
@@ -542,7 +541,6 @@ export class LoanComponent implements OnInit {
                       <td>${this.formatPrintDate(item.dueDate)}</td>
                       <td>INR ${item.emiAmount.toFixed(2)}</td>
                       <td>INR ${item.principalAmount.toFixed(2)}</td>
-                      <td>INR ${item.interestAmount.toFixed(2)}</td>
                       <td>INR ${item.outstandingBalance.toFixed(2)}</td>
                       <td>
                         <span class="print-status ${item.isPaid ? 'print-status-success' : 'print-status-pending'}">
@@ -560,9 +558,7 @@ export class LoanComponent implements OnInit {
                 <td></td>
                 <td><strong>INR ${totalEMI.toFixed(2)}</strong></td>
                 <td><strong>INR ${totalPrincipal.toFixed(2)}</strong></td>
-                <td><strong>INR ${totalInterest.toFixed(2)}</strong></td>
-                <td></td>
-                <td></td>
+                <td colspan="2"></td>
               </tr>
             </tfoot>
           </table>
@@ -779,7 +775,7 @@ export class LoanComponent implements OnInit {
     this.editing = true;
     this.current = {
       id: 0,
-      userId: '',
+      userId: null,
       userName: '',
       loanNumber: '',
       loanAmount: 0,
@@ -818,7 +814,7 @@ export class LoanComponent implements OnInit {
     this.editing = false;
     this.current = {
       id: 0,
-      userId: '',
+      userId: null,
       userName: '',
       loanNumber: '',
       loanAmount: 0,
@@ -909,7 +905,7 @@ export class LoanComponent implements OnInit {
     const tenure = Number(this.current.tenure);
 
     return (
-      !!this.current.userId?.trim() &&
+      Number(this.current.userId) > 0 &&
       Number.isFinite(amount) &&
       amount > 0 &&
       Number.isFinite(rate) &&
@@ -958,7 +954,7 @@ export class LoanComponent implements OnInit {
   }
 
   isCustomerStepValid(): boolean {
-    return !!this.current.userId?.trim() && !!this.current.loanNumber?.trim();
+    return Number(this.current.userId) > 0 && !!this.current.loanNumber?.trim();
   }
 
   isVerificationStepValid(): boolean {

@@ -88,16 +88,15 @@ export class LoanDetailsComponent implements OnInit {
     const rows = this.schedules.map((item) => `
       <tr><td>${item.installmentNo}</td><td>${this.escapeHtml(this.formatDate(item.dueDate))}</td>
       <td>${item.emiAmount.toFixed(2)}</td><td>${item.principalAmount.toFixed(2)}</td>
-      <td>${item.interestAmount.toFixed(2)}</td><td>${item.outstandingBalance.toFixed(2)}</td>
-      <td>${item.isPaid ? 'Paid' : 'Pending'}</td></tr>`).join('');
+      <td>${item.outstandingBalance.toFixed(2)}</td><td>${item.isPaid ? 'Paid' : 'Pending'}</td></tr>`).join('');
 
     const workbook = `<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body>
       <table><tr><th>Loan Number</th><td>${this.escapeHtml(this.loan.loanNumber)}</td></tr>
       <tr><th>Customer</th><td>${this.escapeHtml(this.loan.userName ?? '-')}</td></tr>
       <tr><th>Loan Amount</th><td>${this.loan.loanAmount}</td></tr>
-      <tr><th>Interest Rate</th><td>${this.loan.rate ?? 0}%</td></tr></table><br>
+      <tr><th>Tenure</th><td>${this.loan.tenure ?? 0} months</td></tr></table><br>
       <table border="1"><thead><tr><th>Installment No.</th><th>Due Date</th><th>EMI</th>
-      <th>Principal</th><th>Interest</th><th>Balance</th><th>Status</th></tr></thead>
+      <th>Principal</th><th>Balance</th><th>Status</th></tr></thead>
       <tbody>${rows}</tbody></table></body></html>`;
 
     this.downloadBlob(
@@ -126,13 +125,12 @@ export class LoanDetailsComponent implements OnInit {
     const rows = this.schedules.map((item) => `
       <tr><td>${item.installmentNo}</td><td>${this.escapeHtml(this.formatDate(item.dueDate))}</td>
       <td>INR ${item.emiAmount.toFixed(2)}</td><td>INR ${item.principalAmount.toFixed(2)}</td>
-      <td>INR ${item.interestAmount.toFixed(2)}</td><td>INR ${item.outstandingBalance.toFixed(2)}</td>
-      <td>${item.isPaid ? 'Paid' : 'Pending'}</td></tr>`).join('');
+      <td>INR ${item.outstandingBalance.toFixed(2)}</td><td>${item.isPaid ? 'Paid' : 'Pending'}</td></tr>`).join('');
 
     return `<!doctype html><html><head><meta charset="UTF-8"><title>${this.escapeHtml(title)}</title>
       <style>
         body{font-family:Arial,sans-serif;color:#172033;margin:24px}header{display:flex;justify-content:space-between;border-bottom:2px solid #1f3a6f;padding-bottom:16px}
-        h1{margin:0 0 6px;color:#1f3a6f}p{margin:4px 0}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
+        h1{margin:0 0 6px;color:#1f3a6f}p{margin:4px 0}.summary{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin:20px 0}
         .summary div{border:1px solid #d8dee9;padding:10px}.summary span{display:block;color:#667085;font-size:12px;margin-bottom:4px}
         table{width:100%;border-collapse:collapse}th,td{border:1px solid #d8dee9;padding:8px;text-align:left;font-size:12px}th{background:#eef2f8;color:#273f6a}tfoot td{font-weight:700}
         @page{size:landscape;margin:12mm}
@@ -140,12 +138,10 @@ export class LoanDetailsComponent implements OnInit {
       <p>Loan schedule: <strong>${this.escapeHtml(loan.loanNumber)}</strong></p></div>
       <div><p><strong>${this.escapeHtml(loan.userName ?? '-')}</strong></p><p>${this.escapeHtml(loan.status ?? 'Pending')}</p></div></header>
       <section class="summary"><div><span>Loan Amount</span><strong>INR ${loan.loanAmount.toFixed(2)}</strong></div>
-      <div><span>Interest Rate</span><strong>${Number(loan.rate ?? 0).toFixed(2)}%</strong></div>
-      <div><span>Tenure</span><strong>${loan.tenure ?? 0} months</strong></div>
-      <div><span>Total Interest</span><strong>INR ${this.totalInterest.toFixed(2)}</strong></div></section>
-      <table><thead><tr><th>No.</th><th>Due Date</th><th>EMI</th><th>Principal</th><th>Interest</th><th>Balance</th><th>Status</th></tr></thead>
-      <tbody>${rows || '<tr><td colspan="7">No EMI schedule found.</td></tr>'}</tbody>
-      <tfoot><tr><td colspan="2">Total</td><td>INR ${this.totalEmi.toFixed(2)}</td><td></td><td>INR ${this.totalInterest.toFixed(2)}</td><td colspan="2"></td></tr></tfoot>
+      <div><span>Tenure</span><strong>${loan.tenure ?? 0} months</strong></div></section>
+      <table><thead><tr><th>No.</th><th>Due Date</th><th>EMI</th><th>Principal</th><th>Balance</th><th>Status</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6">No EMI schedule found.</td></tr>'}</tbody>
+      <tfoot><tr><td colspan="2">Total</td><td>INR ${this.totalEmi.toFixed(2)}</td><td colspan="3"></td></tr></tfoot>
       </table></body></html>`;
   }
 

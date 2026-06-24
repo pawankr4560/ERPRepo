@@ -35,14 +35,14 @@ namespace WebApp.Service.Transaction
             {
                 return await (
                     from loan in _dbContext.Loan
-                    join user in _dbContext.Users
+                    join user in _dbContext.UserDetails
                         on loan.UserId equals user.Id
                     where !loan.IsDeleted
                     select new LoanDto
                     {
                         Id = loan.Id,
                         UserId = loan.UserId,
-                        UserName = $"{user.FirstName} {user.LastName}",
+                        UserName = $"{user.FirstName} {user.LastName}".Trim(),
                         LoanNumber = loan.LoanNumber,
                         LoanAmount = loan.LoanAmount,
                         Rate = loan.Rate,
@@ -77,14 +77,14 @@ namespace WebApp.Service.Transaction
             {
                 var loan = await (
                     from item in _dbContext.Loan.AsNoTracking()
-                    join user in _dbContext.Users.AsNoTracking()
+                    join user in _dbContext.UserDetails.AsNoTracking()
                         on item.UserId equals user.Id
                     where item.Id == id && !item.IsDeleted
                     select new LoanDto
                     {
                         Id = item.Id,
                         UserId = item.UserId,
-                        UserName = $"{user.FirstName} {user.LastName}",
+                        UserName = $"{user.FirstName} {user.LastName}".Trim(),
                         LoanNumber = item.LoanNumber,
                         LoanAmount = item.LoanAmount,
                         Rate = item.Rate,
@@ -187,6 +187,12 @@ namespace WebApp.Service.Transaction
                 if (loanExists)
                     throw new Exception("This Loan number already exists.");
 
+                var customer = await _dbContext.UserDetails
+                    .FirstOrDefaultAsync(x => x.Id == model.UserId);
+
+                if (customer == null)
+                    throw new Exception("Selected customer does not exist.");
+
                 var entity = _mapper.Map<Data.Entity.Loan>(model);
 
                 entity.Status = PendingStatus;
@@ -206,8 +212,12 @@ namespace WebApp.Service.Transaction
                     LoanId = entity.Id,
 
                     CustomerAadhaarNo = model.CustomerDetail.CustomerAadhaarNo,
-                    CustomerMobileNo = model.CustomerDetail.CustomerMobileNo,
-                    CustomerAddress = model.CustomerDetail.CustomerAddress,
+                    CustomerMobileNo = string.IsNullOrWhiteSpace(model.CustomerDetail.CustomerMobileNo)
+                        ? customer.Mobile.ToString()
+                        : model.CustomerDetail.CustomerMobileNo,
+                    CustomerAddress = string.IsNullOrWhiteSpace(model.CustomerDetail.CustomerAddress)
+                        ? customer.Address
+                        : model.CustomerDetail.CustomerAddress,
                     CustomerCity = model.CustomerDetail.CustomerCity,
                     CustomerState = model.CustomerDetail.CustomerState,
                     CustomerPinCode = model.CustomerDetail.CustomerPinCode,
@@ -262,20 +272,15 @@ namespace WebApp.Service.Transaction
                 }
 
                 var customers = await (
-                    from user in _dbContext.Users
-                    join userRole in _dbContext.UserRoles
-                        on user.Id equals userRole.UserId
-                    join role in _dbContext.Roles
-                        on userRole.RoleId equals role.Id
-                    where !user.IsDeleted
-                          && role.Name.ToUpper() == "USER"
-                    orderby user.FirstName
+                    from user in _dbContext.UserDetails
+                    orderby user.FirstName, user.LastName
                     select new CustomerDropdownDto
                     {
                         Id = user.Id,
-                        CustomerName = $"{user.FirstName} {user.LastName}"
+                        CustomerName = $"{user.FirstName} {user.LastName}".Trim(),
+                        Mobile = user.Mobile.ToString(),
+                        Address = user.Address
                     })
-                    .Distinct()
                     .ToListAsync();
 
                 return new CreateLoanDTO
@@ -308,6 +313,12 @@ namespace WebApp.Service.Transaction
 
                 if (loan.Status == ActiveStatus)
                     throw new InvalidOperationException("Approved loans cannot be updated.");
+
+                var customerExists = await _dbContext.UserDetails
+                    .AnyAsync(x => x.Id == model.UserId);
+
+                if (!customerExists)
+                    throw new Exception("Selected customer does not exist.");
 
                 var hasPaidEmi = await _dbContext.LoanEMISchedule
                     .AnyAsync(x =>

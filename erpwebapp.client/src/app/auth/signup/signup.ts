@@ -4,7 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCard, MatCardContent, MatCardHeader, MatCardModule, MatCardTitle } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { UserDetails } from '../../users/user-details';
 import { Auth } from '../auth';
 import { AddressApiResponse, SignupModel } from '../interfaces/login-model';
@@ -36,7 +36,9 @@ export class Signup implements OnInit {
   signupForm: FormGroup;
   addresses: any[] = [];
   users: UserDetails[] = [];
-   constructor(private router: Router, private fb: FormBuilder,private snackBar: MatSnackBar,private authService:Auth) {
+  private readonly defaultRedirectUrl = '/auth/login';
+
+   constructor(private router: Router, private route: ActivatedRoute, private fb: FormBuilder,private snackBar: MatSnackBar,private authService:Auth) {
     this.signupForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
   password: ['', Validators.required],
@@ -51,6 +53,11 @@ export class Signup implements OnInit {
   }
 
  ngOnInit() {
+  if (this.route.snapshot.queryParamMap.get('returnUrl')?.includes('/home/inventory/transactions')) {
+    this.router.navigate(['/home/users']);
+    return;
+  }
+
   this.signupForm.get('address')!
     .valueChanges
     .pipe(
@@ -98,7 +105,7 @@ export class Signup implements OnInit {
 });
     }
     console.log('Signup success', res);
-    this.router.navigate(['/auth/login']);
+    this.router.navigateByUrl(this.getSuccessRedirectUrl());
   },
   error: (err) => {
        this.snackBar.open(err.error.errorMessage+ '❌', 'Close', {
@@ -115,5 +122,10 @@ export class Signup implements OnInit {
  redirect()
   {
     this.router.navigate(['/auth/login']);
+  }
+
+  private getSuccessRedirectUrl(): string {
+    const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+    return returnUrl?.startsWith('/home/') ? returnUrl : this.defaultRedirectUrl;
   }
 }

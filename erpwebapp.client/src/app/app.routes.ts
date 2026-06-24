@@ -8,7 +8,6 @@ import { User } from './users/user/user';
 import { DragDrop } from './drag-drop/drag-drop';
 import { Login } from './auth/login/login';
 import { Component } from '@angular/core';
-import { Signup } from './auth/signup/signup';
 import { PermissionComponent } from './Menu/permissioncomponent/permissioncomponent';
 import { ItemMaster } from './item/item-master/item-master';
 import { Emi } from './EMI/emi/emi';
@@ -27,7 +26,7 @@ export const routes: Routes = [
     path: 'auth',
     children: [
       { path: 'login', component: Login },
-      { path: 'signup', component: Signup },
+      { path: 'signup', redirectTo: '/home/users', pathMatch: 'full' },
       { path: '', redirectTo: 'login', pathMatch: 'full' }
     ]
   },

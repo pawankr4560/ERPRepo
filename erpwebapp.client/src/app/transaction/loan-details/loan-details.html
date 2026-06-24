@@ -23,13 +23,11 @@
 
     <section class="summary-grid">
       <div><span>Loan Amount</span><strong>INR {{ item.loanAmount | number:'1.2-2' }}</strong></div>
-      <div><span>Interest Rate</span><strong>{{ item.rate || 0 | number:'1.2-2' }}%</strong></div>
       <div><span>Tenure</span><strong>{{ item.tenure || 0 }} months</strong></div>
       <div><span>Monthly EMI</span><strong>INR {{ item.emi || 0 | number:'1.2-2' }}</strong></div>
       <div><span>Start Date</span><strong>{{ item.startDate | date:'dd MMM yyyy' }}</strong></div>
       <div><span>End Date</span><strong>{{ item.endDate | date:'dd MMM yyyy' }}</strong></div>
       <div><span>Status</span><strong class="status-pill" [ngClass]="getStatusClass(item.status)">{{ item.status || 'Pending' }}</strong></div>
-      <div><span>Total Interest</span><strong>INR {{ totalInterest | number:'1.2-2' }}</strong></div>
     </section>
 
     <section class="progress-card">
@@ -59,18 +57,17 @@
     </section>
 
     <section class="card table-card"><h2>EMI Schedule</h2><div class="table-wrap"><table>
-      <thead><tr><th>No.</th><th>Due Date</th><th>EMI</th><th>Principal</th><th>Interest</th><th>Balance</th><th>Status</th></tr></thead>
+      <thead><tr><th>No.</th><th>Due Date</th><th>EMI</th><th>Principal</th><th>Balance</th><th>Status</th></tr></thead>
       <tbody>
-        <tr *ngIf="!schedules.length"><td colspan="7" class="empty-row">No EMI schedule found.</td></tr>
+        <tr *ngIf="!schedules.length"><td colspan="6" class="empty-row">No EMI schedule found.</td></tr>
         <tr *ngFor="let schedule of schedules">
           <td>{{ schedule.installmentNo }}</td><td>{{ schedule.dueDate | date:'dd MMM yyyy' }}</td>
           <td>INR {{ schedule.emiAmount | number:'1.2-2' }}</td><td>INR {{ schedule.principalAmount | number:'1.2-2' }}</td>
-          <td>INR {{ schedule.interestAmount | number:'1.2-2' }}</td><td>INR {{ schedule.outstandingBalance | number:'1.2-2' }}</td>
+          <td>INR {{ schedule.outstandingBalance | number:'1.2-2' }}</td>
           <td><span class="payment-status" [class.paid]="schedule.isPaid">{{ schedule.isPaid ? 'Paid' : 'Pending' }}</span></td>
         </tr>
       </tbody>
-      <tfoot *ngIf="schedules.length"><tr><td colspan="2">Total</td><td>INR {{ totalEmi | number:'1.2-2' }}</td><td></td>
-        <td>INR {{ totalInterest | number:'1.2-2' }}</td><td colspan="2"></td></tr></tfoot>
+      <tfoot *ngIf="schedules.length"><tr><td colspan="2">Total</td><td>INR {{ totalEmi | number:'1.2-2' }}</td><td colspan="3"></td></tr></tfoot>
     </table></div></section>
 
     <section class="card"><h2>Payments</h2>

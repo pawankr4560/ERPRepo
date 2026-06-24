@@ -17,7 +17,7 @@ describe('LoanPaymentComponent', () => {
   let payments$: BehaviorSubject<LoanPayment[]>;
 
   const testLoan: Loan = {
-    id: 1, userId: 'u1', userName: 'Customer', loanNumber: 'LN-1',
+    id: 1, userId: 1, userName: 'Customer', loanNumber: 'LN-1',
     loanAmount: 10000, rate: 10, tenure: 2, emi: 5250,
     emiSchedules: [{ id: 11, loanId: 1, installmentNo: 1, dueDate: '2026-01-01', emiAmount: 5250, principalAmount: 5000, interestAmount: 250, outstandingBalance: 5000, isPaid: false }],
   };

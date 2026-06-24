@@ -1,127 +1,135 @@
-import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { UserDetails } from '../user-details';
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
-import { MatIconModule } from '@angular/material/icon';
+import { CommonModule } from '@angular/common';
+import { Component, OnInit, ViewChild } from '@angular/core';
+import { FormBuilder, FormGroup, FormGroupDirective, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatDialog } from '@angular/material/dialog';
-import { EditUserDialogComponent } from '../edit-user-dialog-component/edit-user-dialog-component';
-import { ConfirmDialogComponent } from '../confirm-dialog-component/confirm-dialog-component';
-import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTableDataSource, MatTableModule } from '@angular/material/table';
+import { Router } from '@angular/router';
+import { finalize } from 'rxjs';
+import { UserDetails } from '../user-details';
+import { UserDetailsService } from '../user-details.service';
+
 @Component({
   selector: 'app-user',
-  imports: [MatTableModule, MatPaginatorModule,MatIconModule,MatButtonModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    MatTableModule,
+    MatPaginatorModule,
+    MatIconModule,
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSnackBarModule,
+  ],
   templateUrl: './user.html',
   styleUrl: './user.css',
 })
-export class User implements OnInit, AfterViewInit{
-  isMobile = false;
-  displayedColumns: string[] = [
-    'name',
-    'gender',
-    'weight',
-    'height',
-    'calorie',
-    'isActive',
-    'actions'
-  ];
+export class User implements OnInit {
+  displayedColumns: string[] = ['id', 'firstName', 'lastName', 'mobile', 'address'];
+  dataSource = new MatTableDataSource<UserDetails>([]);
+  isLoading = false;
+  isSaving = false;
+  form: FormGroup;
 
-  constructor(private dialog: MatDialog,private breakpointObserver: BreakpointObserver) {
-  
+  @ViewChild(MatPaginator) set paginator(value: MatPaginator) {
+    if (value) {
+      this.dataSource.paginator = value;
+    }
   }
-  dataSource = new MatTableDataSource<UserDetails>(USER_DATA);
 
-  @ViewChild(MatPaginator) paginator!: MatPaginator;
-
-  ngOnInit(): void {
-     this.breakpointObserver
-    .observe(['(max-width: 768px)'])
-    .subscribe((result: { matches: boolean; }) => {
-      this.isMobile = result.matches;
-
-      this.displayedColumns = this.isMobile
-        ? ['name', 'calorie', 'isActive', 'actions']
-        : ['id', 'name', 'gender', 'weight', 'height', 'calorie', 'isActive', 'actions'];
+  constructor(
+    private fb: FormBuilder,
+    private userDetailsService: UserDetailsService,
+    private snackBar: MatSnackBar,
+    private router: Router
+  ) {
+    this.form = this.fb.group({
+      firstName: ['', Validators.required],
+      lastName: ['', Validators.required],
+      mobile: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
+      address: ['', Validators.required],
     });
   }
 
-  ngAfterViewInit() {
-    this.dataSource.paginator = this.paginator;
+  ngOnInit(): void {
+    this.loadUsers();
   }
 
- editUser(user: UserDetails) {
-  const dialogRef = this.dialog.open(EditUserDialogComponent, {
-  data: { ...user }
-  });
-
-  dialogRef.afterClosed().subscribe(updatedUser => {
-    if (updatedUser) {
-      const index = this.dataSource.data.findIndex(u => u.id === updatedUser.id);
-      if (index !== -1) {
-        this.dataSource.data[index] = updatedUser;
-        this.dataSource._updateChangeSubscription();
-      }
-    }
-  });
-}
-
-
-deleteUser(user: UserDetails) {
-  const dialogRef = this.dialog.open(ConfirmDialogComponent, {
-    width: '380px',
-    data: {
-      title: 'Delete User',
-      message: `Are you sure you want to delete "${user.name}"?`
-    }
-  });
-
-  dialogRef.afterClosed().subscribe(confirmed => {
-    if (confirmed) {
-      this.dataSource.data = this.dataSource.data.filter(
-        u => u.id !== user.id
-      );
-    }
-  });
-}
-}
-export const USER_DATA: UserDetails[] = [
-  {
-    id: 1,
-    email:'test1@gmail.com',
-    password:'Test@123',
-    confirmPassword:'Test@123',
-    name: 'Rahul',
-    gender: 'Male',
-    phone:9829872397,
-    weight: 72,
-    height: 175,
-    calorie: 2200,
-    isActive: true
-  },
-  {
-    id: 2,
-    email:'test1@gmail.com',
-    password:'Test@123',
-    confirmPassword:'Test@123',
-    name: 'Sukhram',
-    gender: 'Male',
-    phone:7991829828,
-    weight: 60,
-    height: 162,
-    calorie: 1900,
-    isActive: true
-  },
-  {
-    id: 3,
-    email:'test1@gmail.com',
-    password:'Test@123',
-    confirmPassword:'Test@123',
-    name: 'Vikram',
-    gender: 'Male',
-      phone:7991829828,
-    weight: 85,
-    height: 180,
-    calorie: 2600,
-    isActive: false
+  loadUsers(): void {
+    this.isLoading = true;
+    this.userDetailsService
+      .getAll()
+      .pipe(finalize(() => (this.isLoading = false)))
+      .subscribe({
+        next: (users) => {
+          this.dataSource.data = users ?? [];
+        },
+        error: (error) => this.showError('Unable to load users.', error),
+      });
   }
-];
+
+  save(formDirective?: FormGroupDirective): void {
+    this.form.markAllAsTouched();
+    if (this.form.invalid || this.isSaving) {
+      return;
+    }
+
+    const value = this.form.getRawValue();
+    this.isSaving = true;
+    this.userDetailsService
+      .create({
+        firstName: value.firstName?.trim() ?? '',
+        lastName: value.lastName?.trim() ?? '',
+        mobile: value.mobile?.trim() ?? '',
+        address: value.address?.trim() ?? '',
+      })
+      .pipe(finalize(() => (this.isSaving = false)))
+      .subscribe({
+        next: (user) => {
+          this.dataSource.data = [user, ...this.dataSource.data];
+          formDirective?.resetForm();
+          this.form.reset({
+            firstName: '',
+            lastName: '',
+            mobile: '',
+            address: '',
+          });
+          this.form.markAsPristine();
+          this.form.markAsUntouched();
+          this.snackBar.open('User created successfully.', 'Close', { duration: 3000 });
+        },
+        error: (error) => this.showError('Unable to create user.', error),
+      });
+  }
+
+  createLoan(): void {
+    this.router.navigate(['/home/inventory/transactions']);
+  }
+
+  keepMobileDigits(): void {
+    const control = this.form.get('mobile');
+    const digits = `${control?.value ?? ''}`.replace(/\D/g, '').slice(0, 10);
+    if (control && control.value !== digits) {
+      control.setValue(digits);
+    }
+  }
+
+  private showError(fallback: string, error: any): void {
+    const validationErrors = error?.error?.errors
+      ? Object.values(error.error.errors).flat().join(' ')
+      : '';
+    this.snackBar.open(
+      error?.error?.errorMessage ||
+        error?.error?.message ||
+        validationErrors ||
+        fallback,
+      'Close',
+      { duration: 5000, panelClass: ['error-snackbar'] }
+    );
+  }
+}

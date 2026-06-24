@@ -78,7 +78,7 @@ public class LoanDashboardService : ILoanDashboardService
             from schedule in _dbContext.LoanEMISchedule.AsNoTracking()
             join loan in _dbContext.Loan.AsNoTracking()
                 on schedule.LoanId equals loan.Id
-            join user in _dbContext.Users.AsNoTracking()
+            join user in _dbContext.UserDetails.AsNoTracking()
                 on loan.UserId equals user.Id
             where !schedule.IsDeleted
                   && !schedule.IsPaid
@@ -105,7 +105,7 @@ public class LoanDashboardService : ILoanDashboardService
             from payment in _dbContext.LoanPayment.AsNoTracking()
             join loan in _dbContext.Loan.AsNoTracking()
                 on payment.LoanId equals loan.Id
-            join user in _dbContext.Users.AsNoTracking()
+            join user in _dbContext.UserDetails.AsNoTracking()
                 on loan.UserId equals user.Id
             where !payment.IsDeleted
                   && !loan.IsDeleted

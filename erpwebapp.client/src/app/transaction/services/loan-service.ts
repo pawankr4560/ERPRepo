@@ -6,7 +6,7 @@ import { InterestCalculationType } from '../../setting/interest-setting.service'
 
 export interface Loan {
   id?: number;
-  userId?: string;
+  userId?: number | null;
   userName?: string;
   loanNumber: string;
   loanAmount: number;
@@ -82,8 +82,10 @@ export interface LoanPayment {
 }
 
 export interface LoanCustomer {
-  id: string;
+  id: number;
   customerName: string;
+  mobile?: string;
+  address?: string;
 }
 
 export interface LoanDataResponse {
@@ -222,7 +224,7 @@ export class LoanService {
   private toLoanPayload(loan: Loan) {
     return {
       id: loan.id ?? 0,
-      userId: loan.userId ?? '',
+      userId: Number(loan.userId ?? 0),
       loanNumber: loan.loanNumber ?? '',
       loanAmount: Number(loan.loanAmount ?? 0),
       emi: Number(loan.emi ?? 0),
@@ -261,7 +263,7 @@ export class LoanService {
   private toLoanUpdatePayload(loan: Loan) {
     return {
       id: loan.id ?? 0,
-      userId: loan.userId ?? '',
+      userId: Number(loan.userId ?? 0),
       loanNumber: loan.loanNumber ?? '',
       loanAmount: Number(loan.loanAmount ?? 0),
       emi: Number(loan.emi ?? 0),
@@ -296,7 +298,7 @@ export class LoanService {
     return {
       ...loan,
       id,
-      userId: loan?.UserId ?? loan?.userId ?? '',
+      userId: Number(loan?.UserId ?? loan?.userId ?? 0),
       userName: loan?.UserName ?? loan?.userName ?? '',
       loanNumber: loan?.LoanNumber ?? loan?.loanNumber ?? '',
       loanAmount: loan?.LoanAmount ?? loan?.loanAmount ?? 0,

@@ -8,7 +8,9 @@
   
     public class CustomerDropdownDto
     {
-        public string Id { get; set; }
+        public int Id { get; set; }
         public string CustomerName { get; set; }
+        public string Mobile { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
     }
 }

@@ -5,7 +5,6 @@ import { UserDetails } from '../user-details';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-import { MatSelectModule } from '@angular/material/select';
 
 @Component({
   selector: 'app-edit-user-dialog-component',
@@ -13,8 +12,7 @@ import { MatSelectModule } from '@angular/material/select';
     MatFormFieldModule,
     MatInputModule,
     MatDialogActions,
-    MatButtonModule,
-    MatSelectModule],
+    MatButtonModule],
   templateUrl: './edit-user-dialog-component.html',
   styleUrl: './edit-user-dialog-component.css',
 })
@@ -29,18 +27,24 @@ export class EditUserDialogComponent {
   ) {
     this.form = this.fb.group({
       id: [data.id],
-      name: [data.name, Validators.required],
-      gender: [data.gender, Validators.required],
-      weight: [data.weight, Validators.required],
-      height: [data.height, Validators.required],
-      calorie: [data.calorie, Validators.required],
-      isActive: [data.isActive]
+      firstName: [data.firstName, Validators.required],
+      lastName: [data.lastName, Validators.required],
+      mobile: [data.mobile, [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
+      address: [data.address, Validators.required],
     });
   }
 
   save() {
     if (this.form.valid) {
       this.dialogRef.close(this.form.value);
+    }
+  }
+
+  keepMobileDigits(): void {
+    const control = this.form.get('mobile');
+    const digits = `${control?.value ?? ''}`.replace(/\D/g, '').slice(0, 10);
+    if (control && control.value !== digits) {
+      control.setValue(digits);
     }
   }
 

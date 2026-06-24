@@ -54,8 +54,23 @@ namespace WebApp.Service.Auth
                 user.EmailConfirmed = true;
                 user.Id = Guid.NewGuid().ToString();
                 var res = await _userManager.CreateAsync(user, model.Password);
+                if (!res.Succeeded)
+                {
+                    throw new Exception(string.Join(" ", res.Errors.Select(error => error.Description)));
+                }
+
                 await _userManager.AddToRoleAsync(user, "User");
                 await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+                await _dbContext.UserDetails.AddAsync(new UserDetails
+                {
+                    FirstName = model.FirstName,
+                    LastName = model.LastName,
+                    Mobile = model.Phone,
+                    Address = model.Address
+                });
+                await _dbContext.SaveChangesAsync();
+
                 return true;
             }
             catch (Exception) { throw; }

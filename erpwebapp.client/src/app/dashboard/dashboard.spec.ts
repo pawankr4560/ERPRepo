@@ -133,6 +133,11 @@ describe('Dashboard', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/home/inventory/payments']);
   });
 
+  it('opens the user details page for creating a user', () => {
+    component.createUser();
+    expect(router.navigate).toHaveBeenCalledWith(['/home/users']);
+  });
+
   it('creates normalized payment status CSS classes', () => {
     expect(component.paymentStatusClass('Success')).toBe('status-success');
     expect(component.paymentStatusClass('')).toBe('status-pending');

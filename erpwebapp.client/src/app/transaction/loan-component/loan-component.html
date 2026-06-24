@@ -68,7 +68,7 @@
           required
           disableOptionCentering
         >
-          <mat-option value="">Select customer</mat-option>
+          <mat-option [value]="null">Select customer</mat-option>
           <mat-option *ngFor="let customer of customers" [value]="customer.id">
             {{ customer.customerName }}
           </mat-option>
@@ -188,7 +188,7 @@
                 (ngModelChange)="onCustomerChange($event)"
                 required
               >
-                <mat-option value="">Select customer</mat-option>
+                <mat-option [value]="null">Select customer</mat-option>
                 <mat-option *ngFor="let customer of customers" [value]="customer.id">
                   {{ customer.customerName }}
                 </mat-option>
@@ -455,7 +455,6 @@
             <h3>EMI Schedule Preview</h3>
             <div class="preview-totals">
               <span>Monthly EMI <strong>INR {{ emiPreview[0]?.emiAmount || 0 | number:'1.2-2' }}</strong></span>
-              <span>Total Interest <strong>INR {{ previewTotalInterest | number:'1.2-2' }}</strong></span>
               <span>Total Payable <strong>INR {{ previewTotalPayable | number:'1.2-2' }}</strong></span>
             </div>
           </div>
@@ -467,7 +466,6 @@
                   <th>Due Date</th>
                   <th>EMI</th>
                   <th>Principal</th>
-                  <th>Interest</th>
                   <th>Outstanding Balance</th>
                 </tr>
               </thead>
@@ -477,7 +475,6 @@
                   <td>{{ row.dueDate | date:'dd MMM yyyy' }}</td>
                   <td>INR {{ row.emiAmount | number:'1.2-2' }}</td>
                   <td>INR {{ row.principalAmount | number:'1.2-2' }}</td>
-                  <td>INR {{ row.interestAmount | number:'1.2-2' }}</td>
                   <td>INR {{ row.outstandingBalance | number:'1.2-2' }}</td>
                 </tr>
               </tbody>
@@ -714,21 +711,19 @@
               <th>Due Date</th>
               <th>EMI</th>
               <th>Principal</th>
-              <th>Interest</th>
               <th>Balance</th>
               <th>Paid</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngIf="!selectedSchedules.length">
-              <td colspan="7" class="empty-row">No EMI schedule returned for this loan.</td>
+              <td colspan="6" class="empty-row">No EMI schedule returned for this loan.</td>
             </tr>
             <tr *ngFor="let schedule of selectedSchedules">
               <td>{{ schedule.installmentNo }}</td>
               <td>{{ schedule.dueDate | date:'dd MMM yyyy' }}</td>
               <td>INR {{ schedule.emiAmount | number:'1.2-2' }}</td>
               <td>INR {{ schedule.principalAmount | number:'1.2-2' }}</td>
-              <td>INR {{ schedule.interestAmount | number:'1.2-2' }}</td>
               <td>INR {{ schedule.outstandingBalance | number:'1.2-2' }}</td>
               <td>
                 <mat-icon [class.paid-icon]="schedule.isPaid" [class.pending-icon]="!schedule.isPaid">

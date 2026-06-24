@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { BehaviorSubject, of, Subject, throwError } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { LoanComponent } from './loan-component';
 import { Loan, LoanService } from '../services/loan-service';
 import { InterestSettingService } from '../../setting/interest-setting.service';
@@ -20,7 +20,7 @@ describe('LoanComponent', () => {
   const loan = (id: number, number = `LN-${id}`): Loan => ({
     id,
     loanNumber: number,
-    userId: `user-${id}`,
+    userId: id,
     userName: `Customer ${id}`,
     loanAmount: 120000,
     rate: 12,
@@ -62,6 +62,10 @@ describe('LoanComponent', () => {
       providers: [
         { provide: LoanService, useValue: loanService },
         { provide: InterestSettingService, useValue: interestService },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { queryParamMap: { get: () => null } } },
+        },
         { provide: Router, useValue: router },
         { provide: MatDialog, useValue: dialog },
         { provide: MatSnackBar, useValue: snackBar },
@@ -133,7 +137,7 @@ describe('LoanComponent', () => {
     loanService.getLoanData.and.returnValue(request);
     component.startCreate();
     expect(component.isLoadingLoanData).toBeTrue();
-    request.next({ loanNumber: '2026-GKFIN-00009', customerList: [{ id: 'u1', customerName: 'A User' }] });
+    request.next({ loanNumber: '2026-GKFIN-00009', customerList: [{ id: 1, customerName: 'A User' }] });
     request.complete();
     expect(component.isLoadingLoanData).toBeFalse();
     expect(component.current.loanNumber).toBe('2026-GKFIN-00009');
@@ -147,7 +151,7 @@ describe('LoanComponent', () => {
     component.current = {
       ...loan(0),
       id: 0,
-      userId: 'u1',
+      userId: 1,
       loanNumber: 'LN-NEW',
       loanAmount: 120000,
       rate: 12,

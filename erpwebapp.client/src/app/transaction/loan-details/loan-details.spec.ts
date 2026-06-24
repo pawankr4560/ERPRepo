@@ -14,7 +14,7 @@ describe('LoanDetailsComponent', () => {
 
   const fullLoan: Loan = {
     id: 3,
-    userId: 'u3',
+    userId: 3,
     userName: 'Test Customer',
     loanNumber: 'LN-3',
     loanAmount: 100000,
