@@ -4,6 +4,7 @@ using WebApp.Service.Transaction;
 
 namespace WebApp.Server.Controllers
 {
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
     public class LoanEMIScheduleController : ControllerBase
     {
         private readonly ILoanEMIScheduleService _loanEMIScheduleService;

@@ -1,11 +1,13 @@
 using ERPWebAppModels.Booking;
 using ERPWebAppService.Booking.Car;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ERPWebApp.Server.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class BookingController : ControllerBase
 {
     private readonly IBookingService _service;

@@ -5,9 +5,9 @@ namespace WebApp.Model.Transaction
         public int Id { get; set; }
         public string UserId { get; set; } = string.Empty;
         public string LoanNumber { get; set; } = string.Empty;
-        public double LoanAmount { get; set; }
-        public double EMI { get; set; }
-        public double Rate { get; set; }
+        public decimal LoanAmount { get; set; }
+        public decimal EMI { get; set; }
+        public decimal Rate { get; set; }
         public bool InterestCalculationType { get; set; }
         [System.ComponentModel.DataAnnotations.Range(
             6,

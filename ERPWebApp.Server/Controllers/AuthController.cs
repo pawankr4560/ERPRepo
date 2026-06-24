@@ -1,6 +1,7 @@
 ﻿using Google.Apis.Auth;
 using ERPWebAppModels.Auth;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WebApp.Model.Auth;
 using WebApp.Model.Common;
 using WebApp.Service.Auth;
@@ -12,6 +13,7 @@ namespace WebApp.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [EnableRateLimiting("auth")]
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;

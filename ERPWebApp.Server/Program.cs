@@ -3,12 +3,14 @@ using ERPWebAppService.Booking.Car;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Stripe;
 using System.Text;
+using System.Threading.RateLimiting;
 using WebApp.Data;
 using WebApp.Data.Entity;
 using WebApp.Data.Repository;
@@ -34,14 +36,39 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.MaxDepth = 128;
     });
 
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("auth", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 10;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueLimit = 0;
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    });
+});
+
 builder.Services.AddEndpointsApiExplorer();
 
 // CORS
+var allowedOrigins = configuration
+    .GetSection("AllowedOrigins")
+    .Get<string[]>()
+    ?.Where(origin => !string.IsNullOrWhiteSpace(origin))
+    .Select(origin => origin.Trim().TrimEnd('/'))
+    .Distinct(StringComparer.OrdinalIgnoreCase)
+    .ToArray() ?? Array.Empty<string>();
+
+if (allowedOrigins.Length == 0)
+{
+    throw new InvalidOperationException("CORS configuration missing. Add at least one origin to 'AllowedOrigins' in appsettings.json.");
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("EnableCORS", policy =>
     {
-        policy.AllowAnyOrigin()
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -58,6 +85,11 @@ if (string.IsNullOrWhiteSpace(connectionString))
 builder.Services.AddDbContext<WebAppDbContext>(options =>
 {
     options.UseSqlServer(connectionString);
+});
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = configuration["Redis:ConnectionString"];
 });
 
 // Seed Data
@@ -85,13 +117,23 @@ builder.Services.AddHttpClient("MSG91Client", client =>
     client.DefaultRequestHeaders.Add("accept", "application/json");
 });
 
+builder.Services.AddHttpClient("AuthClient", client =>
+{
+    var issuer = configuration["Jwt:Issuer"];
+
+    if (Uri.TryCreate(issuer, UriKind.Absolute, out var baseAddress))
+    {
+        client.BaseAddress = baseAddress;
+    }
+});
+
 // Identity
 builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
-    options.Password.RequireDigit = false;
-    options.Password.RequiredLength = 5;
-    options.Password.RequireLowercase = false;
-    options.Password.RequireUppercase = false;
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
     options.Password.RequireNonAlphanumeric = false;
 
     options.SignIn.RequireConfirmedEmail = true;
@@ -164,14 +206,14 @@ builder.Services.AddTransient<
     GenericRepository<StripeCustomer>>();
 
 // Application Services
-builder.Services.AddTransient<IAuthService, AuthService>();
-builder.Services.AddTransient<IProductService, WebApp.Service.Product.ProductService>();
-builder.Services.AddTransient<IOrderService, OrderService>();
-builder.Services.AddTransient<ILoanService, LoanService>();
-builder.Services.AddTransient<ILoanPaymentService, LoanPaymentService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IProductService, WebApp.Service.Product.ProductService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ILoanService, LoanService>();
+builder.Services.AddScoped<ILoanPaymentService, LoanPaymentService>();
 builder.Services.AddScoped<ILoanDashboardService, LoanDashboardService>();
-builder.Services.AddTransient<ILoanEMIScheduleService, LoanEMIScheduleService>();
-builder.Services.AddTransient<IStripeService, StripeService>();
+builder.Services.AddScoped<ILoanEMIScheduleService, LoanEMIScheduleService>();
+builder.Services.AddScoped<IStripeService, StripeService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<ICarService, CarService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
@@ -231,6 +273,8 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseCors("EnableCORS");
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 

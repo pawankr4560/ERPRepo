@@ -6,6 +6,7 @@ namespace WebApp.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
     public class LoanPaymentController : ControllerBase
     {
         private readonly ILoanPaymentService _loanPaymentService;

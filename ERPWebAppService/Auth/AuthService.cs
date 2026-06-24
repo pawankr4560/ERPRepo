@@ -27,13 +27,13 @@ namespace WebApp.Service.Auth
             WebAppDbContext dbContext,
             Microsoft.Extensions.Configuration.IConfiguration configuration,
             IMapper mapper,
-            HttpClient httpClient)
+            IHttpClientFactory httpClientFactory)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _dbContext = dbContext;
             _mapper = mapper;
-            _httpClient = httpClient;
+            _httpClient = httpClientFactory.CreateClient("AuthClient");
             _configuration = configuration;
         }
 

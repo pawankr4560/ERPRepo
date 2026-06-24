@@ -10,11 +10,11 @@
 
         public string LoanNumber { get; set; } = string.Empty;
 
-        public double LoanAmount { get; set; }
+        public decimal LoanAmount { get; set; }
 
-        public double Rate { get; set; }
+        public decimal Rate { get; set; }
 
-        public double EMI { get; set; }
+        public decimal EMI { get; set; }
 
         public bool InterestCalculationType { get; set; }
 

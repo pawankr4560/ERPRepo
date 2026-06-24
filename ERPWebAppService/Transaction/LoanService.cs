@@ -488,8 +488,8 @@ namespace WebApp.Service.Transaction
         {
             var schedules = new List<LoanEMISchedule>();
 
-            decimal loanAmount = Convert.ToDecimal(loan.LoanAmount);
-            decimal annualRate = Convert.ToDecimal(loan.Rate);
+            decimal loanAmount = loan.LoanAmount;
+            decimal annualRate = loan.Rate;
             int tenureMonths = loan.Tenure;
 
             decimal totalInterest = loanAmount * annualRate * tenureMonths / 12 / 100;
@@ -540,8 +540,8 @@ namespace WebApp.Service.Transaction
         {
             var schedules = new List<LoanEMISchedule>();
 
-            decimal loanAmount = Convert.ToDecimal(loan.LoanAmount);
-            decimal annualRate = Convert.ToDecimal(loan.Rate);
+            decimal loanAmount = loan.LoanAmount;
+            decimal annualRate = loan.Rate;
             int tenureMonths = loan.Tenure;
 
             decimal monthlyRate = annualRate / 12 / 100;

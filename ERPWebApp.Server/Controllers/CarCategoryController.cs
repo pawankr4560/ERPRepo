@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using WebApp.Data;
+using ERPWebAppService.Booking.Car;
 
 namespace ERPWebApp.Server.Controllers;
 
@@ -8,26 +7,23 @@ namespace ERPWebApp.Server.Controllers;
 [ApiController]
 public class CarCategoryController : ControllerBase
 {
-    private readonly WebAppDbContext _context;
+    private readonly ICarService _carService;
 
-    public CarCategoryController(WebAppDbContext context)
+    public CarCategoryController(ICarService carService)
     {
-        _context = context;
+        _carService = carService;
     }
 
     [HttpGet]
     public async Task<IActionResult> Get()
     {
-        var categories = await _context.Categories
-            .AsNoTracking()
-            .OrderBy(category => category.Name)
+        var categories = await _carService.GetCategoriesAsync();
+
+        return Ok(categories
             .Select(category => new
             {
                 category.Id,
                 category.Name
-            })
-            .ToListAsync();
-
-        return Ok(categories);
+            }));
     }
 }

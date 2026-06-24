@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApp.Service.Transaction;
 
@@ -5,6 +6,7 @@ namespace ERPWebApp.Server.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize(Roles = "Admin")]
 public class DashboardController : ControllerBase
 {
     private readonly ILoanDashboardService _dashboardService;

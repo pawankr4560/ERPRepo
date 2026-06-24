@@ -9,6 +9,7 @@ namespace WebApp.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     public class LoanController : ControllerBase
     {
         private readonly ILoanService _loanService;
@@ -119,9 +120,14 @@ namespace WebApp.Server.Controllers
         }
 
         [HttpPost("notify-creation")]
-        public async Task<IActionResult> NotifyLoanCreation([FromQuery] string mobile, [FromQuery] string loanNo, [FromQuery] string amount)
+        public async Task<IActionResult> NotifyLoanCreation([FromBody] LoanNotificationRequest model)
         {
-            bool result = await _messageService.SendLoanSmsAsync(mobile, loanNo, amount);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            bool result = await _messageService.SendLoanSmsAsync(model.Mobile, model.LoanNo, model.Amount);
 
             if (result)
             {

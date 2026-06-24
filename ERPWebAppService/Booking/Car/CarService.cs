@@ -1,12 +1,21 @@
 using ERPWebAppModels.Booking;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using WebApp.Data;
 using CarEntity = ERPWebAppData.Entity.Car;
+using CategoryEntity = ERPWebAppData.Entity.Category;
 
 namespace ERPWebAppService.Booking.Car;
 
 public class CarService : ICarService
 {
+    private const string CarCategoryListCacheKey = "car_category_list";
+    private static readonly DistributedCacheEntryOptions CarCategoryListCacheOptions = new()
+    {
+        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+    };
+
     private static readonly string[] ValidTransmissions = ["Automatic", "Manual"];
     private static readonly string[] ValidFuelTypes =
         ["Petrol", "Diesel", "Electric", "Hybrid", "CNG"];
@@ -14,10 +23,12 @@ public class CarService : ICarService
         ["Available", "Booked", "Maintenance", "Inactive"];
 
     private readonly WebAppDbContext _context;
+    private readonly IDistributedCache _cache;
 
-    public CarService(WebAppDbContext context)
+    public CarService(WebAppDbContext context, IDistributedCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     public async Task<IEnumerable<CarEntity>> GetAllAsync()
@@ -25,6 +36,45 @@ public class CarService : ICarService
         return await _context.Cars
             .Include(x => x.Category)
             .ToListAsync();
+    }
+
+    public async Task<IEnumerable<CategoryEntity>> GetCategoriesAsync()
+    {
+        string? cachedCategories = null;
+
+        try
+        {
+            cachedCategories = await _cache.GetStringAsync(CarCategoryListCacheKey);
+        }
+        catch
+        {
+            cachedCategories = null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(cachedCategories))
+        {
+            return JsonSerializer.Deserialize<List<CategoryEntity>>(cachedCategories)
+                ?? [];
+        }
+
+        var categories = await _context.Categories
+            .AsNoTracking()
+            .OrderBy(category => category.Name)
+            .ToListAsync();
+
+        try
+        {
+            await _cache.SetStringAsync(
+                CarCategoryListCacheKey,
+                JsonSerializer.Serialize(categories),
+                CarCategoryListCacheOptions);
+        }
+        catch
+        {
+            // Redis caching is best-effort; the database result is still valid.
+        }
+
+        return categories;
     }
 
     public async Task<CarEntity?> GetByIdAsync(int id)

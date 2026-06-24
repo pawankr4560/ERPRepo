@@ -82,8 +82,8 @@ public class StripeService : IStripeService
                 CreatedOn = DateTime.UtcNow,
             };
 
-            _customerRepo.Insert(customer);
-            _customerRepo.Save();
+            await _customerRepo.InsertAsync(customer);
+            await _customerRepo.SaveAsync();
             return result.Id;
         }
         catch (Exception ex)

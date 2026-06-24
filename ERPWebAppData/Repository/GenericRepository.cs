@@ -13,39 +13,40 @@ namespace WebApp.Data.Repository
             _table = _context.Set<T>();
         }
 
-        public IEnumerable<T> GetAll()
+        public async Task<List<T>> GetAllAsync()
         {
-            return _table.ToList();
+            return await _table.ToListAsync();
         }
 
-        public T GetById(object id)
+        public async Task<T?> GetByIdAsync(object id)
         {
-            return _table.Find(id);
+            return await _table.FindAsync(id);
         }
 
-        public void Insert(T entity)
+        public async Task InsertAsync(T entity)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
-            _table.Add(entity);
+            await _table.AddAsync(entity);
         }
 
-        public void Update(T entity)
+        public Task UpdateAsync(T entity)
         {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
             _table.Attach(entity);
             _context.Entry(entity).State = EntityState.Modified;
+            return Task.CompletedTask;
         }
 
-        public void Delete(object id)
+        public async Task DeleteAsync(object id)
         {
-            T entity = _table.Find(id);
+            T? entity = await _table.FindAsync(id);
             if (entity == null) throw new KeyNotFoundException("Entity not found");
             _table.Remove(entity);
         }
 
-        public void Save()
+        public async Task SaveAsync()
         {
-            _context.SaveChanges();
+            await _context.SaveChangesAsync();
         }
     }
 }

@@ -19,13 +19,56 @@ namespace WebApp.Data
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Loan>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<Loan>()
                 .HasIndex(x => new { x.IsDeleted, x.Status, x.Active });
+
+            modelBuilder.Entity<Loan>()
+                .Property(x => x.LoanAmount)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Loan>()
+                .Property(x => x.Rate)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<Loan>()
+                .Property(x => x.EMI)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<LoanEMISchedule>()
+                .HasQueryFilter(x => !x.IsDeleted);
 
             modelBuilder.Entity<LoanEMISchedule>()
                 .HasIndex(x => new { x.IsDeleted, x.IsPaid, x.DueDate });
 
+            modelBuilder.Entity<LoanEMISchedule>()
+                .Property(x => x.EMIAmount)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<LoanEMISchedule>()
+                .Property(x => x.PrincipalAmount)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<LoanEMISchedule>()
+                .Property(x => x.InterestAmount)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<LoanEMISchedule>()
+                .Property(x => x.OutstandingBalance)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<LoanPayment>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
             modelBuilder.Entity<LoanPayment>()
                 .HasIndex(x => new { x.IsDeleted, x.PaymentStatus, x.PaymentDate });
+
+            modelBuilder.Entity<Product>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<OrderHistory>()
+                .HasQueryFilter(x => !x.IsDeleted);
         }
 
         public DbSet<Product> Products { get; set; }

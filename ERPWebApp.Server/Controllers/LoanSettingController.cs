@@ -10,6 +10,7 @@ namespace WebApp.Server.Controllers
     {
         [Route("api/[controller]")]
         [ApiController]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
         public class LoanSettingController : ControllerBase
         {
             private readonly WebAppDbContext _dbContext;
