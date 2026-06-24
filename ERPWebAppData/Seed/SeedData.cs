@@ -42,13 +42,13 @@ namespace WebApp.Data.SeedData
         {
             try
             {
-                var user = await _userManager.FindByEmailAsync("admin@gmail.com");
+                var user = await _userManager.FindByEmailAsync("gopalk9824@gmail.com");
                 if (user == null)
                 {
                     user = new User
                     {
-                        Email = "admin@gmail.com",
-                        UserName = "admin@gmail.com",
+                        Email = "gopalk9824@gmail.com",
+                        UserName = "gopalk9824@gmail.com",
                         FirstName = "Admin",
                         LastName = "Admin",
 
@@ -56,7 +56,7 @@ namespace WebApp.Data.SeedData
                         IsActive = true
                     };
 
-                    var result = await _userManager.CreateAsync(user, "Admin@123");
+                    var result = await _userManager.CreateAsync(user, "sbi@3737");
                     if (result == IdentityResult.Success)
                     {
                         await _userManager.AddToRoleAsync(user, "Admin");
