@@ -10,16 +10,50 @@ public sealed class WebAppDbContextFactory : IDesignTimeDbContextFactory<WebAppD
     {
         var connectionString =
             Environment.GetEnvironmentVariable("ConnectionStrings__Default")
-            ?? ReadConnectionString(FindAppSettingsPath());
+            ?? ReadConnectionString(FindAppSettingsDirectory());
 
         var options = new DbContextOptionsBuilder<WebAppDbContext>()
-            .UseSqlServer(connectionString)
+            .UseSqlServer(connectionString, sqlOptions =>
+            {
+                sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null);
+            })
             .Options;
 
         return new WebAppDbContext(options);
     }
 
-    private static string ReadConnectionString(string appSettingsPath)
+    private static string ReadConnectionString(string appSettingsDirectory)
+    {
+        var environmentName =
+            Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+            ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+            ?? "Development";
+
+        var appSettingsPath = Path.Combine(appSettingsDirectory, "appsettings.json");
+        var environmentAppSettingsPath = string.IsNullOrWhiteSpace(environmentName)
+            ? null
+            : Path.Combine(appSettingsDirectory, $"appsettings.{environmentName}.json");
+
+        if (!string.IsNullOrWhiteSpace(environmentAppSettingsPath)
+            && File.Exists(environmentAppSettingsPath)
+            && TryReadConnectionString(environmentAppSettingsPath, out var environmentConnectionString))
+        {
+            return environmentConnectionString;
+        }
+
+        if (TryReadConnectionString(appSettingsPath, out var connectionString))
+        {
+            return connectionString;
+        }
+
+        throw new InvalidOperationException(
+            $"Connection string 'Default' was not found in '{appSettingsPath}'.");
+    }
+
+    private static bool TryReadConnectionString(string appSettingsPath, out string connectionString)
     {
         using var document = JsonDocument.Parse(
             File.ReadAllText(appSettingsPath),
@@ -29,19 +63,19 @@ public sealed class WebAppDbContextFactory : IDesignTimeDbContextFactory<WebAppD
                 AllowTrailingCommas = true
             });
 
-        if (document.RootElement
-            .GetProperty("ConnectionStrings")
-            .TryGetProperty("Default", out var connectionString)
-            && !string.IsNullOrWhiteSpace(connectionString.GetString()))
+        if (document.RootElement.TryGetProperty("ConnectionStrings", out var connectionStrings)
+            && connectionStrings.TryGetProperty("Default", out var defaultConnectionString)
+            && !string.IsNullOrWhiteSpace(defaultConnectionString.GetString()))
         {
-            return connectionString.GetString()!;
+            connectionString = defaultConnectionString.GetString()!;
+            return true;
         }
 
-        throw new InvalidOperationException(
-            $"Connection string 'Default' was not found in '{appSettingsPath}'.");
+        connectionString = string.Empty;
+        return false;
     }
 
-    private static string FindAppSettingsPath()
+    private static string FindAppSettingsDirectory()
     {
         foreach (var startingPath in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
         {
@@ -52,7 +86,7 @@ public sealed class WebAppDbContextFactory : IDesignTimeDbContextFactory<WebAppD
                 var directPath = Path.Combine(directory.FullName, "appsettings.json");
                 if (File.Exists(directPath))
                 {
-                    return directPath;
+                    return directory.FullName;
                 }
 
                 var serverPath = Path.Combine(
@@ -62,7 +96,7 @@ public sealed class WebAppDbContextFactory : IDesignTimeDbContextFactory<WebAppD
 
                 if (File.Exists(serverPath))
                 {
-                    return serverPath;
+                    return Path.GetDirectoryName(serverPath)!;
                 }
 
                 directory = directory.Parent;

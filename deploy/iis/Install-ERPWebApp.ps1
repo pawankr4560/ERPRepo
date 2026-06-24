@@ -61,6 +61,9 @@ $productionSettings = @{
         Issuer = $JwtIssuer
         Audience = $JwtAudience
     }
+    SeedData = @{
+        RunOnStartup = $false
+    }
     api_key = $ApiKey
 } | ConvertTo-Json -Depth 5
 

@@ -1,6 +1,6 @@
 export const environment = {
-  production: false,
-  apiUrl: 'https://localhost:7002',
+  production: true,
+  apiUrl: 'https://gkfinapp-fwe7d6bcg0fdfjad.centralindia-01.azurewebsites.net',
   apiKey: 'development-api-key',
   testUser: {
     token: {

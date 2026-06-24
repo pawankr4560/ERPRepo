@@ -57,7 +57,14 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddDbContext<WebAppDbContext>(options =>
 {
-    options.UseSqlServer(connectionString);
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 5,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorNumbersToAdd: null
+        );
+    });
 });
 
 // Seed Data
@@ -199,16 +206,22 @@ if (!string.IsNullOrWhiteSpace(stripeSecretKey))
 var app = builder.Build();
 
 // Database Seeding
-using (var scope = app.Services.CreateScope())
+var runSeedData = app.Environment.IsDevelopment()
+    || configuration.GetValue<bool>("SeedData:RunOnStartup");
+
+if (runSeedData)
 {
-    try
+    using (var scope = app.Services.CreateScope())
     {
-        var seeder = scope.ServiceProvider.GetRequiredService<SeedData>();
-        await seeder.SeedAsync();
-    }
-    catch (Exception ex)
-    {
-        app.Logger.LogError(ex, "Database seeding failed");
+        try
+        {
+            var seeder = scope.ServiceProvider.GetRequiredService<SeedData>();
+            await seeder.SeedAsync();
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogError(ex, "Database seeding failed");
+        }
     }
 }
 
