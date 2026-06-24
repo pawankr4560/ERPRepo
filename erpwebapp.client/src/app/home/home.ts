@@ -28,6 +28,7 @@ const ROUTE_ROLE_MAP: Record<string, string[]> = {
   'users': ['admin', 'user'],
   'dashboard': ['admin'],
   'settings': ['admin'],
+  'menu': ['admin'],
   'permission': ['admin'],
   'inventory/product': ['admin'],
   'inventory/item': ['admin'],
@@ -200,6 +201,13 @@ export class Home implements OnDestroy,OnInit {
   navigate(route?: string) {
     if (route) {
       this.router.navigateByUrl(this.getMenuPath({ route } as MenuItem));
+    }
+  }
+
+  closeMobileMenu(drawer: { close: () => void }, event: MouseEvent): void {
+    event.stopPropagation();
+    if (this.isMobile) {
+      drawer.close();
     }
   }
 

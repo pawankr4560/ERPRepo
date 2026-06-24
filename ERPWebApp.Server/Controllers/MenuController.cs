@@ -55,6 +55,28 @@ namespace WebApp.Server.Controllers
             return Ok(new ApiResponse(true, null, result));
         }
 
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllMenus()
+        {
+            var menus = await _context.MenuItem
+                .AsNoTracking()
+                .OrderBy(x => x.ParentId ?? 0)
+                .ThenBy(x => x.OrderNumber)
+                .ThenBy(x => x.Title)
+                .Select(x => new MenuItemDto
+                {
+                    Id = x.Id,
+                    ParentId = x.ParentId,
+                    Title = x.Title,
+                    Route = x.Route,
+                    IconClass = x.IconClass,
+                    OrderNumber = x.OrderNumber,
+                    IsActive = x.IsActive
+                })
+                .ToListAsync();
+
+            return Ok(new ApiResponse(true, null, menus));
+        }
 
         // ✅ GET BY ID
         [HttpGet("{id}")]
@@ -64,6 +86,7 @@ namespace WebApp.Server.Controllers
                 .Where(x => x.Id == id)
                 .Select(x => new MenuItemDto
                 {
+                    Id = x.Id,
                     ParentId = x.ParentId,
                     Title = x.Title,
                     Route = x.Route,
@@ -86,6 +109,27 @@ namespace WebApp.Server.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(new ApiResponse(false, "Invalid data", null));
 
+            dto.Title = dto.Title?.Trim() ?? string.Empty;
+            dto.Route = dto.Route?.Trim();
+            dto.IconClass = dto.IconClass?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(dto.Title))
+                return BadRequest(new ApiResponse(false, "Title is required", null));
+
+            if (string.IsNullOrWhiteSpace(dto.IconClass))
+                return BadRequest(new ApiResponse(false, "Icon class is required", null));
+
+            if (dto.ParentId.HasValue && dto.ParentId.Value > 0)
+            {
+                var parentExists = await _context.MenuItem.AnyAsync(x => x.Id == dto.ParentId.Value);
+                if (!parentExists)
+                    return BadRequest(new ApiResponse(false, "Parent menu does not exist", null));
+            }
+            else
+            {
+                dto.ParentId = 0;
+            }
+
             var menu = new MenuItems
             {
                 ParentId = dto.ParentId,
@@ -99,7 +143,16 @@ namespace WebApp.Server.Controllers
             _context.MenuItem.Add(menu);
             await _context.SaveChangesAsync();
 
-            return Ok(new ApiResponse(true, "Menu created successfully", menu.Id));
+            return Ok(new ApiResponse(true, "Menu created successfully", new MenuItemDto
+            {
+                Id = menu.Id,
+                ParentId = menu.ParentId,
+                Title = menu.Title,
+                Route = menu.Route,
+                IconClass = menu.IconClass,
+                OrderNumber = menu.OrderNumber,
+                IsActive = menu.IsActive
+            }));
         }
 
         // ✅ UPDATE
@@ -111,6 +164,30 @@ namespace WebApp.Server.Controllers
             if (menu == null)
                 return NotFound(new ApiResponse(false, "Menu not found", null));
 
+            dto.Title = dto.Title?.Trim() ?? string.Empty;
+            dto.Route = dto.Route?.Trim();
+            dto.IconClass = dto.IconClass?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(dto.Title))
+                return BadRequest(new ApiResponse(false, "Title is required", null));
+
+            if (string.IsNullOrWhiteSpace(dto.IconClass))
+                return BadRequest(new ApiResponse(false, "Icon class is required", null));
+
+            if (dto.ParentId.HasValue && dto.ParentId.Value > 0)
+            {
+                if (dto.ParentId.Value == id)
+                    return BadRequest(new ApiResponse(false, "Menu cannot be its own parent", null));
+
+                var parentExists = await _context.MenuItem.AnyAsync(x => x.Id == dto.ParentId.Value);
+                if (!parentExists)
+                    return BadRequest(new ApiResponse(false, "Parent menu does not exist", null));
+            }
+            else
+            {
+                dto.ParentId = 0;
+            }
+
             menu.ParentId = dto.ParentId;
             menu.Title = dto.Title;
             menu.Route = dto.Route;
@@ -120,7 +197,16 @@ namespace WebApp.Server.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok(new ApiResponse(true, "Menu updated successfully", null));
+            return Ok(new ApiResponse(true, "Menu updated successfully", new MenuItemDto
+            {
+                Id = menu.Id,
+                ParentId = menu.ParentId,
+                Title = menu.Title,
+                Route = menu.Route,
+                IconClass = menu.IconClass,
+                OrderNumber = menu.OrderNumber,
+                IsActive = menu.IsActive
+            }));
         }
 
         // ✅ DELETE (PREVENT DELETE IF CHILD EXISTS)
@@ -133,7 +219,11 @@ namespace WebApp.Server.Controllers
             if (menu == null)
                 return NotFound(new ApiResponse(false, "Menu not found", null));
 
+            var hasChildren = await _context.MenuItem.AnyAsync(x => x.ParentId == id);
+            if (hasChildren)
+                return BadRequest(new ApiResponse(false, "Delete child menus before deleting this menu", null));
 
+            _context.MenuItem.Remove(menu);
             await _context.SaveChangesAsync();
 
             return Ok(new ApiResponse(true, "Menu deleted successfully", null));

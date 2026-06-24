@@ -35,6 +35,26 @@ constructor(private http: HttpClient) {
     );
 }
 
+getAllMenus(): Observable<MenuItem[]> {
+  return this.http.get<any>(`${this.apiUrl}/api/Menu/all`, { headers: this.headers })
+    .pipe(map(res => res?.data ?? res ?? []));
+}
+
+createMenu(menu: Omit<MenuItem, 'id' | 'children'>): Observable<MenuItem> {
+  return this.http.post<any>(`${this.apiUrl}/api/Menu`, menu, { headers: this.headers })
+    .pipe(map(res => res?.data ?? res));
+}
+
+updateMenu(id: number, menu: Omit<MenuItem, 'id' | 'children'>): Observable<MenuItem> {
+  return this.http.put<any>(`${this.apiUrl}/api/Menu/${id}`, menu, { headers: this.headers })
+    .pipe(map(res => res?.data ?? res));
+}
+
+deleteMenu(id: number): Observable<any> {
+  return this.http.delete<any>(`${this.apiUrl}/api/Menu/${id}`, { headers: this.headers })
+    .pipe(map(res => res?.data ?? res));
+}
+
 
 
   // initMenus() {
