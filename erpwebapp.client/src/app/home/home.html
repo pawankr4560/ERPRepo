@@ -25,7 +25,7 @@
       *ngIf="menu.children.length === 0"
       [routerLink]="getMenuPath(menu)"
       routerLinkActive="active"
-      (click)="$event.stopPropagation()"
+      (click)="closeMobileMenu(drawer, $event)"
     >
       <mat-icon>{{ menu.iconClass }}</mat-icon>
       <span>{{ menu.title }}</span>

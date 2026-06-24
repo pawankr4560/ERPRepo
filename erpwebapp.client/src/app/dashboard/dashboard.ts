@@ -137,12 +137,14 @@ export class Dashboard implements OnInit, OnDestroy {
     this.router.navigate(['/auth/signup']);
   }
 
-  navigate(path: 'loans' | 'payments'): void {
-    this.router.navigate([
-      path === 'loans'
-        ? '/home/inventory/transactions'
-        : '/home/inventory/payments',
-    ]);
+  navigate(path: 'loans' | 'payments' | 'menu'): void {
+    const routes = {
+      loans: '/home/inventory/transactions',
+      payments: '/home/inventory/payments',
+      menu: '/home/menu',
+    };
+
+    this.router.navigate([routes[path]]);
   }
 
   paymentStatusClass(status: string): string {

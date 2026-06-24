@@ -126,11 +126,13 @@ describe('Dashboard', () => {
     expect(component.loanStatusBreakdown.every((item) => item.percentage === 0)).toBeTrue();
   });
 
-  it('navigates to loans and payments', () => {
+  it('navigates to loans, payments, and menu management', () => {
     component.navigate('loans');
     component.navigate('payments');
+    component.navigate('menu');
     expect(router.navigate).toHaveBeenCalledWith(['/home/inventory/transactions']);
     expect(router.navigate).toHaveBeenCalledWith(['/home/inventory/payments']);
+    expect(router.navigate).toHaveBeenCalledWith(['/home/menu']);
   });
 
   it('creates normalized payment status CSS classes', () => {

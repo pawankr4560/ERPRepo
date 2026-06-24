@@ -10,6 +10,7 @@ import { Login } from './auth/login/login';
 import { Component } from '@angular/core';
 import { Signup } from './auth/signup/signup';
 import { PermissionComponent } from './Menu/permissioncomponent/permissioncomponent';
+import { MenuMaster } from './Menu/menu-master/menu-master';
 import { ItemMaster } from './item/item-master/item-master';
 import { Emi } from './EMI/emi/emi';
 import { authGuard } from './auth/guards/auth.guard';
@@ -92,6 +93,7 @@ export const routes: Routes = [
 
       //setting page
       { path: 'permission', component: PermissionComponent, canActivate: [roleGuard], data: { roles: ['admin'] } },
+      { path: 'menu', component: MenuMaster, canActivate: [roleGuard], data: { roles: ['admin'] } },
 
       // Default home route
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
