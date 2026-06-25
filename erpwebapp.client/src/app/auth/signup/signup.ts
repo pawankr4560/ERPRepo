@@ -13,6 +13,7 @@ import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs';
 import { MatOption } from '@angular/material/select';
 import {  MatAutocompleteModule } from '@angular/material/autocomplete';
 import { CommonModule } from '@angular/common';
+import { ToastService } from '../../shared/services/toast.service';
 
 @Component({
   selector: 'app-signup',
@@ -36,7 +37,7 @@ export class Signup implements OnInit {
   signupForm: FormGroup;
   addresses: any[] = [];
   users: UserDetails[] = [];
-   constructor(private router: Router, private fb: FormBuilder,private snackBar: MatSnackBar,private authService:Auth) {
+   constructor(private router: Router, private fb: FormBuilder,private snackBar: MatSnackBar,private authService:Auth, private toastService: ToastService) {
     this.signupForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
   password: ['', Validators.required],
@@ -45,7 +46,7 @@ export class Signup implements OnInit {
   lastName: ['', Validators.required],
   gender: ['', Validators.required],
   address: ['', Validators.required],
-  phone: ['', [Validators.required, Validators.maxLength(10)]],
+  phone: ['', [Validators.required, Validators.pattern(/^[0-9]{10}$/)]],
   status: [true]
   });
   }
@@ -73,7 +74,10 @@ export class Signup implements OnInit {
 }
   
   signupUser() {
-    if (this.signupForm.invalid) return;
+    if (this.signupForm.invalid) {
+      this.signupForm.markAllAsTouched();
+      return;
+    }
      
      const formValue = this.signupForm.value;
 
@@ -96,6 +100,7 @@ export class Signup implements OnInit {
       horizontalPosition: 'right',
       verticalPosition: 'top'
 });
+       this.toastService.success(res.message || 'Signup completed successfully');
     }
     console.log('Signup success', res);
     this.router.navigate(['/auth/login']);

@@ -2,7 +2,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, tap } from 'rxjs';
 
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 import { Car, CarCategory } from '../interfaces/car';
 
 @Injectable({ providedIn: 'root' })
@@ -11,7 +11,7 @@ export class CarService {
   readonly cars$ = this.carsSubject.asObservable();
 
   private get apiUrl(): string {
-    return `${environment.apiUrl}/api/Car`;
+    return `${environment.apiUrl}/Car`;
   }
 
   private get headers(): HttpHeaders {
@@ -31,7 +31,7 @@ export class CarService {
 
   loadCategories() {
     return this.http.get<CarCategory[]>(
-      `${environment.apiUrl}/api/car-categories`,
+      `${environment.apiUrl}/car-categories`,
       { headers: this.headers }
     );
   }

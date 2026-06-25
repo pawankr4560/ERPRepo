@@ -2,7 +2,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, map, tap } from 'rxjs';
 
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 import { BookingPayment } from '../interfaces/booking-payment';
 
 @Injectable({ providedIn: 'root' })
@@ -11,7 +11,7 @@ export class BookingPaymentService {
   readonly payments$ = this.paymentsSubject.asObservable();
 
   private get apiUrl(): string {
-    return `${environment.apiUrl}/api/BookingPayment`;
+    return `${environment.apiUrl}/BookingPayment`;
   }
 
   private get headers(): HttpHeaders {

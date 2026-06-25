@@ -226,6 +226,7 @@
               <input
                 matInput
                 [(ngModel)]="customerDetail.customerAadhaarNo"
+                #customerAadhaarControl="ngModel"
                 inputmode="numeric"
                 pattern="[0-9]{12}"
                 minlength="12"
@@ -237,12 +238,15 @@
                 This Aadhaar is already used by an active customer.
               </mat-hint>
             </mat-form-field>
+            <div class="error-text" *ngIf="customerAadhaarControl.touched && customerAadhaarControl.invalid">Aadhaar must contain exactly 12 digits.</div>
+            <div class="error-text" *ngIf="isCustomerAadhaarDuplicate">This Aadhaar is already used by an active customer.</div>
 
             <mat-form-field appearance="outline">
               <mat-label>Mobile Number</mat-label>
               <input
                 matInput
                 [(ngModel)]="customerDetail.customerMobileNo"
+                #customerMobileControl="ngModel"
                 inputmode="numeric"
                 pattern="[0-9]{10}"
                 minlength="10"
@@ -251,6 +255,7 @@
               />
               <mat-error>Mobile number must contain exactly 10 digits.</mat-error>
             </mat-form-field>
+            <div class="error-text" *ngIf="customerMobileControl.touched && customerMobileControl.invalid">Mobile number must contain exactly 10 digits.</div>
 
             <mat-form-field appearance="outline" class="wide-field">
               <mat-label>Full Address</mat-label>
@@ -258,10 +263,12 @@
                 matInput
                 rows="3"
                 [(ngModel)]="customerDetail.customerAddress"
+                #customerAddressControl="ngModel"
                 required
               ></textarea>
               <mat-error>Full address is required.</mat-error>
             </mat-form-field>
+            <div class="error-text wide-field" *ngIf="customerAddressControl.touched && customerAddressControl.invalid">Full address is required.</div>
 
             <mat-form-field appearance="outline">
               <mat-label>City</mat-label>
@@ -278,12 +285,14 @@
               <input
                 matInput
                 [(ngModel)]="customerDetail.customerPinCode"
+                #pinCodeControl="ngModel"
                 inputmode="numeric"
                 pattern="[0-9]{6}"
                 maxlength="6"
               />
               <mat-error>PIN code must contain 6 digits.</mat-error>
             </mat-form-field>
+            <div class="error-text" *ngIf="pinCodeControl.touched && pinCodeControl.invalid">PIN code must contain 6 digits.</div>
           </div>
           <div class="wizard-actions">
             <button mat-stroked-button matStepperPrevious type="button">Back</button>
@@ -316,6 +325,7 @@
               <input
                 matInput
                 [(ngModel)]="customerDetail.guarantorAadhaarNo"
+                #guarantorAadhaarControl="ngModel"
                 inputmode="numeric"
                 pattern="[0-9]{12}"
                 minlength="12"
@@ -324,12 +334,14 @@
               />
               <mat-error>Aadhaar is required and must contain 12 digits.</mat-error>
             </mat-form-field>
+            <div class="error-text" *ngIf="guarantorAadhaarControl.touched && guarantorAadhaarControl.invalid">Aadhaar is required and must contain 12 digits.</div>
 
             <mat-form-field appearance="outline">
               <mat-label>Mobile Number</mat-label>
               <input
                 matInput
                 [(ngModel)]="customerDetail.guarantorMobileNo"
+                #guarantorMobileControl="ngModel"
                 inputmode="numeric"
                 pattern="[0-9]{10}"
                 minlength="10"
@@ -338,6 +350,7 @@
               />
               <mat-error>Mobile is required and must contain 10 digits.</mat-error>
             </mat-form-field>
+            <div class="error-text" *ngIf="guarantorMobileControl.touched && guarantorMobileControl.invalid">Mobile is required and must contain 10 digits.</div>
 
             <mat-form-field appearance="outline" class="wide-field">
               <mat-label>Address</mat-label>
@@ -383,12 +396,14 @@
                 matInput
                 type="number"
                 [(ngModel)]="current.loanAmount"
+                #loanAmountControl="ngModel"
                 min="1"
                 required
               />
               <span matTextPrefix>INR&nbsp;</span>
               <mat-error>Loan amount must be greater than zero.</mat-error>
             </mat-form-field>
+            <div class="error-text" *ngIf="loanAmountControl.touched && loanAmountControl.invalid">Loan amount must be at least 1.</div>
 
             <mat-form-field appearance="outline">
               <mat-label>Interest Rate (%)</mat-label>
@@ -396,6 +411,7 @@
                 matInput
                 type="number"
                 [(ngModel)]="current.rate"
+                #rateControl="ngModel"
                 min="0.01"
                 max="100"
                 step="0.01"
@@ -403,14 +419,16 @@
               />
               <mat-error>Enter an interest rate between 0.01 and 100.</mat-error>
             </mat-form-field>
+            <div class="error-text" *ngIf="rateControl.touched && rateControl.invalid">Enter an interest rate between 0.01 and 100.</div>
 
             <mat-form-field appearance="outline">
               <mat-label>Interest Type</mat-label>
-              <mat-select [(ngModel)]="current.interestCalculationType" required>
+              <mat-select [(ngModel)]="current.interestCalculationType" #interestTypeControl="ngModel" required>
                 <mat-option value="Flat">Flat</mat-option>
                 <mat-option value="Reducing">Reducing</mat-option>
               </mat-select>
             </mat-form-field>
+            <div class="error-text" *ngIf="interestTypeControl.touched && interestTypeControl.invalid">Interest type is required.</div>
 
             <mat-form-field appearance="outline">
               <mat-label>Tenure (Years)</mat-label>
@@ -418,6 +436,7 @@
                 matInput
                 type="number"
                 [(ngModel)]="tenureYears"
+                #tenureControl="ngModel"
                 min="0.5"
                 max="50"
                 step="0.5"
@@ -425,12 +444,14 @@
               />
               <mat-error>Tenure must be between 6 months and 50 years.</mat-error>
             </mat-form-field>
+            <div class="error-text" *ngIf="tenureControl.touched && tenureControl.invalid">Tenure must be between 6 months and 50 years.</div>
 
             <mat-form-field appearance="outline">
               <mat-label>Start Date</mat-label>
-              <input matInput type="date" [(ngModel)]="current.startDate" required />
+              <input matInput type="date" [(ngModel)]="current.startDate" #startDateControl="ngModel" required />
               <mat-error>Start date is required.</mat-error>
             </mat-form-field>
+            <div class="error-text" *ngIf="startDateControl.touched && startDateControl.invalid">Start date is required.</div>
           </div>
           <div class="wizard-actions">
             <button mat-stroked-button matStepperPrevious type="button">Back</button>

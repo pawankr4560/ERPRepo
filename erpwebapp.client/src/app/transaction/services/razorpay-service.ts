@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { environment } from '../../environments/environment';
+import { environment } from '../../../environments/environment';
 import { UnpaidInstallment } from './loan-payment-service';
 
 export interface RazorpayConfig {
@@ -63,7 +63,7 @@ declare global {
   providedIn: 'root',
 })
 export class RazorpayService {
-  private readonly apiUrl = `${environment.apiUrl}/api/Razorpay`;
+  private readonly apiUrl = `${environment.apiUrl}/Razorpay`;
 
   constructor(private http: HttpClient) {}
 

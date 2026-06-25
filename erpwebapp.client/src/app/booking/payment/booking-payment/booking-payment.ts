@@ -17,6 +17,7 @@ import { Booking } from '../../booking/interfaces/booking';
 import { BookingService } from '../../booking/services/booking-service';
 import { BookingPayment } from '../interfaces/booking-payment';
 import { BookingPaymentService } from '../services/booking-payment-service';
+import { ToastService } from '../../../shared/services/toast.service';
 
 @Component({
   selector: 'app-booking-payment',
@@ -62,7 +63,8 @@ export class BookingPaymentComponent implements OnInit, OnDestroy {
     private paymentService: BookingPaymentService,
     private route: ActivatedRoute,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -230,6 +232,7 @@ export class BookingPaymentComponent implements OnInit, OnDestroy {
     request.subscribe({
       next: () => {
         this.isSaving = false;
+        this.toastService.success(`Payment ${action} successfully`);
         this.snackBar.open(`Payment ${action} successfully.`, 'Close', {
           duration: 3000,
         });
@@ -260,6 +263,7 @@ export class BookingPaymentComponent implements OnInit, OnDestroy {
         .pipe(finalize(() => (this.isDeleting = false)))
         .subscribe({
         next: () => {
+          this.toastService.success('Payment deleted successfully');
           this.snackBar.open('Payment deleted successfully.', 'Close', {
             duration: 3000,
           });

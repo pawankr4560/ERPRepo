@@ -33,16 +33,19 @@ form: FormGroup;
       code: [data.code, Validators.required],
       name: [data.name, Validators.required],
       categorie: [data.categorie, Validators.required],
-      price: [data.price, Validators.required],
-      stockQty: [data.stockQty, Validators.required],
+      price: [data.price, [Validators.required, Validators.min(1)]],
+      stockQty: [data.stockQty, [Validators.required, Validators.min(1)]],
       isActive: [data.status]
     });
   }
 
   save() {
-    if (this.form.valid) {
-      this.dialogRef.close(this.form.value);
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
     }
+
+    this.dialogRef.close(this.form.value);
   }
 
   cancel() {

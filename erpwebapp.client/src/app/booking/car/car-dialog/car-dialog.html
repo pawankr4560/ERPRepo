@@ -12,6 +12,7 @@
       <mat-error *ngIf="form.get('brand')?.hasError('required')">Brand is required</mat-error>
       <mat-error *ngIf="form.get('brand')?.hasError('maxlength')">Maximum 50 characters</mat-error>
     </mat-form-field>
+    <div class="error-text" *ngIf="form.get('brand')?.touched && form.get('brand')?.invalid">Brand is required.</div>
 
     <mat-form-field appearance="outline">
       <mat-label>Model</mat-label>
@@ -19,12 +20,14 @@
       <mat-error *ngIf="form.get('model')?.hasError('required')">Model is required</mat-error>
       <mat-error *ngIf="form.get('model')?.hasError('maxlength')">Maximum 50 characters</mat-error>
     </mat-form-field>
+    <div class="error-text" *ngIf="form.get('model')?.touched && form.get('model')?.invalid">Model is required.</div>
 
     <mat-form-field appearance="outline">
       <mat-label>Year</mat-label>
       <input matInput type="number" formControlName="year" />
       <mat-error *ngIf="form.get('year')?.invalid">Enter a valid vehicle year</mat-error>
     </mat-form-field>
+    <div class="error-text" *ngIf="form.get('year')?.touched && form.get('year')?.invalid">Enter a valid vehicle year.</div>
 
     <mat-form-field appearance="outline">
       <mat-label>Category</mat-label>
@@ -37,6 +40,7 @@
         Category is required
       </mat-error>
     </mat-form-field>
+    <div class="error-text" *ngIf="form.get('categoryId')?.touched && form.get('categoryId')?.invalid">Category is required.</div>
 
     <mat-form-field appearance="outline">
       <mat-label>Transmission</mat-label>
@@ -46,6 +50,7 @@
       </mat-select>
       <mat-error *ngIf="form.get('transmission')?.invalid">Transmission is required</mat-error>
     </mat-form-field>
+    <div class="error-text" *ngIf="form.get('transmission')?.touched && form.get('transmission')?.invalid">Transmission is required.</div>
 
     <mat-form-field appearance="outline">
       <mat-label>Fuel Type</mat-label>
@@ -58,18 +63,21 @@
       </mat-select>
       <mat-error *ngIf="form.get('fuelType')?.invalid">Fuel type is required</mat-error>
     </mat-form-field>
+    <div class="error-text" *ngIf="form.get('fuelType')?.touched && form.get('fuelType')?.invalid">Fuel type is required.</div>
 
     <mat-form-field appearance="outline">
       <mat-label>Seats</mat-label>
       <input matInput type="number" formControlName="seats" />
       <mat-error *ngIf="form.get('seats')?.invalid">Seats must be between 1 and 100</mat-error>
     </mat-form-field>
+    <div class="error-text" *ngIf="form.get('seats')?.touched && form.get('seats')?.invalid">Seats must be between 1 and 100.</div>
 
     <mat-form-field appearance="outline">
       <mat-label>Price Per Day</mat-label>
       <input matInput type="number" formControlName="pricePerDay" />
       <mat-error *ngIf="form.get('pricePerDay')?.invalid">Price must be greater than zero</mat-error>
     </mat-form-field>
+    <div class="error-text" *ngIf="form.get('pricePerDay')?.touched && form.get('pricePerDay')?.invalid">Price must be at least 1.</div>
 
     <mat-form-field appearance="outline">
       <mat-label>Status</mat-label>
@@ -81,6 +89,7 @@
       </mat-select>
       <mat-error *ngIf="form.get('status')?.invalid">Status is required</mat-error>
     </mat-form-field>
+    <div class="error-text" *ngIf="form.get('status')?.touched && form.get('status')?.invalid">Status is required.</div>
 
     <mat-form-field appearance="outline" class="full-row">
       <mat-label>Image URL</mat-label>
@@ -93,6 +102,7 @@
         Enter a complete http:// or https:// address
       </mat-error>
     </mat-form-field>
+    <div class="error-text" *ngIf="form.get('imageUrl')?.touched && form.get('imageUrl')?.invalid">Enter a complete http:// or https:// image address.</div>
   </form>
 </mat-dialog-content>
 

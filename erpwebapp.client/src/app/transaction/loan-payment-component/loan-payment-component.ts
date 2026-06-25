@@ -22,6 +22,7 @@ import {
   LoanPaymentService,
   UnpaidInstallment,
 } from '../services/loan-payment-service';
+import { ToastService } from '../../shared/services/toast.service';
 
 @Component({
   selector: 'app-loan-payment-component',
@@ -70,7 +71,8 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
     private paymentService: LoanPaymentService,
     private loanService: LoanService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -259,6 +261,7 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
     request$.subscribe({
       next: () => {
         this.isSaving = false;
+        this.toastService.success(`Payment ${action} successfully`);
         this.snackBar.open(`Payment ${action} successfully.`, 'Close', {
           duration: 3000,
         });
@@ -295,6 +298,7 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
         .pipe(finalize(() => (this.isDeleting = false)))
         .subscribe({
         next: () => {
+          this.toastService.success('Payment deleted successfully');
           this.snackBar.open('Payment deleted successfully.', 'Close', {
             duration: 3000,
           });

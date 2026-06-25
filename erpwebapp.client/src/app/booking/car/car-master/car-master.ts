@@ -20,6 +20,7 @@ import { ConfirmDialogComponent } from '../../../users/confirm-dialog-component/
 import { CarDialog } from '../car-dialog/car-dialog';
 import { Car, CarCategory, CarDialogMode } from '../interfaces/car';
 import { CarService } from '../services/car-service';
+import { ToastService } from '../../../shared/services/toast.service';
 
 @Component({
   selector: 'app-car-master',
@@ -65,7 +66,8 @@ export class CarMaster implements OnInit, AfterViewInit, OnDestroy {
     private breakpointObserver: BreakpointObserver,
     private carService: CarService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -141,6 +143,7 @@ export class CarMaster implements OnInit, AfterViewInit, OnDestroy {
         .subscribe({
         next: () => {
           this.paginator?.firstPage();
+          this.toastService.success('Car deleted successfully');
           this.notify('Car deleted successfully');
         },
         error: (error) => this.notify(this.errorMessage(error, 'Delete failed')),
@@ -182,12 +185,18 @@ export class CarMaster implements OnInit, AfterViewInit, OnDestroy {
 
       this.isMutating = true;
       request.pipe(finalize(() => (this.isMutating = false))).subscribe({
-        next: () =>
+        next: () => {
+          this.toastService.success(
+            mode === 'create'
+              ? 'Car created successfully'
+              : 'Car updated successfully'
+          );
           this.notify(
             mode === 'create'
               ? 'Car created successfully'
               : 'Car updated successfully'
-          ),
+          );
+        },
         error: (error) =>
           this.notify(
             this.errorMessage(

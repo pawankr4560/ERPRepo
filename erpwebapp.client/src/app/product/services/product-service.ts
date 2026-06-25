@@ -1,33 +1,19 @@
 import { Injectable } from '@angular/core';
-import { environment } from '../../environments/environment';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Item } from '../interfaces/item';
 import { BehaviorSubject, tap } from 'rxjs';
+import { ApiService } from '../../shared/services/api.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ProductService {
-  get apiUrl(): string {
-  return environment.apiUrl;
-}
-get apiKey(): string {
-  return environment.apiKey;
-}
-
-private headers!: HttpHeaders;
  private productsSubject = new BehaviorSubject<Item[]>([]);
  products$ = this.productsSubject.asObservable();
 
-constructor(private http: HttpClient) {
-  this.headers = new HttpHeaders({
-    'Content-Type': 'application/json; charset=utf-8',
-    'api_key': this.apiKey, 
-  });
-}
+constructor(private api: ApiService) {}
     /** Load products from API */
   loadProducts() {
-    return this.http.get<any>(`${this.apiUrl}/api/Product/ProductList`)
+    return this.api.get<any>('Product/ProductList')
       .pipe(
         tap(res => {
           if (res?.data) {
@@ -39,9 +25,8 @@ constructor(private http: HttpClient) {
 
   /** Delete product */
   deleteProduct(id: string) {
-    return this.http.delete<any>(
-      `${this.apiUrl}/api/Product/RemoveProduct`,
-      { params: { id } }
+    return this.api.delete<any>(
+      `Product/RemoveProduct?id=${encodeURIComponent(id)}`
     ).pipe(
       tap(res => {
         if (res?.success) {
@@ -56,8 +41,8 @@ constructor(private http: HttpClient) {
   /** Update product locally (after dialog save) */
   
    updateProduct(updatedProduct: Item) {
-  return this.http.put<any>(
-    `${this.apiUrl}/api/Product/UpdateProduct`,
+  return this.api.put<any>(
+    'Product/UpdateProduct',
     updatedProduct
   ).pipe(
     tap(res => {

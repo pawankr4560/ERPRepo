@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, map, tap } from 'rxjs';
-import { environment } from '../../environments/environment';
+import { environment } from '../../../environments/environment';
 import { LoanPayment } from './loan-service';
 
 export interface UnpaidInstallment {
@@ -19,7 +19,7 @@ export interface UnpaidInstallment {
   providedIn: 'root',
 })
 export class LoanPaymentService {
-  private readonly apiUrl = `${environment.apiUrl}/api/LoanPayment`;
+  private readonly apiUrl = `${environment.apiUrl}/LoanPayment`;
   private readonly headers = new HttpHeaders({
     'Content-Type': 'application/json; charset=utf-8',
     api_key: environment.apiKey,
@@ -46,7 +46,7 @@ export class LoanPaymentService {
   getUnpaidInstallments(loanNumber: string) {
     return this.http
       .get<any[]>(
-        `${environment.apiUrl}/api/LoanEMISchedule/unpaid-installments/${encodeURIComponent(loanNumber)}`,
+        `${environment.apiUrl}/LoanEMISchedule/unpaid-installments/${encodeURIComponent(loanNumber)}`,
         { headers: this.headers }
       )
       .pipe(

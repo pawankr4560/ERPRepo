@@ -1,4 +1,5 @@
 import { Component } from "@angular/core";
+import { CommonModule } from "@angular/common";
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { MatButtonModule } from "@angular/material/button";
 import { MatCardModule } from "@angular/material/card";
@@ -8,10 +9,12 @@ import { Router } from "@angular/router";
 import { Auth } from "../auth";
 import { LoginModel } from "../interfaces/login-model";
 import { MatSnackBar } from "@angular/material/snack-bar";
+import { ToastService } from "../../shared/services/toast.service";
 
 @Component({
   selector: 'app-login',
   imports: [
+    CommonModule,
     ReactiveFormsModule,
     MatCardModule,
     MatInputModule,
@@ -30,7 +33,7 @@ export class Login {
   phone: '6541236578',
   isLogedIn:true
 };
-  constructor(private router: Router, private fb: FormBuilder,private authService:Auth,private snackBar: MatSnackBar) {
+  constructor(private router: Router, private fb: FormBuilder,private authService:Auth,private snackBar: MatSnackBar, private toastService: ToastService) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
@@ -38,7 +41,10 @@ export class Login {
   }
 
 login() {
-  if (this.loginForm.invalid) return;
+  if (this.loginForm.invalid) {
+    this.loginForm.markAllAsTouched();
+    return;
+  }
    const request: LoginModel = {
     email: this.loginForm.get('email')?.value,
     password: this.loginForm.get('password')?.value
@@ -47,12 +53,14 @@ login() {
   next: (response) => {
     if(response.success){
       const token = response.data;
+      localStorage.setItem("auth_token", token);
       localStorage.setItem("jwt", token);
     this.snackBar.open('Login successful ✅', 'Close', {
       duration: 3000,
       horizontalPosition: 'right',
       verticalPosition: 'top'
 });
+    this.toastService.success('Login successful');
     this.router.navigate(['/home']); 
     }
     else 

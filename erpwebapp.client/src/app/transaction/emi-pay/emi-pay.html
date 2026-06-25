@@ -25,7 +25,12 @@
 
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>Select loan</mat-label>
-      <mat-select [(ngModel)]="selectedLoanId" (selectionChange)="onLoanChange()">
+      <mat-select
+        [(ngModel)]="selectedLoanId"
+        #loanControl="ngModel"
+        required
+        (selectionChange)="onLoanChange()"
+      >
         <mat-option [value]="0">Choose a loan</mat-option>
         <mat-option *ngFor="let loan of loans" [value]="loan.id">
           {{ loan.loanNumber }} · ₹{{ formatCurrency(loan.loanAmount) }} ·
@@ -33,15 +38,17 @@
         </mat-option>
       </mat-select>
     </mat-form-field>
+    <div class="error-text" *ngIf="loanControl.touched && !selectedLoanId">Loan is required.</div>
 
     <div class="loading-inline" *ngIf="isLoadingInstallments">
       <mat-spinner diameter="28"></mat-spinner>
       <span>Loading installments...</span>
     </div>
 
-    <mat-form-field appearance="outline" class="full-width" *ngIf="selectedLoanId && !isLoadingInstallments">
+    <ng-container *ngIf="selectedLoanId && !isLoadingInstallments">
+    <mat-form-field appearance="outline" class="full-width">
       <mat-label>Select installment</mat-label>
-      <mat-select [(ngModel)]="selectedScheduleId">
+      <mat-select [(ngModel)]="selectedScheduleId" #installmentControl="ngModel" required>
         <mat-option [value]="0">Choose an installment</mat-option>
         <mat-option
           *ngFor="let installment of installments"
@@ -54,6 +61,8 @@
         </mat-option>
       </mat-select>
     </mat-form-field>
+    <div class="error-text" *ngIf="installmentControl.touched && !selectedScheduleId">Installment is required.</div>
+    </ng-container>
   </section>
 
   <section class="summary-card" *ngIf="selectedInstallment as installment">

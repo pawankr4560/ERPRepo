@@ -27,6 +27,7 @@ import {
   InterestSettingService,
 } from '../../setting/interest-setting.service';
 import { finalize } from 'rxjs';
+import { ToastService } from '../../shared/services/toast.service';
 
 interface EmiPreviewRow {
   installmentNo: number;
@@ -172,7 +173,8 @@ export class LoanComponent implements OnInit {
     private dialog: MatDialog,
     private interestSettingService: InterestSettingService,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -358,6 +360,7 @@ export class LoanComponent implements OnInit {
         .pipe(finalize(() => (this.approvalActionLoanId = null)))
         .subscribe({
           next: (response) => {
+            this.toastService.success(response?.message || 'Loan approved successfully');
             this.snackBar.open(response?.message || 'Loan approved successfully.', 'Close', {
               duration: 3000,
             });
@@ -394,6 +397,7 @@ export class LoanComponent implements OnInit {
         .pipe(finalize(() => (this.approvalActionLoanId = null)))
         .subscribe({
           next: (response) => {
+            this.toastService.success(response?.message || 'Loan rejected successfully');
             this.snackBar.open(response?.message || 'Loan rejected successfully.', 'Close', {
               duration: 3000,
             });
@@ -880,6 +884,7 @@ export class LoanComponent implements OnInit {
       this.loanService.updateLoan(this.current).subscribe({
         next: () => {
           this.isSaving = false;
+          this.toastService.success('Loan updated successfully');
           this.cancel();
           this.load();
         },
@@ -892,6 +897,7 @@ export class LoanComponent implements OnInit {
       this.loanService.createLoan(this.current).subscribe({
         next: () => {
           this.isSaving = false;
+          this.toastService.success('Loan created successfully');
           this.cancel();
           this.load();
         },
@@ -946,6 +952,7 @@ export class LoanComponent implements OnInit {
     this.loanService.createLoan(this.current).subscribe({
       next: () => {
         this.isSaving = false;
+        this.toastService.success('Loan created successfully');
         this.snackBar.open('Loan created successfully.', 'Close', { duration: 3000 });
         this.cancel();
         this.load();
@@ -1023,6 +1030,7 @@ export class LoanComponent implements OnInit {
           .pipe(finalize(() => (this.isDeleting = false)))
           .subscribe({
           next: () => {
+            this.toastService.success('Loan deleted successfully');
             this.load();
           },
           error: (error) => this.showApiError('Unable to delete the loan.', error),

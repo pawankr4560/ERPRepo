@@ -1,5 +1,7 @@
 import { HttpClient } from '@angular/common/http';
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
+import { LoadingService } from './shared/services/loading.service';
+import { ToastService } from './shared/services/toast.service';
 
 interface WeatherForecast {
   date: string;
@@ -16,8 +18,12 @@ interface WeatherForecast {
 })
 export class AppComponent implements OnInit {
   public forecasts: WeatherForecast[] = [];
+  readonly loading$ = inject(LoadingService).loading$;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    public toastService: ToastService
+  ) {}
 
   ngOnInit() {
     this.getForecasts();

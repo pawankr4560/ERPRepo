@@ -9,3 +9,7 @@ This is the placeholder
 <ng-container #container></ng-container> -->
 
 <router-outlet></router-outlet>
+
+<app-spinner *ngIf="loading$ | async"></app-spinner>
+
+<app-toast></app-toast>

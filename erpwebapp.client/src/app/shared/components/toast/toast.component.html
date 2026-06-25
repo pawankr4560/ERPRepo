@@ -1,0 +1,23 @@
+<div class="toast-container" aria-live="polite" aria-atomic="true">
+  <div
+    class="toast-message"
+    *ngFor="let toast of toastService.toasts$ | async"
+    [ngClass]="'toast-' + toast.type"
+    [style.--toast-duration]="toast.durationMs + 'ms'"
+  >
+    <div class="toast-content">
+      <strong>{{ toast.type | titlecase }}</strong>
+      <span>{{ toast.message }}</span>
+    </div>
+
+    <button
+      type="button"
+      aria-label="Dismiss notification"
+      (click)="toastService.dismiss(toast.id)"
+    >
+      x
+    </button>
+
+    <span class="toast-progress"></span>
+  </div>
+</div>

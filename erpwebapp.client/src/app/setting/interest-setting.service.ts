@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, Observable, of, tap } from 'rxjs';
-import { environment } from '../environments/environment';
+import { environment } from '../../environments/environment';
 
 export type InterestCalculationType = 'Flat' | 'Reducing';
 
@@ -14,7 +14,7 @@ export interface InterestSetting {
 })
 export class InterestSettingService {
   private readonly storageKey = 'interestCalculationType';
-  private readonly settingUrl = `${environment.apiUrl}/api/LoanSetting/interest-calculation-type`;
+  private readonly settingUrl = `${environment.apiUrl}/LoanSetting/interest-calculation-type`;
   private readonly headers = new HttpHeaders({
     'Content-Type': 'application/json; charset=utf-8',
     api_key: environment.apiKey,

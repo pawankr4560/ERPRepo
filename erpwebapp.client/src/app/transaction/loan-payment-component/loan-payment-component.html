@@ -61,6 +61,7 @@
         </mat-select>
         <mat-error *ngIf="loanControl.invalid">Loan is required.</mat-error>
       </mat-form-field>
+      <div class="error-text" *ngIf="loanControl.touched && loanControl.invalid">Loan is required.</div>
 
       <mat-form-field appearance="outline">
         <mat-label>EMI Installment</mat-label>
@@ -82,6 +83,7 @@
         </mat-select>
         <mat-error *ngIf="scheduleControl.invalid">Installment is required.</mat-error>
       </mat-form-field>
+      <div class="error-text" *ngIf="scheduleControl.touched && scheduleControl.invalid">Installment is required.</div>
 
       <mat-form-field appearance="outline">
         <mat-label>Amount Paid</mat-label>
@@ -91,7 +93,7 @@
           [(ngModel)]="current.amountPaid"
           name="amountPaid"
           #amountControl="ngModel"
-          min="0.01"
+          min="1"
           step="0.01"
           [disabled]="(current.id ?? 0) > 0"
           required
@@ -100,6 +102,8 @@
         <mat-error *ngIf="amountControl.errors?.['required']">Amount is required.</mat-error>
         <mat-error *ngIf="amountControl.errors?.['min']">Amount must be greater than zero.</mat-error>
       </mat-form-field>
+      <div class="error-text" *ngIf="amountControl.touched && amountControl.errors?.['required']">Amount is required.</div>
+      <div class="error-text" *ngIf="amountControl.touched && amountControl.errors?.['min']">Amount must be at least 1.</div>
 
       <mat-form-field appearance="outline">
         <mat-label>Payment Date</mat-label>
@@ -119,6 +123,8 @@
           {{ selectedInstallment?.dueDate | date:'dd MMM yyyy' }}.
         </mat-error>
       </mat-form-field>
+      <div class="error-text" *ngIf="dateControl.touched && dateControl.errors?.['required']">Payment date is required.</div>
+      <div class="error-text" *ngIf="dateControl.touched && (dateControl.errors?.['min'] || isPaymentBeforeDueDate)">Payment cannot be before the installment due date.</div>
 
       <mat-form-field appearance="outline" *ngIf="current.id">
         <mat-label>Transaction ID</mat-label>
@@ -142,6 +148,7 @@
         </mat-select>
         <mat-error *ngIf="modeControl.invalid">Payment mode is required.</mat-error>
       </mat-form-field>
+      <div class="error-text" *ngIf="modeControl.touched && modeControl.invalid">Payment mode is required.</div>
 
       <mat-form-field appearance="outline">
         <mat-label>Status</mat-label>
@@ -158,6 +165,7 @@
         </mat-select>
         <mat-error *ngIf="statusControl.invalid">Status is required.</mat-error>
       </mat-form-field>
+      <div class="error-text" *ngIf="statusControl.touched && statusControl.invalid">Status is required.</div>
 
       <mat-form-field appearance="outline" class="remarks-field">
         <mat-label>Remarks</mat-label>

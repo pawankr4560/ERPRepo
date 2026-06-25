@@ -12,6 +12,7 @@ import { Item } from '../interfaces/item';
 import { ProductService } from '../services/product-service';
 import { ConfirmDialogComponent } from '../../users/confirm-dialog-component/confirm-dialog-component';
 import { EditProductDialogComponentTs } from '../edit-product-dialog-component.ts/edit-product-dialog-component.ts';
+import { ToastService } from '../../shared/services/toast.service';
 
 @Component({
   selector: 'app-product',
@@ -48,7 +49,8 @@ export class Product implements OnInit, AfterViewInit {
     private breakpointObserver: BreakpointObserver,
     private productService: ProductService,
     private dialog: MatDialog,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -89,6 +91,7 @@ export class Product implements OnInit, AfterViewInit {
       this.productService.updateProduct(updatedProduct).subscribe({
         next: () => {
             this.dataSource.paginator = this.paginator;
+          this.toastService.success('Product updated successfully');
           this.snackBar.open('Product updated successfully ✅', 'Close', {
             duration: 3000,
             horizontalPosition: 'right',
@@ -124,6 +127,7 @@ export class Product implements OnInit, AfterViewInit {
           next: (res) => {
             if (res?.success) {
               this.paginator.firstPage();
+              this.toastService.success(res.message || 'Product deleted successfully');
               this.snackBar.open(res.message + ' ✅', 'Close', {
                 duration: 3000,
                 horizontalPosition: 'right',

@@ -1,23 +1,6 @@
 import { Routes } from '@angular/router';
-import { DynamicComponent } from './dynamic-component/dynamic-component';
-import { Home } from './home/home';
-import { Product } from './product/product/product';
-import { Setting } from './setting/setting';
-import { Dashboard } from './dashboard/dashboard';
-import { User } from './users/user/user';
-import { DragDrop } from './drag-drop/drag-drop';
-import { Login } from './auth/login/login';
-import { Component } from '@angular/core';
-import { Signup } from './auth/signup/signup';
-import { PermissionComponent } from './Menu/permissioncomponent/permissioncomponent';
-import { MenuMaster } from './Menu/menu-master/menu-master';
-import { ItemMaster } from './item/item-master/item-master';
-import { Emi } from './EMI/emi/emi';
-import { authGuard } from './auth/guards/auth.guard';
-import { roleGuard } from './auth/guards/role.guard';
-import { CarMaster } from './booking/car/car-master/car-master';
-import { BookingMaster } from './booking/booking/booking-master/booking-master';
-
+import { AuthGuard } from './guards/auth.guard';
+import { AdminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
    // Default redirect
@@ -26,83 +9,124 @@ export const routes: Routes = [
   // Auth module (NO home layout)
   {
     path: 'auth',
-    children: [
-      { path: 'login', component: Login },
-      { path: 'signup', component: Signup },
-      { path: '', redirectTo: 'login', pathMatch: 'full' }
-    ]
+    loadChildren: () =>
+      import('./auth/auth.module').then((module) => module.AuthModule),
   },
 
   // HOME LAYOUT (PARENT OF ALL PAGES)
   {
     path: 'home',
-    component: Home,
-    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./home/home').then((component) => component.Home),
+    canActivate: [AuthGuard],
     children: [
-      { path: 'dashboard', component: Dashboard, canActivate: [roleGuard], data: { roles: ['admin'] } },
-      { path: 'users', component: User, canActivate: [roleGuard], data: { roles: ['admin', 'user'] } },
-      { path: 'settings', component: Setting, canActivate: [roleGuard], data: { roles: ['admin'] } },
+      {
+        path: 'dashboard',
+        loadChildren: () =>
+          import('./dashboard/dashboard.module').then(
+            (module) => module.DashboardModule
+          ),
+        canActivate: [AdminGuard],
+      },
+      {
+        path: 'users',
+        loadChildren: () =>
+          import('./users/users.module').then((module) => module.UsersModule),
+        canActivate: [AuthGuard],
+      },
+      {
+        path: 'settings',
+        loadChildren: () =>
+          import('./setting/setting.module').then(
+            (module) => module.SettingModule
+          ),
+        canActivate: [AdminGuard],
+      },
 
       // Inventory under Home
-      { path: 'booking/cars', component: CarMaster, canActivate: [roleGuard], data: { roles: ['admin'] } },
-      { path: 'inventory/product', component: Product, canActivate: [roleGuard], data: { roles: ['admin'] } },
-      { path: 'inventory/item', component: ItemMaster, canActivate: [roleGuard], data: { roles: ['admin'] } },
       {
-        path: 'inventory/transactions',
-        loadComponent: () =>
-          import('./transaction/loan-component/loan-component').then(
-            (component) => component.LoanComponent
+        path: 'booking',
+        loadChildren: () =>
+          import('./booking/booking.module').then(
+            (module) => module.BookingModule
           ),
-        canActivate: [roleGuard],
-        data: { roles: ['admin'] }
+        canActivate: [AuthGuard],
       },
       {
-        path: 'inventory/transactions/:id',
-        loadComponent: () =>
-          import('./transaction/loan-details/loan-details').then(
-            (component) => component.LoanDetailsComponent
-          ),
-        canActivate: [roleGuard],
-        data: { roles: ['admin'] }
+        path: 'inventory',
+        children: [
+          {
+            path: 'product',
+            loadChildren: () =>
+              import('./product/product.module').then(
+                (module) => module.ProductModule
+              ),
+            canActivate: [AdminGuard],
+          },
+          {
+            path: 'item',
+            loadChildren: () =>
+              import('./item/item.module').then((module) => module.ItemModule),
+            canActivate: [AuthGuard],
+          },
+          {
+            path: 'transactions',
+            loadChildren: () =>
+              import('./transaction/loan.module').then(
+                (module) => module.LoanModule
+              ),
+            canActivate: [AdminGuard],
+          },
+          {
+            path: 'payments',
+            loadChildren: () =>
+              import('./transaction/loan-payment.module').then(
+                (module) => module.LoanPaymentModule
+              ),
+            canActivate: [AdminGuard],
+          },
+          {
+            path: 'emi',
+            loadChildren: () =>
+              import('./EMI/emi.module').then((module) => module.EmiModule),
+            canActivate: [AdminGuard],
+          },
+        ],
       },
-      {
-        path: 'inventory/payments',
-        loadComponent: () =>
-          import('./transaction/loan-payment-component/loan-payment-component').then(
-            (component) => component.LoanPaymentComponent
-          ),
-        canActivate: [roleGuard],
-        data: { roles: ['admin'] }
-      },
-      { path: 'inventory/emi', component: Emi, canActivate: [roleGuard], data: { roles: ['admin'] } },
       {
         path: 'pay-emi',
-        loadComponent: () =>
-          import('./transaction/emi-pay/emi-pay').then(
-            (component) => component.EmiPayComponent
+        loadChildren: () =>
+          import('./transaction/emi-pay.module').then(
+            (module) => module.EmiPayModule
           ),
-        canActivate: [roleGuard],
-        data: { roles: ['admin', 'user'] }
+        canActivate: [AuthGuard],
       },
      
-      { path: 'booking/list', component: BookingMaster, canActivate: [roleGuard], data: { roles: ['admin'] } },
+      // Other pages
       {
-        path: 'booking/payments',
+        path: 'dynamic',
         loadComponent: () =>
-          import('./booking/payment/booking-payment/booking-payment').then(
-            (component) => component.BookingPaymentComponent
+          import('./drag-drop/drag-drop').then(
+            (component) => component.DragDrop
           ),
-        canActivate: [roleGuard],
-        data: { roles: ['admin'] }
+        canActivate: [AuthGuard],
       },
 
-
-      // Other pages
-      { path: 'dynamic', component: DragDrop, canActivate: [roleGuard], data: { roles: ['admin'] } },
-
       //setting page
-      { path: 'permission', component: PermissionComponent, canActivate: [roleGuard], data: { roles: ['admin'] } },
-      { path: 'menu', component: MenuMaster, canActivate: [roleGuard], data: { roles: ['admin'] } },
+      {
+        path: 'permission',
+        loadChildren: () =>
+          import('./Menu/permission.module').then(
+            (module) => module.PermissionModule
+          ),
+        canActivate: [AuthGuard],
+      },
+      {
+        path: 'menu',
+        loadChildren: () =>
+          import('./Menu/menu.module').then((module) => module.MenuModule),
+        canActivate: [AuthGuard],
+      },
 
       // Default home route
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }

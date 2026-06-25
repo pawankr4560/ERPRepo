@@ -5,7 +5,7 @@ import {
   provideHttpClientTesting,
 } from '@angular/common/http/testing';
 import { DashboardService } from './dashboard-service';
-import { environment } from '../environments/environment';
+import { environment } from '../../environments/environment';
 
 describe('DashboardService', () => {
   let service: DashboardService;
@@ -27,7 +27,7 @@ describe('DashboardService', () => {
 
   it('requests the loan summary with the configured API key', () => {
     service.loadSummary().subscribe();
-    const request = http.expectOne(`${environment.apiUrl}/api/Dashboard/loan-summary`);
+    const request = http.expectOne(`${environment.apiUrl}/Dashboard/loan-summary`);
     expect(request.request.method).toBe('GET');
     expect(request.request.headers.get('api_key')).toBe(environment.apiKey);
     request.flush({});
@@ -36,7 +36,7 @@ describe('DashboardService', () => {
   it('normalizes PascalCase API responses and nested rows', () => {
     let result: any;
     service.loadSummary().subscribe((summary) => (result = summary));
-    const request = http.expectOne(`${environment.apiUrl}/api/Dashboard/loan-summary`);
+    const request = http.expectOne(`${environment.apiUrl}/Dashboard/loan-summary`);
     request.flush({
       data: {
         TotalPortfolio: 900,
@@ -82,7 +82,7 @@ describe('DashboardService', () => {
   it('provides safe defaults for an empty response', () => {
     let result: any;
     service.loadSummary().subscribe((summary) => (result = summary));
-    http.expectOne(`${environment.apiUrl}/api/Dashboard/loan-summary`).flush(null);
+    http.expectOne(`${environment.apiUrl}/Dashboard/loan-summary`).flush(null);
     expect(result.totalPortfolio).toBe(0);
     expect(result.collectionRate).toBe(0);
     expect(result.upcomingInstallments).toEqual([]);
@@ -94,7 +94,7 @@ describe('DashboardService', () => {
     service.loadSummary().subscribe({
       error: (error) => (status = error.status),
     });
-    http.expectOne(`${environment.apiUrl}/api/Dashboard/loan-summary`)
+    http.expectOne(`${environment.apiUrl}/Dashboard/loan-summary`)
       .flush({ message: 'failed' }, { status: 500, statusText: 'Server Error' });
     expect(status).toBe(500);
   });

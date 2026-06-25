@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, tap } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { environment } from '../../environments/environment';
+import { environment } from '../../../environments/environment';
 import { Item } from '../interfaces/item';
 
 @Injectable({
@@ -30,7 +30,7 @@ export class ItemService {
 
   loadItems() {
     return this.http
-      .get<any>(`${this.apiUrl}/api/Item/ItemList`, { headers: this.headers })
+      .get<any>(`${this.apiUrl}/Item/ItemList`, { headers: this.headers })
       .pipe(
         tap((res) => {
           if (res?.data) {
@@ -42,7 +42,7 @@ export class ItemService {
 
   createItem(item: Item) {
     return this.http
-      .post<any>(`${this.apiUrl}/api/Item/CreateItem`, item, { headers: this.headers })
+      .post<any>(`${this.apiUrl}/Item/CreateItem`, item, { headers: this.headers })
       .pipe(
         tap((res) => {
           if (res?.success && res?.data) {
@@ -54,7 +54,7 @@ export class ItemService {
 
   deleteItem(id: string) {
     return this.http
-      .delete<any>(`${this.apiUrl}/api/Item/RemoveItem`, {
+      .delete<any>(`${this.apiUrl}/Item/RemoveItem`, {
         headers: this.headers,
         params: { id },
       })
@@ -71,7 +71,7 @@ export class ItemService {
 
   updateItem(item: Item) {
     return this.http
-      .put<any>(`${this.apiUrl}/api/Item/UpdateItem`, item, { headers: this.headers })
+      .put<any>(`${this.apiUrl}/Item/UpdateItem`, item, { headers: this.headers })
       .pipe(
         tap((res) => {
           if (res?.success && res?.data) {

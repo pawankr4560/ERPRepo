@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, map, tap } from 'rxjs';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { environment } from '../../environments/environment';
 import { InterestCalculationType } from '../../setting/interest-setting.service';
+import { ApiService } from '../../shared/services/api.service';
 
 export interface Loan {
   id?: number;
@@ -95,36 +94,14 @@ export interface LoanDataResponse {
   providedIn: 'root',
 })
 export class LoanService {
-  get apiUrl(): string {
-    return environment.apiUrl;
-  }
-
-  get apiKey(): string {
-    return environment.apiKey;
-  }
-
   private loansSubject = new BehaviorSubject<Loan[]>([]);
   loans$ = this.loansSubject.asObservable();
 
-  constructor(private http: HttpClient) {}
-
-  private get headers(): HttpHeaders {
-    let headers = new HttpHeaders({
-      'Content-Type': 'application/json; charset=utf-8',
-      api_key: this.apiKey,
-    } as any);
-
-    const token = localStorage.getItem('jwt');
-    if (token) {
-      headers = headers.set('Authorization', `Bearer ${token}`);
-    }
-
-    return headers;
-  }
+  constructor(private api: ApiService) {}
 
   loadLoans() {
-    return this.http
-      .get<any[]>(`${this.apiUrl}/api/Loan`, { headers: this.headers })
+    return this.api
+      .get<any[]>('Loan')
       .pipe(
         map((res) => {
           const items = res ?? [];
@@ -140,14 +117,14 @@ export class LoanService {
   }
 
   getLoanById(id: number) {
-    return this.http
-      .get<any>(`${this.apiUrl}/api/Loan/${id}`, { headers: this.headers })
+    return this.api
+      .get<any>(`Loan/${id}`)
       .pipe(map((loan) => this.normalizeLoan(loan)));
   }
 
   createLoan(loan: Loan) {
-    return this.http
-      .post<any>(`${this.apiUrl}/api/Loan`, this.toLoanPayload(loan), { headers: this.headers })
+    return this.api
+      .post<any>('Loan', this.toLoanPayload(loan))
       .pipe(
         map((res) => {
           const data = res?.data ?? res;
@@ -160,8 +137,8 @@ export class LoanService {
   }
 
   updateLoan(loan: Loan) {
-    return this.http
-      .put<any>(`${this.apiUrl}/api/Loan`, this.toLoanUpdatePayload(loan), { headers: this.headers })
+    return this.api
+      .put<any>('Loan', this.toLoanUpdatePayload(loan))
       .pipe(
         map((res) => {
           const data = res?.data ?? res;
@@ -176,11 +153,8 @@ export class LoanService {
   }
 
   deleteLoan(id: number) {
-    return this.http
-      .delete<any>(`${this.apiUrl}/api/Loan`, {
-        headers: this.headers,
-        params: { id: id.toString() }
-      })
+    return this.api
+      .delete<any>(`Loan?id=${id}`)
       .pipe(
         tap(() => {
           this.loansSubject.next(
@@ -191,30 +165,21 @@ export class LoanService {
   }
 
   approveLoan(id: number) {
-    return this.http.post<any>(
-      `${this.apiUrl}/api/Loan/${id}/approve`,
-      {},
-      { headers: this.headers }
-    );
+    return this.api.post<any>(`Loan/${id}/approve`, {});
   }
 
   rejectLoan(id: number) {
-    return this.http.post<any>(
-      `${this.apiUrl}/api/Loan/${id}/reject`,
-      {},
-      { headers: this.headers }
-    );
+    return this.api.post<any>(`Loan/${id}/reject`, {});
   }
 
   getLoanData() {
-    return this.http.get<LoanDataResponse>(`${this.apiUrl}/api/Loan/loan-data`, { headers: this.headers });
+    return this.api.get<LoanDataResponse>('Loan/loan-data');
   }
 
   getScheduleByLoanNumber(loanNumber: string) {
-    return this.http
+    return this.api
       .get<any[]>(
-        `${this.apiUrl}/loan-number/${encodeURIComponent(loanNumber)}`,
-        { headers: this.headers }
+        `loan-number/${encodeURIComponent(loanNumber)}`
       )
       .pipe(map((response) => this.normalizeSchedules(response)));
   }

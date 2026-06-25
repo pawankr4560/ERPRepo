@@ -47,6 +47,7 @@
         </mat-select>
         <mat-error *ngIf="bookingControl.invalid">Booking is required.</mat-error>
       </mat-form-field>
+      <div class="error-text" *ngIf="bookingControl.touched && bookingControl.invalid">Booking is required.</div>
 
       <mat-form-field appearance="outline">
         <mat-label>Amount</mat-label>
@@ -56,7 +57,7 @@
           [(ngModel)]="current.amount"
           name="amount"
           #amountControl="ngModel"
-          min="0.01"
+          min="1"
           step="0.01"
           required
         />
@@ -66,6 +67,7 @@
         </mat-hint>
         <mat-error *ngIf="amountControl.invalid">Enter an amount above zero.</mat-error>
       </mat-form-field>
+      <div class="error-text" *ngIf="amountControl.touched && amountControl.invalid">Amount must be at least 1.</div>
 
       <mat-form-field appearance="outline">
         <mat-label>Payment Date</mat-label>
@@ -74,15 +76,18 @@
           type="datetime-local"
           [(ngModel)]="current.paymentDate"
           name="paymentDate"
+          #paymentDateControl="ngModel"
           required
         />
       </mat-form-field>
+      <div class="error-text" *ngIf="paymentDateControl.touched && paymentDateControl.invalid">Payment date is required.</div>
 
       <mat-form-field appearance="outline">
         <mat-label>Payment Method</mat-label>
         <mat-select
           [(ngModel)]="current.paymentMethod"
           name="paymentMethod"
+          #methodControl="ngModel"
           required
         >
           <mat-option *ngFor="let method of paymentMethods" [value]="method">
@@ -90,15 +95,17 @@
           </mat-option>
         </mat-select>
       </mat-form-field>
+      <div class="error-text" *ngIf="methodControl.touched && methodControl.invalid">Payment method is required.</div>
 
       <mat-form-field appearance="outline">
         <mat-label>Status</mat-label>
-        <mat-select [(ngModel)]="current.status" name="status" required>
+        <mat-select [(ngModel)]="current.status" name="status" #statusControl="ngModel" required>
           <mat-option *ngFor="let status of paymentStatuses" [value]="status">
             {{ status }}
           </mat-option>
         </mat-select>
       </mat-form-field>
+      <div class="error-text" *ngIf="statusControl.touched && statusControl.invalid">Status is required.</div>
 
       <mat-form-field appearance="outline">
         <mat-label>Transaction Reference</mat-label>

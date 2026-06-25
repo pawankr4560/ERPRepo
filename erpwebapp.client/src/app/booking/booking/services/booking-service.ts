@@ -1,8 +1,7 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, map, tap } from 'rxjs';
 
-import { environment } from '../../../environments/environment';
+import { ApiService } from '../../../shared/services/api.service';
 import { Car } from '../../car/interfaces/car';
 import { Booking, BookingUser } from '../interfaces/booking';
 
@@ -11,21 +10,10 @@ export class BookingService {
   private readonly bookingsSubject = new BehaviorSubject<Booking[]>([]);
   readonly bookings$ = this.bookingsSubject.asObservable();
 
-  private get headers(): HttpHeaders {
-    return new HttpHeaders({
-      'Content-Type': 'application/json; charset=utf-8',
-      api_key: environment.apiKey,
-    });
-  }
-
-  private get apiUrl(): string {
-    return `${environment.apiUrl}/api/Booking`;
-  }
-
-  constructor(private http: HttpClient) {}
+  constructor(private api: ApiService) {}
 
   loadBookings() {
-    return this.http.get<any>(this.apiUrl, { headers: this.headers }).pipe(
+    return this.api.get<any>('Booking').pipe(
       map((response) =>
         this.unwrapArray(response).map((booking) => this.normalizeBooking(booking))
       ),
@@ -34,8 +22,8 @@ export class BookingService {
   }
 
   loadDialogOptions() {
-    return this.http
-      .get<any>(`${this.apiUrl}/options`, { headers: this.headers })
+    return this.api
+      .get<any>('Booking/options')
       .pipe(
         map((response) => {
           const data = response?.data ?? response?.Data ?? response ?? {};
@@ -52,9 +40,7 @@ export class BookingService {
   }
 
   createBooking(booking: Booking) {
-    return this.http.post<any>(this.apiUrl, this.toCreatePayload(booking), {
-      headers: this.headers,
-    }).pipe(
+    return this.api.post<any>('Booking', this.toCreatePayload(booking)).pipe(
       map((response) => this.normalizeBooking(response?.data ?? response)),
       tap((created) =>
         this.bookingsSubject.next([created, ...this.bookingsSubject.value])
@@ -63,13 +49,12 @@ export class BookingService {
   }
 
   updateBooking(booking: Booking) {
-    return this.http.put<any>(
-      `${this.apiUrl}/${booking.id}`,
+    return this.api.put<any>(
+      `Booking/${booking.id}`,
       {
         ...this.toCreatePayload(booking),
         status: booking.status,
-      },
-      { headers: this.headers }
+      }
     ).pipe(
       map((response) => this.normalizeBooking(response?.data ?? response)),
       tap((updated) =>
@@ -83,9 +68,7 @@ export class BookingService {
   }
 
   deleteBooking(id: number) {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`, {
-      headers: this.headers,
-    }).pipe(
+    return this.api.delete<void>(`Booking/${id}`).pipe(
       tap(() =>
         this.bookingsSubject.next(
           this.bookingsSubject.value.filter((booking) => booking.id !== id)

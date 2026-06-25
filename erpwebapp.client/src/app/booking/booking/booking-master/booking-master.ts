@@ -16,6 +16,7 @@ import { BookingDialog } from '../booking-dialog/booking-dialog';
 import { Booking, BookingDialogMode, BookingUser } from '../interfaces/booking';
 import { BookingService } from '../services/booking-service';
 import { Car } from '../../car/interfaces/car';
+import { ToastService } from '../../../shared/services/toast.service';
 
 @Component({
   selector: 'app-booking-master',
@@ -61,7 +62,8 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
     private bookingService: BookingService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private router: Router
+    private router: Router,
+    private toastService: ToastService
   ) {}
 
   ngOnInit(): void {
@@ -162,6 +164,7 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
         .pipe(finalize(() => (this.isMutating = false)))
         .subscribe({
         next: () => {
+          this.toastService.success('Booking deleted successfully');
           this.notify('Booking deleted successfully');
           this.refreshOptions();
         },
@@ -206,6 +209,11 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
       this.isMutating = true;
       request.pipe(finalize(() => (this.isMutating = false))).subscribe({
         next: () => {
+          this.toastService.success(
+            mode === 'create'
+              ? 'Booking created successfully'
+              : 'Booking updated successfully'
+          );
           this.notify(
             mode === 'create'
               ? 'Booking created successfully'

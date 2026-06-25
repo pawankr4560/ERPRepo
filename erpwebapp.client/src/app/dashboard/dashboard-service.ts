@@ -2,7 +2,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { map } from 'rxjs';
 
-import { environment } from '../environments/environment';
+import { environment } from '../../environments/environment';
 
 export interface DashboardInstallment {
   id: number;
@@ -54,7 +54,7 @@ export class DashboardService {
 
   loadSummary() {
     return this.http
-      .get<any>(`${environment.apiUrl}/api/Dashboard/loan-summary`, {
+      .get<any>(`${environment.apiUrl}/Dashboard/loan-summary`, {
         headers: this.headers,
       })
       .pipe(map((response) => this.normalize(response?.data ?? response)));

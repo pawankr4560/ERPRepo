@@ -1,10 +1,14 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
-import { Component, signal, ViewChild, ViewContainerRef } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Component, inject, signal, ViewChild, ViewContainerRef } from '@angular/core';
 import {ReactiveFormsModule } from '@angular/forms';
 import { RouterOutlet } from '@angular/router';
 import { combineLatest, concatMap, debounceTime, exhaustMap, forkJoin, fromEvent, mergeMap, OperatorFunction, Subject, switchMap, takeUntil, tap, timer } from 'rxjs';
 import { DynamicComponent } from './dynamic-component/dynamic-component';
+import { SpinnerComponent } from './shared/components/spinner/spinner.component';
+import { ToastComponent } from './shared/components/toast/toast.component';
+import { LoadingService } from './shared/services/loading.service';
+import { ToastService } from './shared/services/toast.service';
 interface Post {
   userId: number;
   id: number;
@@ -13,16 +17,20 @@ interface Post {
 }
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet,CommonModule,ReactiveFormsModule,HttpClientModule],
+  imports: [RouterOutlet,CommonModule,ReactiveFormsModule, SpinnerComponent, ToastComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
 export class App {
   protected readonly title = signal('MyAngularApp');
+  readonly loading$ = inject(LoadingService).loading$;
  /**
   *
   */
- constructor(private http:HttpClient) {
+ constructor(
+  private http:HttpClient,
+  public toastService: ToastService
+ ) {
  
 //  combineLatest({
 //   user: this.http.get('https://jsonplaceholder.typicode.com/users'),

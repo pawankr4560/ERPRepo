@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { MenuItem } from './menu-item';
-import { environment } from '../environments/environment';
+import { environment } from '../../environments/environment';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { map, Observable, tap } from 'rxjs';
 
@@ -29,29 +29,29 @@ constructor(private http: HttpClient) {
   }
 
  initmenus(): Observable<any> {
-  return this.http.get<any>(`${this.apiUrl}/api/Menu`)
+  return this.http.get<any>(`${this.apiUrl}/Menu`)
     .pipe(
       map(res => res?.data ?? res)
     );
 }
 
 getAllMenus(): Observable<MenuItem[]> {
-  return this.http.get<any>(`${this.apiUrl}/api/Menu/all`, { headers: this.headers })
+  return this.http.get<any>(`${this.apiUrl}/Menu/all`, { headers: this.headers })
     .pipe(map(res => res?.data ?? res ?? []));
 }
 
 createMenu(menu: Omit<MenuItem, 'id' | 'children'>): Observable<MenuItem> {
-  return this.http.post<any>(`${this.apiUrl}/api/Menu`, menu, { headers: this.headers })
+  return this.http.post<any>(`${this.apiUrl}/Menu`, menu, { headers: this.headers })
     .pipe(map(res => res?.data ?? res));
 }
 
 updateMenu(id: number, menu: Omit<MenuItem, 'id' | 'children'>): Observable<MenuItem> {
-  return this.http.put<any>(`${this.apiUrl}/api/Menu/${id}`, menu, { headers: this.headers })
+  return this.http.put<any>(`${this.apiUrl}/Menu/${id}`, menu, { headers: this.headers })
     .pipe(map(res => res?.data ?? res));
 }
 
 deleteMenu(id: number): Observable<any> {
-  return this.http.delete<any>(`${this.apiUrl}/api/Menu/${id}`, { headers: this.headers })
+  return this.http.delete<any>(`${this.apiUrl}/Menu/${id}`, { headers: this.headers })
     .pipe(map(res => res?.data ?? res));
 }
 

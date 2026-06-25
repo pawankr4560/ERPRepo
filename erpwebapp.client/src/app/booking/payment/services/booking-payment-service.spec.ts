@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../../environments/environment';
 import { BookingPaymentService } from './booking-payment-service';
 
 describe('BookingPaymentService', () => {
@@ -17,18 +17,18 @@ describe('BookingPaymentService', () => {
 
   it('loads filtered payments and normalizes responses', () => {
     service.loadPayments(2).subscribe((items) => expect(items[0].transactionReference).toBe('TX-1'));
-    http.expectOne(`${environment.apiUrl}/api/BookingPayment?bookingId=2`).flush({ Data: [{ ...payment, TransactionReference: 'TX-1', transactionReference: undefined }] });
+    http.expectOne(`${environment.apiUrl}/BookingPayment?bookingId=2`).flush({ Data: [{ ...payment, TransactionReference: 'TX-1', transactionReference: undefined }] });
   });
 
   it('creates, updates, and deletes payment store entries', () => {
     service.createPayment(payment).subscribe();
-    const create = http.expectOne(`${environment.apiUrl}/api/BookingPayment`);
+    const create = http.expectOne(`${environment.apiUrl}/BookingPayment`);
     expect(create.request.body.bookingId).toBe(2);
     create.flush(payment);
     service.updatePayment({ ...payment, amount: 1500 }).subscribe();
-    http.expectOne(`${environment.apiUrl}/api/BookingPayment/1`).flush({ ...payment, amount: 1500 });
+    http.expectOne(`${environment.apiUrl}/BookingPayment/1`).flush({ ...payment, amount: 1500 });
     service.deletePayment(1).subscribe();
-    http.expectOne(`${environment.apiUrl}/api/BookingPayment/1`).flush(null);
+    http.expectOne(`${environment.apiUrl}/BookingPayment/1`).flush(null);
     let stored: any[] = [];
     service.payments$.subscribe((items) => (stored = items));
     expect(stored).toEqual([]);

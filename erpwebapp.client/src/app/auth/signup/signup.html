@@ -15,31 +15,38 @@
           <mat-label>Email</mat-label>
           <input matInput type="email" formControlName="email" required />
         </mat-form-field>
+        <div class="error-text" *ngIf="signupForm.get('email')?.touched && signupForm.get('email')?.hasError('required')">Email is required.</div>
+        <div class="error-text" *ngIf="signupForm.get('email')?.touched && signupForm.get('email')?.hasError('email')">Enter a valid email address.</div>
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Password</mat-label>
           <input matInput type="password" formControlName="password" required />
         </mat-form-field>
+        <div class="error-text" *ngIf="signupForm.get('password')?.touched && signupForm.get('password')?.hasError('required')">Password is required.</div>
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>ConfirmPassword</mat-label>
           <input matInput type="password" formControlName="confirmPassword" required />
         </mat-form-field>
+        <div class="error-text" *ngIf="signupForm.get('confirmPassword')?.touched && signupForm.get('confirmPassword')?.hasError('required')">Confirm password is required.</div>
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>First Name</mat-label>
           <input matInput type="text" formControlName="firstName" required />
         </mat-form-field>
+        <div class="error-text" *ngIf="signupForm.get('firstName')?.touched && signupForm.get('firstName')?.hasError('required')">First name is required.</div>
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Last Name</mat-label>
           <input matInput type="text" formControlName="lastName" required />
         </mat-form-field>
+        <div class="error-text" *ngIf="signupForm.get('lastName')?.touched && signupForm.get('lastName')?.hasError('required')">Last name is required.</div>
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Gender</mat-label>
           <input matInput type="text" formControlName="gender" required />
         </mat-form-field>
+        <div class="error-text" *ngIf="signupForm.get('gender')?.touched && signupForm.get('gender')?.hasError('required')">Gender is required.</div>
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Address</mat-label>
@@ -64,6 +71,7 @@
             </mat-option>
           </mat-autocomplete>
         </mat-form-field>
+        <div class="error-text" *ngIf="signupForm.get('address')?.touched && signupForm.get('address')?.hasError('required')">Address is required.</div>
 
         <!-- <mat-form-field appearance="outline" class="full-width">
           <mat-label>Address</mat-label>
@@ -72,8 +80,10 @@
 
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Phone</mat-label>
-          <input matInput type="number" formControlName="phone" required />
+          <input matInput type="tel" formControlName="phone" maxlength="10" required />
         </mat-form-field>
+        <div class="error-text" *ngIf="signupForm.get('phone')?.touched && signupForm.get('phone')?.hasError('required')">Phone number is required.</div>
+        <div class="error-text" *ngIf="signupForm.get('phone')?.touched && signupForm.get('phone')?.hasError('pattern')">Phone number must contain exactly 10 digits.</div>
 
         <button mat-raised-button color="primary" class="full-width" type="submit" [disabled]="signupForm.invalid">
           Signup
