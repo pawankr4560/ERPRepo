@@ -189,6 +189,7 @@ namespace WebApp.Service.Transaction
 
                 var entity = _mapper.Map<Data.Entity.Loan>(model);
 
+                entity.UserId = model.UserId?.Trim() ?? string.Empty;
                 entity.Status = PendingStatus;
                 entity.Active = false;
                 entity.IsReducingInterest = model.interestCalculationType;
