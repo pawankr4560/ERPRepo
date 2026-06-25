@@ -383,51 +383,53 @@ namespace WebApp.Service.Transaction
 
         public async Task<bool> ApproveLoan(int id, string approvedByUserId)
         {
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            var strategy = _dbContext.Database.CreateExecutionStrategy();
 
-            var loan = await _dbContext.Loan
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
-
-            if (loan == null)
-                return false;
-
-            if (loan.Status != PendingStatus)
-                throw new InvalidOperationException("Only pending loans can be approved.");
-
-            var hasPaidEmi = await _dbContext.LoanEMISchedule
-                .AnyAsync(x => x.LoanId == id && x.IsPaid && !x.IsDeleted);
-
-            if (hasPaidEmi)
-                throw new InvalidOperationException("A loan with paid installments cannot be approved.");
-
-            loan.Status = ActiveStatus;
-            loan.Active = true;
-            loan.ApprovedAtUtc = DateTime.UtcNow;
-            loan.ApprovedByUserId = approvedByUserId;
-            loan.RejectedAtUtc = null;
-            loan.RejectedByUserId = null;
-            loan.F_Updated_Date_Time = DateTime.UtcNow;
-
-            var legacySchedules = await _dbContext.LoanEMISchedule
-                .Where(x => x.LoanId == id && !x.IsDeleted)
-                .ToListAsync();
-
-            if (legacySchedules.Count == 0)
+            return await strategy.ExecuteAsync(async () =>
             {
+                await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+                var loan = await _dbContext.Loan
+                    .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted);
+
+                if (loan == null)
+                    return false;
+
+                if (loan.Status != PendingStatus)
+                    throw new InvalidOperationException("Only pending loans can be approved.");
+
+                var hasPaidEmi = await _dbContext.LoanEMISchedule
+                    .AnyAsync(x => x.LoanId == id && x.IsPaid && !x.IsDeleted);
+
+                if (hasPaidEmi)
+                    throw new InvalidOperationException("A loan with paid installments cannot be approved.");
+
+                loan.Status = ActiveStatus;
+                loan.Active = true;
+                loan.ApprovedAtUtc = DateTime.UtcNow;
+                loan.ApprovedByUserId = approvedByUserId;
+                loan.RejectedAtUtc = null;
+                loan.RejectedByUserId = null;
+                loan.F_Updated_Date_Time = DateTime.UtcNow;
+
+                var legacySchedules = await _dbContext.LoanEMISchedule
+                    .Where(x => x.LoanId == id && !x.IsDeleted)
+                    .ToListAsync();
+
                 await _dbContext.SaveChangesAsync();
 
-                if (loan.IsReducingInterest)
-                    await GenerateReducingEMIScheduleAsync(loan);
-                else
-                    await GenerateEMIScheduleAsync(loan);
-            }
-            else
-            {
-                await _dbContext.SaveChangesAsync();
-            }
+                if (legacySchedules.Count == 0)
+                {
+                    if (loan.IsReducingInterest)
+                        await GenerateReducingEMIScheduleAsync(loan);
+                    else
+                        await GenerateEMIScheduleAsync(loan);
+                }
 
-            await transaction.CommitAsync();
-            return true;
+                await transaction.CommitAsync();
+
+                return true;
+            });
         }
 
         public async Task<bool> RejectLoan(int id, string rejectedByUserId)

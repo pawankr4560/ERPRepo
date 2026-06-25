@@ -59,11 +59,11 @@ builder.Services.AddDbContext<WebAppDbContext>(options =>
 {
     options.UseSqlServer(connectionString, sqlOptions =>
     {
-        sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(30),
-            errorNumbersToAdd: null
-        );
+        //sqlOptions.EnableRetryOnFailure(
+        //    maxRetryCount: 5,
+        //    maxRetryDelay: TimeSpan.FromSeconds(30),
+        //    errorNumbersToAdd: null
+        //);
     });
 });
 
