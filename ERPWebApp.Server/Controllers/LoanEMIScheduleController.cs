@@ -4,6 +4,8 @@ using WebApp.Service.Transaction;
 
 namespace WebApp.Server.Controllers
 {
+    [Route("api/[controller]")]
+    [ApiController]
     [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
     public class LoanEMIScheduleController : ControllerBase
     {

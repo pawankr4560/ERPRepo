@@ -75,6 +75,15 @@ export const routes: Routes = [
         data: { roles: ['admin'] }
       },
       { path: 'inventory/emi', component: Emi, canActivate: [roleGuard], data: { roles: ['admin'] } },
+      {
+        path: 'pay-emi',
+        loadComponent: () =>
+          import('./transaction/emi-pay/emi-pay').then(
+            (component) => component.EmiPayComponent
+          ),
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'user'] }
+      },
      
       { path: 'booking/list', component: BookingMaster, canActivate: [roleGuard], data: { roles: ['admin'] } },
       {

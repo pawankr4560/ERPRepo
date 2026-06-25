@@ -19,6 +19,7 @@ using WebApp.Service.Auth;
 using WebApp.Service.Message;
 using WebApp.Service.Order;
 using WebApp.Service.Product;
+using WebApp.Service.Razorpay;
 using WebApp.Service.Transaction;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -127,6 +128,13 @@ builder.Services.AddHttpClient("AuthClient", client =>
     }
 });
 
+builder.Services.AddHttpClient("RazorpayClient", client =>
+{
+    client.BaseAddress = new Uri("https://api.razorpay.com/v1/");
+    client.DefaultRequestHeaders.Accept.Add(
+        new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+});
+
 // Identity
 builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
@@ -218,6 +226,7 @@ builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<ICarService, CarService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IBookingPaymentService, BookingPaymentService>();
+builder.Services.AddScoped<IRazorpayService, RazorpayService>();
 
 // Stripe Services
 builder.Services.AddScoped<CustomerService>();

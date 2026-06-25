@@ -46,7 +46,7 @@ export class LoanPaymentService {
   getUnpaidInstallments(loanNumber: string) {
     return this.http
       .get<any[]>(
-        `${environment.apiUrl}/unpaid-installments/${encodeURIComponent(loanNumber)}`,
+        `${environment.apiUrl}/api/LoanEMISchedule/unpaid-installments/${encodeURIComponent(loanNumber)}`,
         { headers: this.headers }
       )
       .pipe(

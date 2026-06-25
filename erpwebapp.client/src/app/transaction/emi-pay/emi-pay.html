@@ -1,0 +1,94 @@
+<div class="emi-pay-page">
+  <header class="page-header">
+    <div>
+      <h1>Pay EMI</h1>
+      <p>Select your loan and installment, then pay securely with Razorpay.</p>
+    </div>
+    <button mat-stroked-button type="button" (click)="loadLoans()" [disabled]="isLoadingLoans">
+      <mat-icon>refresh</mat-icon>
+      Refresh
+    </button>
+  </header>
+
+  <div class="notice" *ngIf="!razorpayReady">
+    <mat-icon>info</mat-icon>
+    <span>Razorpay is not configured yet. Add KeyId and KeySecret in server appsettings.</span>
+  </div>
+
+  <div class="loading-card" *ngIf="isLoadingLoans">
+    <mat-spinner diameter="42"></mat-spinner>
+    <span>Loading your loans...</span>
+  </div>
+
+  <section class="card" *ngIf="!isLoadingLoans">
+    <h2>Loan details</h2>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Select loan</mat-label>
+      <mat-select [(ngModel)]="selectedLoanId" (selectionChange)="onLoanChange()">
+        <mat-option [value]="0">Choose a loan</mat-option>
+        <mat-option *ngFor="let loan of loans" [value]="loan.id">
+          {{ loan.loanNumber }} · ₹{{ formatCurrency(loan.loanAmount) }} ·
+          {{ loan.unpaidInstallments }} unpaid
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="loading-inline" *ngIf="isLoadingInstallments">
+      <mat-spinner diameter="28"></mat-spinner>
+      <span>Loading installments...</span>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width" *ngIf="selectedLoanId && !isLoadingInstallments">
+      <mat-label>Select installment</mat-label>
+      <mat-select [(ngModel)]="selectedScheduleId">
+        <mat-option [value]="0">Choose an installment</mat-option>
+        <mat-option
+          *ngFor="let installment of installments"
+          [value]="installment.id"
+          [disabled]="!isDue(installment)"
+        >
+          Installment {{ installment.installmentNo }} · Due {{ formatDate(installment.dueDate) }} ·
+          ₹{{ formatCurrency(installment.emiAmount) }}
+          <span *ngIf="!isDue(installment)"> (not due yet)</span>
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </section>
+
+  <section class="summary-card" *ngIf="selectedInstallment as installment">
+    <h2>Payment summary</h2>
+    <div class="summary-row">
+      <span>Installment</span>
+      <strong>#{{ installment.installmentNo }}</strong>
+    </div>
+    <div class="summary-row">
+      <span>Due date</span>
+      <strong>{{ formatDate(installment.dueDate) }}</strong>
+    </div>
+    <div class="summary-row">
+      <span>Principal</span>
+      <strong>₹{{ formatCurrency(installment.principalAmount) }}</strong>
+    </div>
+    <div class="summary-row">
+      <span>Interest</span>
+      <strong>₹{{ formatCurrency(installment.interestAmount) }}</strong>
+    </div>
+    <div class="summary-row total">
+      <span>Amount payable</span>
+      <strong>₹{{ formatCurrency(installment.emiAmount) }}</strong>
+    </div>
+
+    <button
+      mat-raised-button
+      color="primary"
+      class="pay-btn"
+      type="button"
+      (click)="payEmi()"
+      [disabled]="!canPay"
+    >
+      <mat-spinner *ngIf="isPaying" diameter="20"></mat-spinner>
+      <span *ngIf="!isPaying">Pay with Razorpay</span>
+    </button>
+  </section>
+</div>

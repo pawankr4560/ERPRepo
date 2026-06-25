@@ -35,6 +35,7 @@ const ROUTE_ROLE_MAP: Record<string, string[]> = {
   'inventory/transactions': ['admin'],
   'inventory/payments': ['admin'],
   'inventory/emi': ['admin'],
+  'pay-emi': ['admin', 'user'],
   'booking/cars': ['admin'],
   'booking/list': ['admin'],
   'booking/payments': ['admin'],
