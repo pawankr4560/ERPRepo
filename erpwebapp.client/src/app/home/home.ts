@@ -129,6 +129,8 @@ export class Home implements OnDestroy,OnInit {
     }
 
     const title = menu.title?.toLowerCase() ?? '';
+    if (title.includes('home')) return 'home';
+    if (title.includes('configuration')) return 'tune';
     if (title.includes('dashboard')) return 'space_dashboard';
     if (title.includes('loan')) return 'credit_card';
     if (title.includes('calculator') || title.includes('emi')) return 'calculate';
@@ -270,18 +272,24 @@ export class Home implements OnDestroy,OnInit {
       ? normalized
       : this.buildMenuTree(normalized);
 
-    return this.filterMenusByRole(tree, role);
+    return this.filterMenusByRole(
+      this.groupStandaloneMenuItems(this.normalizeSidebarGroups(tree)),
+      role
+    );
   }
 
   private normalizeMenu(item: any): MenuItem {
     const activeValue = item.isActive ?? item.IsActive ?? item.active ?? item.Active ?? item.F_Active ?? true;
 
+    const route = item.route ?? item.Route ?? item.F_route ?? item.F_Route ?? item.url ?? item.Url ?? null;
+    const title = item.title ?? item.Title ?? item.T_Title ?? item.menuName ?? item.MenuName ?? '';
+
     return {
       id: item.id ?? item.Id ?? item.menuId ?? item.F_menu_Index ?? item.F_Menu_Index ?? 0,
       parentId: item.parentId ?? item.ParentId ?? item.F_Parent_menu_index ?? item.F_Parent_Menu_Index ?? null,
-      title: item.title ?? item.Title ?? item.T_Title ?? item.menuName ?? item.MenuName ?? '',
+      title: this.getSidebarDisplayTitle(title, route),
       iconClass: item.iconClass ?? item.IconClass ?? item.F_icon_class ?? item.F_Icon_Class ?? item.icon ?? item.Icon ?? '',
-      route: item.route ?? item.Route ?? item.F_route ?? item.F_Route ?? item.url ?? item.Url ?? null,
+      route,
       orderNumber: item.orderNumber ?? item.OrderNumber ?? item.F_order_number ?? item.F_Order_Number ?? item.displayOrder ?? item.DisplayOrder ?? 0,
       isActive: activeValue === true || activeValue === 1 || activeValue === '1' || String(activeValue).toLowerCase() === 'true',
       children: (item.children ?? item.Children ?? []).map((child: any) => this.normalizeMenu(child)),
@@ -302,7 +310,140 @@ export class Home implements OnDestroy,OnInit {
       }
     });
 
-    return roots;
+    return this.sortMenuTree(roots);
+  }
+
+  private normalizeSidebarGroups(items: MenuItem[]): MenuItem[] {
+    return this.sortMenuTree(
+      items.map((item) => {
+        const children = this.normalizeSidebarGroups(item.children ?? []);
+        return {
+          ...item,
+          title: this.getSidebarDisplayTitle(item.title, item.route, children),
+          children,
+        };
+      })
+    );
+  }
+
+  private groupStandaloneMenuItems(items: MenuItem[]): MenuItem[] {
+    const roots: MenuItem[] = [];
+    const groupMap = new Map<string, MenuItem>();
+
+    const groupTitles: Record<string, string> = {
+      home: 'Home',
+      loan: 'Loan',
+      configuration: 'Configuration',
+    };
+
+    const getGroup = (key: keyof typeof groupTitles, orderNumber: number, iconClass: string): MenuItem => {
+      const existing = groupMap.get(key);
+      if (existing) {
+        return existing;
+      }
+
+      const group: MenuItem = {
+        id: -1 * (groupMap.size + 1),
+        title: groupTitles[key],
+        iconClass,
+        route: null,
+        orderNumber,
+        isActive: true,
+        children: [],
+      };
+      groupMap.set(key, group);
+      roots.push(group);
+      return group;
+    };
+
+    const attachToGroup = (item: MenuItem): boolean => {
+      const route = this.cleanRoute(item.route);
+      if (route === 'dashboard') {
+        getGroup('home', 1, 'home').children.push({ ...item, parentId: -1 });
+        return true;
+      }
+
+      if (['inventory/transactions', 'inventory/payments', 'inventory/emi'].includes(route)) {
+        getGroup('loan', 2, 'credit_card').children.push({ ...item, parentId: -2 });
+        return true;
+      }
+
+      if (route === 'settings') {
+        getGroup('configuration', 3, 'tune').children.push({ ...item, parentId: -3 });
+        return true;
+      }
+
+      return false;
+    };
+
+    items.forEach((item) => {
+      const title = item.title.toLowerCase();
+      if (!item.route && ['home', 'loan', 'configuration'].includes(title)) {
+        const key = title as keyof typeof groupTitles;
+        const group = getGroup(key, item.orderNumber || (key === 'home' ? 1 : key === 'loan' ? 2 : 3), item.iconClass);
+        group.id = item.id;
+        group.parentId = item.parentId;
+        group.iconClass = item.iconClass || group.iconClass;
+        group.children.push(...(item.children ?? []));
+        return;
+      }
+
+      if (!attachToGroup(item)) {
+        roots.push(item);
+      }
+    });
+
+    return this.sortMenuTree(roots.filter((item) => !!item.route || item.children.length > 0));
+  }
+
+  private sortMenuTree(items: MenuItem[]): MenuItem[] {
+    return [...items]
+      .map((item) => ({ ...item, children: this.sortMenuTree(item.children ?? []) }))
+      .sort((a, b) => (a.orderNumber || 0) - (b.orderNumber || 0));
+  }
+
+  private getSidebarDisplayTitle(title: string, route?: string | null, children: MenuItem[] = []): string {
+    const cleanTitle = (title || '').trim();
+    const normalizedTitle = cleanTitle.toLowerCase();
+    const cleanRoute = this.cleanRoute(route);
+
+    if (cleanRoute === 'dashboard') {
+      return 'Dashboard';
+    }
+
+    if (cleanRoute === 'inventory/transactions') {
+      return 'My Loans';
+    }
+
+    if (cleanRoute === 'inventory/payments') {
+      return 'Statements';
+    }
+
+    if (cleanRoute === 'inventory/emi') {
+      return 'Calculator';
+    }
+
+    if (!cleanRoute && (normalizedTitle === 'customer' || normalizedTitle === 'loans')) {
+      return 'Loan';
+    }
+
+    if (!cleanRoute && (normalizedTitle === 'system' || normalizedTitle === 'settings')) {
+      return 'Configuration';
+    }
+
+    if (!cleanRoute && !cleanTitle && children.length) {
+      return 'Menu';
+    }
+
+    return cleanTitle;
+  }
+
+  private cleanRoute(route?: string | null): string {
+    let cleanRoute = route?.trim().replace(/^\/+/g, '').replace(/\/+$/g, '') ?? '';
+    if (cleanRoute.startsWith('home/')) {
+      cleanRoute = cleanRoute.substring(5);
+    }
+    return cleanRoute;
   }
 
   private filterMenusByRole(items: MenuItem[], role: string): MenuItem[] {
@@ -320,36 +461,48 @@ export class Home implements OnDestroy,OnInit {
   }
 
   private buildSidebarSections(menus: MenuItem[]): SidebarSection[] {
-    const sections: SidebarSection[] = [];
-    const looseItems: MenuItem[] = [];
-
-    menus.forEach((menu) => {
-      if (menu.children?.length && !menu.route) {
-        sections.push({
-          title: menu.title || 'Menu',
-          items: menu.children,
-        });
-      } else {
-        looseItems.push(menu);
-      }
-    });
-
-    if (looseItems.length) {
-      sections.unshift({ title: 'Main', items: looseItems });
-    }
-
-    return sections;
+    return menus.length ? [{ title: 'Main', items: menus }] : [];
   }
 
   private getFallbackMenus(role: string): MenuItem[] {
     const fallback: MenuItem[] = [
-      { id: 1, title: 'Dashboard', iconClass: 'space_dashboard', route: 'dashboard', orderNumber: 1, isActive: true, children: [] },
-      { id: 2, title: 'My Loans', iconClass: 'credit_card', route: 'inventory/transactions', orderNumber: 2, isActive: true, children: [] },
-      { id: 3, title: 'Calculator', iconClass: 'calculate', route: 'inventory/emi', orderNumber: 3, isActive: true, children: [] },
-      { id: 4, title: 'Statements', iconClass: 'receipt_long', route: 'inventory/payments', orderNumber: 4, isActive: true, children: [] },
-      { id: 5, title: 'Settings', iconClass: 'settings', route: 'settings', orderNumber: 5, isActive: true, children: [] },
+      {
+        id: 1,
+        title: 'Home',
+        iconClass: 'home',
+        route: null,
+        orderNumber: 1,
+        isActive: true,
+        children: [
+          { id: 2, parentId: 1, title: 'Dashboard', iconClass: 'space_dashboard', route: 'dashboard', orderNumber: 1, isActive: true, children: [] },
+        ],
+      },
+      {
+        id: 3,
+        title: 'Loan',
+        iconClass: 'credit_card',
+        route: null,
+        orderNumber: 2,
+        isActive: true,
+        children: [
+          { id: 4, parentId: 3, title: 'My Loans', iconClass: 'credit_card', route: 'inventory/transactions', orderNumber: 1, isActive: true, children: [] },
+          { id: 5, parentId: 3, title: 'Statements', iconClass: 'receipt_long', route: 'inventory/payments', orderNumber: 2, isActive: true, children: [] },
+          { id: 6, parentId: 3, title: 'Calculator', iconClass: 'calculate', route: 'inventory/emi', orderNumber: 3, isActive: true, children: [] },
+        ],
+      },
+      {
+        id: 7,
+        title: 'Configuration',
+        iconClass: 'tune',
+        route: null,
+        orderNumber: 3,
+        isActive: true,
+        children: [
+          { id: 8, parentId: 7, title: 'Settings', iconClass: 'settings', route: 'settings', orderNumber: 1, isActive: true, children: [] },
+        ],
+      },
     ];
 
-    return this.filterMenusByRole(fallback, role);
+    return this.filterMenusByRole(this.normalizeSidebarGroups(fallback), role);
   }
 }
