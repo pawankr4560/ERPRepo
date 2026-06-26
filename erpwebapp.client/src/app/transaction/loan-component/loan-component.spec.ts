@@ -6,6 +6,7 @@ import { Router } from '@angular/router';
 import { LoanComponent } from './loan-component';
 import { Loan, LoanService } from '../services/loan-service';
 import { InterestSettingService } from '../../setting/interest-setting.service';
+import { LoanPaymentService } from '../services/loan-payment-service';
 
 describe('LoanComponent', () => {
   let component: LoanComponent;
@@ -16,6 +17,7 @@ describe('LoanComponent', () => {
   let router: jasmine.SpyObj<Router>;
   let dialog: jasmine.SpyObj<MatDialog>;
   let snackBar: jasmine.SpyObj<MatSnackBar>;
+  let loanPaymentService: jasmine.SpyObj<LoanPaymentService>;
 
   const loan = (id: number, number = `LN-${id}`): Loan => ({
     id,
@@ -51,9 +53,11 @@ describe('LoanComponent', () => {
     router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     dialog = jasmine.createSpyObj<MatDialog>('MatDialog', ['open']);
     snackBar = jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']);
+    loanPaymentService = jasmine.createSpyObj<LoanPaymentService>('LoanPaymentService', ['loadPayments']);
 
     loanService.loadLoans.and.returnValue(of([]));
     loanService.getLoanData.and.returnValue(of({ loanNumber: '2026-GKFIN-00001', customerList: [] }));
+    loanPaymentService.loadPayments.and.returnValue(of([]));
     interestService.load.and.returnValue(of('Reducing'));
     interestService.calculateEmi.and.callFake((amount, _rate, months) => months ? amount / months : 0);
 
@@ -65,6 +69,7 @@ describe('LoanComponent', () => {
         { provide: Router, useValue: router },
         { provide: MatDialog, useValue: dialog },
         { provide: MatSnackBar, useValue: snackBar },
+        { provide: LoanPaymentService, useValue: loanPaymentService },
       ],
     }).compileComponents();
 
@@ -238,6 +243,38 @@ describe('LoanComponent', () => {
     expect(component.emiPreview.length).toBe(12);
     expect(component.previewTotalPayable).toBeGreaterThan(0);
     expect(component.previewTotalInterest).toBeGreaterThanOrEqual(0);
+  });
+
+  it('starts the EMI preview from the next month on the same date', () => {
+    component.current = {
+      ...loan(1),
+      loanAmount: 120000,
+      rate: 12,
+      tenure: 12,
+      startDate: '2026-01-01',
+      interestCalculationType: 'Reducing',
+    };
+
+    const firstDueDate = component.emiPreview[0].dueDate;
+    expect(firstDueDate.getFullYear()).toBe(2026);
+    expect(firstDueDate.getMonth()).toBe(1);
+    expect(firstDueDate.getDate()).toBe(1);
+  });
+
+  it('keeps next-month due dates valid when the same day does not exist', () => {
+    component.current = {
+      ...loan(1),
+      loanAmount: 120000,
+      rate: 12,
+      tenure: 12,
+      startDate: '2026-01-31',
+      interestCalculationType: 'Flat',
+    };
+
+    const firstDueDate = component.emiPreview[0].dueDate;
+    expect(firstDueDate.getFullYear()).toBe(2026);
+    expect(firstDueDate.getMonth()).toBe(1);
+    expect(firstDueDate.getDate()).toBe(28);
   });
 
   it('accepts a six-month tenure and rejects shorter tenure', () => {

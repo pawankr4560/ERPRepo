@@ -1498,7 +1498,15 @@ export class LoanComponent implements OnInit {
 
   private addMonths(date: Date, months: number): Date {
     const result = new Date(date);
+    const originalDay = result.getDate();
+    result.setDate(1);
     result.setMonth(result.getMonth() + months);
+    const lastDayOfTargetMonth = new Date(
+      result.getFullYear(),
+      result.getMonth() + 1,
+      0
+    ).getDate();
+    result.setDate(Math.min(originalDay, lastDayOfTargetMonth));
     return result;
   }
 
@@ -1596,7 +1604,7 @@ export class LoanComponent implements OnInit {
         balance = Math.max(0, balance - principal);
         rows.push({
           installmentNo: index + 1,
-          dueDate: this.addMonths(startDate, index),
+          dueDate: this.addMonths(startDate, index + 1),
           emiAmount: this.roundMoney(principal + monthlyInterest),
           principalAmount: this.roundMoney(principal),
           interestAmount: this.roundMoney(monthlyInterest),
@@ -1615,7 +1623,7 @@ export class LoanComponent implements OnInit {
       balance = Math.max(0, balance - principal);
       rows.push({
         installmentNo: index + 1,
-        dueDate: this.addMonths(startDate, index),
+        dueDate: this.addMonths(startDate, index + 1),
         emiAmount: this.roundMoney(principal + interest),
         principalAmount: this.roundMoney(principal),
         interestAmount: this.roundMoney(interest),

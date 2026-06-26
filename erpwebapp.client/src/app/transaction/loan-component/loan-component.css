@@ -655,6 +655,195 @@
   color: #ffffff;
 }
 
+.form-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.form-heading h2 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.muted {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.loan-wizard {
+  overflow: visible;
+  padding: 28px 32px 32px;
+}
+
+.loan-wizard .mat-mdc-icon-button {
+  color: #9ca3af;
+}
+
+.loan-wizard .mat-mdc-icon-button:hover {
+  color: #ffffff;
+}
+
+.wizard-step {
+  padding: 28px 36px 30px;
+  min-height: 360px;
+}
+
+.wizard-step-heading {
+  max-width: 760px;
+  margin-bottom: 24px;
+}
+
+.wizard-step-heading h3 {
+  margin: 0 0 8px;
+  color: #ffffff;
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.wizard-step-heading p {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.wizard-grid,
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 18px;
+  align-items: start;
+  max-width: 1040px;
+}
+
+.customer-step-grid {
+  grid-template-columns: minmax(320px, 2fr) minmax(240px, 1fr);
+}
+
+.verification-grid,
+.guarantor-grid {
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+}
+
+.wide-field {
+  grid-column: span 2;
+}
+
+.customer-select-field {
+  min-width: 320px;
+}
+
+.loan-number-field {
+  min-width: 240px;
+}
+
+.wizard-actions,
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.wizard-actions button,
+.form-actions button {
+  min-height: 44px;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+}
+
+.wizard-actions button mat-icon {
+  margin-left: 6px;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.field-error,
+.error-text {
+  color: #f87171;
+}
+
+.preview-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.preview-heading h3 {
+  margin: 0;
+}
+
+.preview-totals {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.preview-totals span {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 150px;
+  padding: 12px 14px;
+  border: 1px solid #2d2d30;
+  border-radius: 10px;
+  background: #1e1e20;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.preview-totals strong {
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.preview-table-wrap {
+  max-height: 420px;
+  overflow: auto;
+  border: 1px solid #222222;
+  border-radius: 12px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.summary-grid section {
+  border: 1px solid #2d2d30;
+  border-radius: 12px;
+  background: #1e1e20;
+  padding: 18px;
+}
+
+.summary-grid h4 {
+  margin: 0 0 14px;
+  color: #ffffff;
+}
+
+.summary-grid p {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 10px 0;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.summary-grid strong {
+  color: #ffffff;
+  text-align: right;
+}
+
 .loan-pagination {
   display: flex;
   align-items: center;
@@ -695,10 +884,26 @@
 ::ng-deep .mat-horizontal-stepper-header-container {
   border-bottom: 1px solid #222222;
   background-color: #161616;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
 ::ng-deep .mat-stepper-horizontal, ::ng-deep .mat-stepper-vertical {
   background-color: transparent !important;
+}
+
+::ng-deep .mat-horizontal-content-container {
+  overflow: visible !important;
+  padding: 0 !important;
+}
+
+::ng-deep .mat-horizontal-stepper-content {
+  overflow: visible !important;
+}
+
+::ng-deep .mat-step-header {
+  min-width: 156px;
+  border-radius: 10px;
 }
 
 ::ng-deep .mat-step-header .mat-step-label {
@@ -741,9 +946,22 @@
   color: #88888b !important;
 }
 
+::ng-deep .cdk-overlay-container {
+  z-index: 2000;
+}
+
+::ng-deep .loan-select-panel,
+::ng-deep .mat-mdc-select-panel {
+  background: #15171b !important;
+  border: 1px solid #30343b !important;
+  border-radius: 10px !important;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
 ::ng-deep .mat-mdc-option {
   color: #ffffff !important;
-  background-color: #161616 !important;
+  background-color: #15171b !important;
+  min-height: 44px !important;
 }
 
 ::ng-deep .mat-mdc-option:hover {
@@ -876,6 +1094,27 @@
   .loan-grid {
     grid-template-columns: 1fr;
   }
+
+  .wizard-grid,
+  .form-grid,
+  .customer-step-grid,
+  .verification-grid,
+  .guarantor-grid,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wide-field {
+    grid-column: auto;
+  }
+
+  .preview-heading {
+    flex-direction: column;
+  }
+
+  .preview-totals {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 768px) {
@@ -910,5 +1149,21 @@
   
   .detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .loan-wizard {
+    padding: 20px 14px 24px;
+  }
+
+  .wizard-step {
+    padding: 22px 4px 24px;
+  }
+
+  .form-heading {
+    align-items: flex-start;
+  }
+
+  ::ng-deep .mat-step-header {
+    min-width: 124px;
   }
 }

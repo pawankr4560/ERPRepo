@@ -10,6 +10,9 @@ using WebApp.Data;
 using WebApp.Data.Entity;
 using ERPWebAppModels.Auth;
 using WebApp.Model.Auth;
+using System.Net;
+using System.Net.Mail;
+using Microsoft.AspNetCore.Http;
 
 namespace WebApp.Service.Auth
 {
@@ -21,13 +24,15 @@ namespace WebApp.Service.Auth
         private readonly IMapper _mapper;
         private readonly HttpClient _httpClient;
         private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public AuthService(UserManager<User> userManager,
             SignInManager<User> signInManager,
             WebAppDbContext dbContext,
             Microsoft.Extensions.Configuration.IConfiguration configuration,
             IMapper mapper,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            IHttpContextAccessor httpContextAccessor)
         {
             _userManager = userManager;
             _signInManager = signInManager;
@@ -35,12 +40,18 @@ namespace WebApp.Service.Auth
             _mapper = mapper;
             _httpClient = httpClientFactory.CreateClient("AuthClient");
             _configuration = configuration;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<bool> SignUpUser(SignupRequestModel model)
         {
             try
             {
+                if (model.Password != model.ConfirmPassword)
+                {
+                    throw new Exception("Password and confirm password do not match.");
+                }
+
                 if (await _dbContext.Users.AnyAsync(u => u.Email == model.Email))
                 {
                     throw new Exception("User is already exists.");
@@ -51,14 +62,161 @@ namespace WebApp.Service.Auth
                 user.IsActive = true;
                 user.IsDeleted = false;
                 user.UserName = model.Email;
-                user.EmailConfirmed = true;
+                user.EmailConfirmed = false;
                 user.Id = Guid.NewGuid().ToString();
                 var res = await _userManager.CreateAsync(user, model.Password);
-                await _userManager.AddToRoleAsync(user, "User");
-                await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                if (!res.Succeeded)
+                {
+                    throw new Exception(string.Join(" ", res.Errors.Select(error => error.Description)));
+                }
+
+                var roleResult = await _userManager.AddToRoleAsync(user, "User");
+                if (!roleResult.Succeeded)
+                {
+                    throw new Exception(string.Join(" ", roleResult.Errors.Select(error => error.Description)));
+                }
+
+                var emailConfirmationToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                var confirmationLink = BuildEmailConfirmationLink(user.Email!, emailConfirmationToken);
+                var emailBody = BuildSignupEmailBody(user, confirmationLink);
+                await SendEmailFromSmtpAsync(user.Email!, "Welcome to ERP Web App", emailBody);
                 return true;
             }
             catch (Exception) { throw; }
+        }
+
+        public async Task<bool> ConfirmEmail(string email, string token)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                throw new ArgumentException("Email is required.", nameof(email));
+
+            if (string.IsNullOrWhiteSpace(token))
+                throw new ArgumentException("Email confirmation token is required.", nameof(token));
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user is null)
+                throw new Exception("User not found.");
+
+            if (user.EmailConfirmed)
+                return true;
+
+            var result = await _userManager.ConfirmEmailAsync(user, token);
+            if (result.Succeeded)
+                return true;
+
+            throw new Exception(string.Join(" ", result.Errors.Select(error => error.Description)));
+        }
+
+        public async Task SendEmailFromSmtpAsync(string toEmail, string subject, string body, bool isHtml = true)
+        {
+            if (string.IsNullOrWhiteSpace(toEmail))
+                throw new ArgumentException("Recipient email cannot be empty.", nameof(toEmail));
+
+            var smtpHost = _configuration["Smtp:Host"];
+            var smtpPort = _configuration["Smtp:Port"];
+            var smtpUserName = _configuration["Smtp:UserName"];
+            var smtpPassword = _configuration["Smtp:Password"];
+            var smtpFromEmail = _configuration["Smtp:FromEmail"];
+            var smtpFromName = _configuration["Smtp:FromName"];
+            var smtpEnableSsl = _configuration["Smtp:EnableSsl"];
+
+            if (string.IsNullOrWhiteSpace(smtpHost))
+                throw new InvalidOperationException("SMTP host is not configured.");
+
+            if (!int.TryParse(smtpPort, out var port))
+                throw new InvalidOperationException("SMTP port is not configured correctly.");
+
+            if (string.IsNullOrWhiteSpace(smtpFromEmail))
+                throw new InvalidOperationException("SMTP from email is not configured.");
+
+            bool.TryParse(smtpEnableSsl, out var enableSsl);
+
+            using var message = new MailMessage
+            {
+                From = string.IsNullOrWhiteSpace(smtpFromName)
+                    ? new MailAddress(smtpFromEmail)
+                    : new MailAddress(smtpFromEmail, smtpFromName),
+                Subject = subject,
+                Body = body,
+                IsBodyHtml = isHtml
+            };
+            message.To.Add(new MailAddress(toEmail));
+
+            using var smtpClient = new SmtpClient(smtpHost, port)
+            {
+                EnableSsl = enableSsl
+            };
+
+            if (!string.IsNullOrWhiteSpace(smtpUserName))
+            {
+                smtpClient.UseDefaultCredentials = false;
+                smtpClient.Credentials = new NetworkCredential(smtpUserName, smtpPassword);
+            }
+            else
+            {
+                smtpClient.UseDefaultCredentials = true;
+            }
+
+            await smtpClient.SendMailAsync(message);
+        }
+
+        private string BuildEmailConfirmationLink(string email, string token)
+        {
+            var baseUrl = _configuration["EmailConfirmation:BaseUrl"];
+            var request = _httpContextAccessor.HttpContext?.Request;
+
+            if (string.IsNullOrWhiteSpace(baseUrl) && request is not null)
+            {
+                baseUrl = $"{request.Scheme}://{request.Host}{request.PathBase}";
+            }
+
+            if (string.IsNullOrWhiteSpace(baseUrl))
+            {
+                baseUrl = _configuration["Jwt:Issuer"];
+            }
+
+            if (string.IsNullOrWhiteSpace(baseUrl) || !Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri))
+            {
+                throw new InvalidOperationException("Email confirmation base URL is not configured.");
+            }
+
+            var confirmPath = "api/Auth/ConfirmEmail";
+            var builder = new UriBuilder(new Uri(baseUri, confirmPath))
+            {
+                Query = $"email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}"
+            };
+
+            return builder.Uri.ToString();
+        }
+
+        public string GetEmailConfirmationRedirectUrl(bool confirmed)
+        {
+            var configuredUrl = confirmed
+                ? _configuration["EmailConfirmation:SuccessRedirectUrl"]
+                : _configuration["EmailConfirmation:FailureRedirectUrl"];
+
+            if (!string.IsNullOrWhiteSpace(configuredUrl))
+                return configuredUrl;
+
+            return confirmed
+                ? "/auth/login?emailConfirmed=true"
+                : "/auth/login?emailConfirmed=false";
+        }
+
+        private static string BuildSignupEmailBody(User user, string confirmationLink)
+        {
+            var fullName = $"{user.FirstName} {user.LastName}".Trim();
+            var greetingName = string.IsNullOrWhiteSpace(fullName) ? user.Email : fullName;
+            var encodedConfirmationLink = WebUtility.HtmlEncode(confirmationLink);
+
+            return $@"
+                <p>Hello {WebUtility.HtmlEncode(greetingName)},</p>
+                <p>Your ERP Web App account has been created successfully.</p>
+                <p>Please confirm your email address to activate your account.</p>
+                <p><a href=""{encodedConfirmationLink}"">Confirm email address</a></p>
+                <p>If the button does not work, copy and paste this link into your browser:</p>
+                <p>{encodedConfirmationLink}</p>
+                <p>Thank you,<br/>ERP Web App</p>";
         }
 
         public async Task<bool> AuthenticateUser(string token)

@@ -29,11 +29,25 @@ namespace WebApp.Server.Controllers
             try
             {
                 var result = await _authService.SignUpUser(model);
-                return Ok(new ApiResponse(true, "User signup successfully", result));
+                return Ok(new ApiResponse(true, "User signup successfully. Please confirm your email before login.", result));
             }
             catch (Exception ex)
             {
                 return BadRequest(new ApiResponse(false, ex.Message, ex));
+            }
+        }
+
+        [HttpGet("ConfirmEmail")]
+        public async Task<IActionResult> ConfirmEmail([FromQuery] string email, [FromQuery] string token)
+        {
+            try
+            {
+                await _authService.ConfirmEmail(email, token);
+                return Redirect(_authService.GetEmailConfirmationRedirectUrl(true));
+            }
+            catch
+            {
+                return Redirect(_authService.GetEmailConfirmationRedirectUrl(false));
             }
         }
 

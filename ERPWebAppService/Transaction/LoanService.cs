@@ -401,19 +401,17 @@ namespace WebApp.Service.Transaction
                 .Where(x => x.LoanId == id && !x.IsDeleted)
                 .ToListAsync();
 
-            if (legacySchedules.Count == 0)
+            if (legacySchedules.Count > 0)
             {
-                await _dbContext.SaveChangesAsync();
+                _dbContext.LoanEMISchedule.RemoveRange(legacySchedules);
+            }
 
-                if (loan.IsReducingInterest)
-                    await GenerateReducingEMIScheduleAsync(loan);
-                else
-                    await GenerateEMIScheduleAsync(loan);
-            }
+            await _dbContext.SaveChangesAsync();
+
+            if (loan.IsReducingInterest)
+                await GenerateReducingEMIScheduleAsync(loan);
             else
-            {
-                await _dbContext.SaveChangesAsync();
-            }
+                await GenerateEMIScheduleAsync(loan);
 
             await transaction.CommitAsync();
             return true;
@@ -517,7 +515,6 @@ namespace WebApp.Service.Transaction
                     LoanId = loan.Id,
                     InstallmentNo = installmentNo,
 
-                    // First EMI after 1 month from StartDate
                     DueDate = loan.StartDate.AddMonths(installmentNo),
 
                     EMIAmount = Math.Round(emiAmount, 2),
@@ -562,8 +559,6 @@ namespace WebApp.Service.Transaction
                 emiAmount = loanAmount * monthlyRate * factor / (factor - 1);
             }
 
-            DateTime dueDate = loan.StartDate;
-
             for (int installmentNo = 1; installmentNo <= tenureMonths; installmentNo++)
             {
                 decimal interestAmount = outstandingBalance * monthlyRate;
@@ -581,7 +576,7 @@ namespace WebApp.Service.Transaction
                 {
                     LoanId = loan.Id,
                     InstallmentNo = installmentNo,
-                    DueDate = dueDate,
+                    DueDate = loan.StartDate.AddMonths(installmentNo),
 
                     EMIAmount = Math.Round(emiAmount, 2),
                     PrincipalAmount = Math.Round(principalAmount, 2),
@@ -595,7 +590,6 @@ namespace WebApp.Service.Transaction
                     F_Updated_Date_Time = DateTime.UtcNow
                 });
 
-                dueDate = dueDate.AddMonths(1);
             }
 
             await _dbContext.LoanEMISchedule.AddRangeAsync(schedules);

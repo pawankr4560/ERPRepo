@@ -8,10 +8,13 @@ namespace WebApp.Service.Auth
     public interface IAuthService
     {
         Task<bool> AuthenticateUser(string token);
+        Task<bool> ConfirmEmail(string email, string token);
         Task<string> CreateToken(User user);
+        string GetEmailConfirmationRedirectUrl(bool confirmed);
         Task<UserAddressResponseModel> GetAddress(string address);
         string GetToken(List<Claim> claims);
         Task<string> Login(LoginRequestModel model);
+        Task SendEmailFromSmtpAsync(string toEmail, string subject, string body, bool isHtml = true);
         Task<bool> SignUpUser(SignupRequestModel model);
         Task<List<User>> UserList();
     }
