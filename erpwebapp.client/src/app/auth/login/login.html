@@ -1,4 +1,34 @@
-<div class="login-container">
+<div
+  class="login-container"
+  (mousemove)="updateBackgroundPointer($event)"
+  [style.--pointer-x]="pointerX + '%'"
+  [style.--pointer-y]="pointerY + '%'"
+  [style.--shift-x]="pointerShiftX + 'px'"
+  [style.--shift-y]="pointerShiftY + 'px'"
+  [style.--shift-inverse-x]="pointerShiftInverseX + 'px'"
+  [style.--shift-inverse-y]="pointerShiftInverseY + 'px'"
+>
+  <div class="login-background" aria-hidden="true">
+    <div class="grid-layer"></div>
+    <div class="cursor-light"></div>
+    <div class="scan-line"></div>
+    <div class="finance-track track-one"></div>
+    <div class="finance-track track-two"></div>
+    <div class="finance-track track-three"></div>
+    <div class="motion-card motion-card-one">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="motion-card motion-card-two">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="motion-card motion-card-three">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="pulse-node node-one"></div>
+    <div class="pulse-node node-two"></div>
+    <div class="pulse-node node-three"></div>
+  </div>
+
   <mat-card class="login-card">
 
     <mat-card-header>

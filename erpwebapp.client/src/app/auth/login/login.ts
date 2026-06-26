@@ -25,6 +25,12 @@ import { ToastService } from "../../shared/services/toast.service";
 })
 export class Login {
   loginForm: FormGroup;
+  pointerX = 50;
+  pointerY = 50;
+  pointerShiftX = 0;
+  pointerShiftY = 0;
+  pointerShiftInverseX = 0;
+  pointerShiftInverseY = 0;
 
   user = {
   email: 'test1@gmail.com',
@@ -39,6 +45,16 @@ export class Login {
       password: ['', Validators.required]
     });
   }
+
+updateBackgroundPointer(event: MouseEvent): void {
+  const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  this.pointerX = Math.round(((event.clientX - bounds.left) / bounds.width) * 100);
+  this.pointerY = Math.round(((event.clientY - bounds.top) / bounds.height) * 100);
+  this.pointerShiftX = Math.round((this.pointerX - 50) * 0.35);
+  this.pointerShiftY = Math.round((this.pointerY - 50) * 0.35);
+  this.pointerShiftInverseX = this.pointerShiftX * -1;
+  this.pointerShiftInverseY = this.pointerShiftY * -1;
+}
 
 login() {
   if (this.loginForm.invalid) {

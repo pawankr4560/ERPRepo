@@ -37,6 +37,12 @@ export class Signup implements OnInit {
   signupForm: FormGroup;
   addresses: any[] = [];
   users: UserDetails[] = [];
+  pointerX = 50;
+  pointerY = 50;
+  pointerShiftX = 0;
+  pointerShiftY = 0;
+  pointerShiftInverseX = 0;
+  pointerShiftInverseY = 0;
    constructor(private router: Router, private fb: FormBuilder,private snackBar: MatSnackBar,private authService:Auth, private toastService: ToastService) {
     this.signupForm = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
@@ -71,6 +77,16 @@ export class Signup implements OnInit {
         this.addresses = [];
       }
     });
+}
+
+updateBackgroundPointer(event: MouseEvent): void {
+  const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
+  this.pointerX = Math.round(((event.clientX - bounds.left) / bounds.width) * 100);
+  this.pointerY = Math.round(((event.clientY - bounds.top) / bounds.height) * 100);
+  this.pointerShiftX = Math.round((this.pointerX - 50) * 0.35);
+  this.pointerShiftY = Math.round((this.pointerY - 50) * 0.35);
+  this.pointerShiftInverseX = this.pointerShiftX * -1;
+  this.pointerShiftInverseY = this.pointerShiftY * -1;
 }
   
   signupUser() {
