@@ -25,6 +25,21 @@ export interface DashboardPayment {
   transactionId: string;
 }
 
+export interface DashboardActiveLoan {
+  loanId: number;
+  loanNumber: string;
+  customerName: string;
+  loanAmount: number;
+  rate: number;
+  emi: number;
+  tenureMonths: number;
+  paidInstallments: number;
+  totalInstallments: number;
+  monthsRemaining: number;
+  outstandingBalance: number;
+  progressPercentage: number;
+}
+
 export interface LoanDashboardSummary {
   totalPortfolio: number;
   totalCollected: number;
@@ -39,8 +54,15 @@ export interface LoanDashboardSummary {
   collectionRate: number;
   queryDurationMs: number;
   generatedAtUtc: string;
+  creditScore: number;
+  creditScoreChange: number;
+  creditUtilization: number;
+  averageLoanAgeYears: number;
+  hardInquiries: number;
+  paymentHistoryRating: string;
   upcomingInstallments: DashboardInstallment[];
   recentPayments: DashboardPayment[];
+  activeLoanSummaries: DashboardActiveLoan[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -79,6 +101,16 @@ export class DashboardService {
       collectionRate: value?.collectionRate ?? value?.CollectionRate ?? 0,
       queryDurationMs: value?.queryDurationMs ?? value?.QueryDurationMs ?? 0,
       generatedAtUtc: value?.generatedAtUtc ?? value?.GeneratedAtUtc ?? '',
+      creditScore: value?.creditScore ?? value?.CreditScore ?? 0,
+      creditScoreChange:
+        value?.creditScoreChange ?? value?.CreditScoreChange ?? 0,
+      creditUtilization:
+        value?.creditUtilization ?? value?.CreditUtilization ?? 0,
+      averageLoanAgeYears:
+        value?.averageLoanAgeYears ?? value?.AverageLoanAgeYears ?? 0,
+      hardInquiries: value?.hardInquiries ?? value?.HardInquiries ?? 0,
+      paymentHistoryRating:
+        value?.paymentHistoryRating ?? value?.PaymentHistoryRating ?? 'No history',
       upcomingInstallments: (
         value?.upcomingInstallments ??
         value?.UpcomingInstallments ??
@@ -105,6 +137,29 @@ export class DashboardService {
         paymentDate: item?.paymentDate ?? item?.PaymentDate ?? '',
         paymentStatus: item?.paymentStatus ?? item?.PaymentStatus ?? '',
         transactionId: item?.transactionId ?? item?.TransactionId ?? '',
+      })),
+      activeLoanSummaries: (
+        value?.activeLoanSummaries ??
+        value?.ActiveLoanSummaries ??
+        []
+      ).map((item: any) => ({
+        loanId: item?.loanId ?? item?.LoanId ?? 0,
+        loanNumber: item?.loanNumber ?? item?.LoanNumber ?? '',
+        customerName: item?.customerName ?? item?.CustomerName ?? '',
+        loanAmount: item?.loanAmount ?? item?.LoanAmount ?? 0,
+        rate: item?.rate ?? item?.Rate ?? 0,
+        emi: item?.emi ?? item?.Emi ?? item?.EMI ?? 0,
+        tenureMonths: item?.tenureMonths ?? item?.TenureMonths ?? 0,
+        paidInstallments:
+          item?.paidInstallments ?? item?.PaidInstallments ?? 0,
+        totalInstallments:
+          item?.totalInstallments ?? item?.TotalInstallments ?? 0,
+        monthsRemaining:
+          item?.monthsRemaining ?? item?.MonthsRemaining ?? 0,
+        outstandingBalance:
+          item?.outstandingBalance ?? item?.OutstandingBalance ?? 0,
+        progressPercentage:
+          item?.progressPercentage ?? item?.ProgressPercentage ?? 0,
       })),
     };
   }

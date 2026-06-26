@@ -3,7 +3,7 @@
 .details-header{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 20px;margin-bottom:14px}
 .title-block,.export-actions{display:flex;align-items:center;gap:10px}h1,h2,p{margin-top:0}h1{margin-bottom:3px;color:#1f3a6f;font-size:26px}
 h2{margin-bottom:14px;color:#1f3a6f;font-size:18px}.title-block p,.progress-card p,.muted{color:#667085;margin-bottom:0}
-.pdf-button{color:#b42318}.excel-button{color:#087a5b}
+.pdf-button,.reject-button{color:#b42318}.excel-button{color:#087a5b}
 .summary-grid{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:1px;overflow:hidden;margin-bottom:14px;background:#e5e7eb}
 .summary-grid>div{min-height:76px;padding:14px;background:#fff}.summary-grid span,dt{display:block;margin-bottom:5px;color:#667085;font-size:12px}
 .status-pill,.payment-status{display:inline-flex;width:fit-content;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}

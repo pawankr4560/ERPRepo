@@ -1,4 +1,4 @@
-<div class="loan-container">
+﻿<div class="loan-container">
   <div class="api-loader-overlay" *ngIf="isBusy" role="status" aria-live="polite">
     <div class="api-loader-card">
       <mat-spinner diameter="42"></mat-spinner>
@@ -7,39 +7,74 @@
   </div>
   <div class="loan-header">
     <div>
-      <h1>Loan Transactions</h1>
-      <p>Manage loans, EMI schedules, and payment tracking.</p>
+      <h1>My loans</h1>
+      <p>{{ loans.length }} loan{{ loans.length === 1 ? '' : 's' }} &middot; {{ formatCompactCurrency(totalOutstanding) }} total outstanding</p>
     </div>
 
-    <button mat-raised-button color="primary" (click)="startCreate()" [disabled]="isBusy">
-      <mat-icon>add</mat-icon>
-      New Loan
-    </button>
+    <div class="header-actions">
+      <button mat-stroked-button class="ghost-action" (click)="downloadStatements()" [disabled]="isBusy || !filteredLoans.length">
+        <mat-icon>download</mat-icon>
+        Download statements
+      </button>
+      <button mat-stroked-button class="ghost-action" (click)="startCreate()" [disabled]="isBusy">
+        Apply new loan
+        <mat-icon class="external-icon">north_east</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <div class="loan-summary-grid">
+    <section class="summary-card">
+      <span class="card-label">Total outstanding</span>
+      <strong class="card-value">{{ formatCompactCurrency(totalOutstanding) }}</strong>
+      <span class="card-subtext">across {{ loans.length }} loan{{ loans.length === 1 ? '' : 's' }}</span>
+    </section>
+    <section class="summary-card">
+      <span class="card-label">Total EMI / month</span>
+      <strong class="card-value">{{ formatCurrency(totalMonthlyEmi) }}</strong>
+      <span class="card-subtext danger">
+        <span class="dot-indicator danger"></span>
+        Next due {{ nextDueDateText }}
+      </span>
+    </section>
+    <section class="summary-card">
+      <span class="card-label">Total repaid</span>
+      <strong class="card-value">{{ formatCompactCurrency(totalRepaid) }}</strong>
+      <span class="card-subtext success">
+        <span class="dot-indicator success"></span>
+        {{ repaymentCompletion }}% complete
+      </span>
+    </section>
+    <section class="summary-card">
+      <span class="card-label">Interest this year</span>
+      <strong class="card-value">{{ formatCompactCurrency(totalInterestThisYear) }}</strong>
+<span class="card-subtext danger">Tax deductible: {{ formatCompactCurrency(totalInterestThisYear / 2) }}</span>
+    </section>
   </div>
 
   <div class="loan-toolbar">
-    <mat-form-field appearance="outline" class="search-field">
-      <mat-label>Search loans</mat-label>
+    <div class="filter-tabs" aria-label="Loan filters">
+      <button type="button" [class.active]="loanStatusFilter === 'all'" (click)="setLoanStatusFilter('all')">All loans</button>
+      <button type="button" [class.active]="loanStatusFilter === 'active'" (click)="setLoanStatusFilter('active')">Active</button>
+      <button type="button" [class.active]="loanStatusFilter === 'pending'" (click)="setLoanStatusFilter('pending')">Under review</button>
+      <button type="button" [class.active]="loanStatusFilter === 'closed'" (click)="setLoanStatusFilter('closed')">Closed</button>
+    </div>
+
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
       <input
-        matInput
-        placeholder="Loan number, customer, amount, or status"
+        type="search"
+        placeholder="Search loans..."
         [(ngModel)]="loanSearch"
         (ngModelChange)="onSearchChange($event)"
       />
       <button
-        mat-icon-button
-        matSuffix
+        type="button"
         *ngIf="loanSearch"
         aria-label="Clear search"
         (click)="clearSearch()"
       >
         <mat-icon>close</mat-icon>
-      </button>
-    </mat-form-field>
-
-    <div class="toolbar-actions">
-      <button mat-icon-button class="toolbar-icon refresh-action" (click)="load()" [disabled]="isBusy" aria-label="Refresh loans">
-        <mat-icon>refresh</mat-icon>
       </button>
     </div>
   </div>
@@ -475,7 +510,7 @@
           <div class="preview-heading">
             <h3>EMI Schedule Preview</h3>
             <div class="preview-totals">
-              <span>Monthly EMI <strong>INR {{ emiPreview[0]?.emiAmount || 0 | number:'1.2-2' }}</strong></span>
+              <span>Monthly EMI <strong>INR {{ (emiPreview.length ? emiPreview[0].emiAmount : 0) | number:'1.2-2' }}</strong></span>
               <span>Total Interest <strong>INR {{ previewTotalInterest | number:'1.2-2' }}</strong></span>
               <span>Total Payable <strong>INR {{ previewTotalPayable | number:'1.2-2' }}</strong></span>
             </div>
@@ -548,7 +583,7 @@
               <p><span>Amount</span><strong>INR {{ current.loanAmount | number:'1.2-2' }}</strong></p>
               <p><span>Interest</span><strong>{{ current.rate }}% {{ current.interestCalculationType }}</strong></p>
               <p><span>Tenure</span><strong>{{ tenureYears }} years</strong></p>
-              <p><span>EMI</span><strong>INR {{ emiPreview[0]?.emiAmount || 0 | number:'1.2-2' }}</strong></p>
+              <p><span>EMI</span><strong>INR {{ (emiPreview.length ? emiPreview[0].emiAmount : 0) | number:'1.2-2' }}</strong></p>
             </section>
           </div>
           <div class="wizard-actions">
@@ -569,98 +604,98 @@
     </mat-stepper>
   </div>
 
-  <div class="loan-table-wrap">
-    <table class="loan-table">
-      <thead>
-        <tr>
-          <th>Loan</th>
-          <th>Customer</th>
-          <th>Amount</th>
-          <th>Tenure</th>
-          <th>EMI</th>
-          <!-- <th>Period</th> -->
-          <th>Status</th>
-          <th>Paid</th>
-          <th class="actions-col">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngIf="!pagedLoans.length">
-          <td colspan="8" class="empty-row">No loans found.</td>
-        </tr>
+  <div class="loan-grid" *ngIf="!editing && pagedLoans.length > 0">
+    <div class="loan-card" *ngFor="let loan of pagedLoans" (click)="openLoanDetails(loan)" tabindex="0" (keydown.enter)="openLoanDetails(loan)">
+      <div class="card-header">
+        <div class="icon-wrapper" [class]="getLoanTone(loan)">
+          <mat-icon>{{ getLoanIcon(loan) }}</mat-icon>
+        </div>
+        <div class="title-section">
+          <h2>{{ getLoanTitle(loan) }}</h2>
+          <p class="subtitle">{{ getLoanBank(loan) }} &middot; {{ loan.rate }}% p.a.</p>
+        </div>
+        <span class="status-badge" [class]="getLoanStatusTone(loan)">
+          {{ getLoanStatusLabel(loan) }}
+        </span>
+      </div>
 
-        <tr
-          *ngFor="let loan of pagedLoans"
-          class="clickable-row"
-          tabindex="0"
-          (click)="openLoanDetails(loan)"
-          (keydown.enter)="openLoanDetails(loan)"
-          [attr.aria-label]="'View details for loan ' + loan.loanNumber"
-        >
-          <td>
-            <strong>{{ loan.loanNumber }}</strong>
-          </td>
-          <td>{{ loan.userName || loan.userId || '-' }}</td>
-          <td>INR {{ loan.loanAmount | number:'1.2-2' }}</td>
-          <td>{{ loan.tenure ? loan.tenure / 12 : 0 }} years</td>
-          <td>INR {{ loanEMI(loan) | number:'1.2-2' }}</td>
-          <!-- <td>
-            <span>{{ getLoanStartDateText(loan) }}</span>
-            <span class="sub-text">{{ getLoanEndDateText(loan) }}</span>
-          </td> -->
-          <td>
-            <span class="status-pill" [ngClass]="getStatusClass(loan.status)">
-              {{ loan.status || 'Pending' }}
-            </span>
-          </td>
-          <td>
-            <div class="paid-cell">
-              <span>{{ getLoanPaidCount(loan) }}/{{ getLoanScheduleCount(loan) }}</span>
-              <div class="mini-progress">
-                <div class="mini-progress-fill" [style.width.%]="getLoanPaidProgress(loan)"></div>
-              </div>
-            </div>
-          </td>
-          <td class="actions-col">
-            <button
-              *ngIf="isPending(loan)"
-              mat-icon-button
-              color="primary"
-              (click)="$event.stopPropagation(); approve(loan)"
-              [disabled]="approvalActionLoanId !== null"
-              aria-label="Approve loan">
-              <mat-icon>check_circle</mat-icon>
-            </button>
-            <button
-              *ngIf="isPending(loan)"
-              mat-icon-button
-              color="warn"
-              (click)="$event.stopPropagation(); reject(loan)"
-              [disabled]="approvalActionLoanId !== null"
-              aria-label="Reject loan">
-              <mat-icon>cancel</mat-icon>
-            </button>
-            <button
-              *ngIf="loan.status !== 'Rejected'"
-              mat-icon-button
-              color="primary"
-              (click)="$event.stopPropagation(); startEdit(loan)"
-              [disabled]="isApproved(loan) || isBusy"
-              aria-label="Edit loan">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button
-              mat-icon-button
-              color="warn"
-              (click)="$event.stopPropagation(); remove(loan)"
-              [disabled]="isApproved(loan) || isBusy"
-              aria-label="Delete loan">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+      <div class="stats-row">
+        <div class="stat-col">
+          <span class="stat-label">Sanctioned</span>
+          <span class="stat-value">{{ formatCurrency(loan.loanAmount) }}</span>
+        </div>
+        <div class="stat-col">
+          <span class="stat-label">Outstanding</span>
+          <span class="stat-value text-danger">{{ formatCurrency(getLoanOutstanding(loan)) }}</span>
+        </div>
+        <div class="stat-col">
+          <span class="stat-label">Monthly EMI</span>
+          <span class="stat-value text-blue">{{ formatCurrency(loanEMI(loan)) }}</span>
+        </div>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-labels">
+          <span class="progress-title">Repayment progress</span>
+          <span class="progress-text">{{ getLoanPaidProgress(loan) }}% done &middot; {{ getMonthsRemaining(loan) }} months left</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" [class]="getLoanTone(loan)" [style.width.%]="getLoanPaidProgress(loan)"></div>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <span class="due-info">
+          <mat-icon class="clock-icon">schedule</mat-icon>
+          {{ getLoanDueSummary(loan) }}
+        </span>
+<button class="action-btn" *ngIf="isApproved(loan)" (click)="$event.stopPropagation(); openPayEmi()">
+          <span>Pay EMI</span>
+          <mat-icon>north_east</mat-icon>
+        </button>
+        <button class="action-btn text-only" *ngIf="!isApproved(loan)" (click)="$event.stopPropagation(); openLoanDetails(loan)">
+          <span>{{ isPending(loan) ? 'Review loan' : 'View details' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-grid" *ngIf="!editing && !pagedLoans.length">
+    <mat-icon class="empty-icon">payments</mat-icon>
+    <h3>No loans found</h3>
+    <p>Try refining your search or add a new loan application.</p>
+  </div>
+
+  <div class="transactions-section" *ngIf="!editing">
+    <div class="section-header">
+      <h2>Recent transactions</h2>
+      <button class="see-all-btn" (click)="openPayments()">
+        <span>See all</span>
+        <mat-icon>north_east</mat-icon>
+      </button>
+    </div>
+    
+    <div class="transactions-list" *ngIf="loanTransactions.length; else noLoanTransactions">
+      <div class="transaction-item" *ngFor="let tx of loanTransactions">
+        <div class="tx-icon-wrapper" [class]="tx.tone">
+          <mat-icon *ngIf="tx.title.toLowerCase().includes('home')">home</mat-icon>
+          <mat-icon *ngIf="tx.title.toLowerCase().includes('car')">directions_car</mat-icon>
+          <mat-icon *ngIf="tx.title.toLowerCase().includes('education')">school</mat-icon>
+          <mat-icon *ngIf="tx.title.toLowerCase().includes('personal')">person</mat-icon>
+          <mat-icon *ngIf="!tx.title.toLowerCase().includes('home') && !tx.title.toLowerCase().includes('car') && !tx.title.toLowerCase().includes('education') && !tx.title.toLowerCase().includes('personal')">receipt_long</mat-icon>
+        </div>
+        <div class="tx-details">
+          <h3>{{ tx.title }}</h3>
+          <p>{{ tx.subtitle }}</p>
+        </div>
+        <span class="tx-amount" [class.positive]="tx.positive" [class.negative]="!tx.positive">
+          {{ tx.positive ? '+' : '-' }}{{ formatCurrency(tx.amount) }}
+        </span>
+      </div>
+    </div>
+    <ng-template #noLoanTransactions>
+      <div class="empty-transactions">No loan payments found yet.</div>
+    </ng-template>
   </div>
 
   <div class="loan-pagination" *ngIf="filteredLoans.length > 0">
@@ -688,7 +723,7 @@
     <div class="detail-header">
       <div>
         <h2>{{ loan.loanNumber }} EMI Schedule</h2>
-        <p>{{ loan.userName || loan.userId || '-' }} · {{ paidScheduleCount }} of {{ selectedSchedules.length }} paid</p>
+        <p>{{ loan.userName || loan.userId || '-' }} &middot; {{ paidScheduleCount }} of {{ selectedSchedules.length }} paid</p>
       </div>
       <div class="progress-block">
         <span>{{ paidProgress }}%</span>
@@ -783,3 +818,4 @@
     </div>
   </div>
 </div>
+

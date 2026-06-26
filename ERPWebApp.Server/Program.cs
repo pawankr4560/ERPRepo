@@ -52,26 +52,14 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddEndpointsApiExplorer();
 
 // CORS
-var allowedOrigins = configuration
-    .GetSection("AllowedOrigins")
-    .Get<string[]>()
-    ?.Where(origin => !string.IsNullOrWhiteSpace(origin))
-    .Select(origin => origin.Trim().TrimEnd('/'))
-    .Distinct(StringComparer.OrdinalIgnoreCase)
-    .ToArray() ?? Array.Empty<string>();
-
-if (allowedOrigins.Length == 0)
-{
-    throw new InvalidOperationException("CORS configuration missing. Add at least one origin to 'AllowedOrigins' in appsettings.json.");
-}
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("EnableCORS", policy =>
     {
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.AllowAnyHeader()
+              .AllowAnyMethod()
+              .SetIsOriginAllowed(origin => true)
+              .AllowCredentials();
     });
 });
 

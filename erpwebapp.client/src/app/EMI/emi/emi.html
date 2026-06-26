@@ -1,87 +1,186 @@
-<div class="emi-container">
-  <div class="row">
-    <div class="left-panel">
-      <h2>EMI Calculator</h2>
+<div class="emi-shell">
+  <section class="calculator">
+    <aside class="control-panel">
+      <header class="calculator-header">
+        <div>
+          <h1>Loan calculator</h1>
+          <p>Adjust sliders to compute EMI instantly</p>
+        </div>
+      </header>
 
-      <div class="field">
-        <label>Loan Amount</label>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Enter loan amount</mat-label>
-          <input matInput [(ngModel)]="loanAmount" type="number" />
-          <span matPrefix>₹</span>
-        </mat-form-field>
+      <div class="panel-block">
+        <h2>Loan type</h2>
+        <div class="loan-type-grid">
+          <button
+            type="button"
+            *ngFor="let type of loanTypes"
+            [class.active]="selectedLoanType === type"
+            (click)="setLoanType(type)"
+          >
+            <span><mat-icon>{{ type === 'Car' ? 'directions_car' : type === 'Education' ? 'school' : type === 'Personal' ? 'person' : 'home' }}</mat-icon></span>
+            {{ type }}
+          </button>
+        </div>
       </div>
 
-      <div class="field">
-        <label>Interest Rate</label>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Enter interest rate</mat-label>
-          <input matInput [(ngModel)]="interestRate" type="number" step="0.01" />
-          <span matSuffix>%</span>
-        </mat-form-field>
-      </div>
+      <div class="panel-block">
+        <h2>Loan details</h2>
 
-      <div class="field">
-        <label>Interest Method</label>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-select [(ngModel)]="interestCalculationType">
+        <label class="slider-field">
+          <span>Loan amount</span>
+          <strong>₹{{ formatCompactCurrency(loanAmount) }}</strong>
+          <input
+            type="range"
+            min="50000"
+            max="10000000"
+            step="50000"
+            [(ngModel)]="loanAmount"
+            (ngModelChange)="calculateEMI()"
+          />
+          <small><span>₹50K</span><span>₹1Cr</span></small>
+        </label>
+
+        <label class="slider-field">
+          <span>Interest rate (p.a.)</span>
+          <strong>{{ interestRate }}%</strong>
+          <input
+            type="range"
+            min="5"
+            max="24"
+            step="0.1"
+            [(ngModel)]="interestRate"
+            (ngModelChange)="calculateEMI()"
+          />
+          <small><span>5%</span><span>24%</span></small>
+        </label>
+
+        <label class="slider-field">
+          <span>Loan tenure</span>
+          <strong>{{ tenure }} yrs</strong>
+          <input
+            type="range"
+            min="1"
+            max="30"
+            step="1"
+            [(ngModel)]="tenure"
+            (ngModelChange)="calculateEMI()"
+          />
+          <small><span>1 yr</span><span>30 yrs</span></small>
+        </label>
+
+        <label class="slider-field">
+          <span>Processing fee</span>
+          <strong>{{ processingFeeRate }}%</strong>
+          <input
+            type="range"
+            min="0"
+            max="3"
+            step="0.1"
+            [(ngModel)]="processingFeeRate"
+          />
+          <small><span>0%</span><span>3%</span></small>
+        </label>
+
+        <mat-form-field appearance="outline" class="method-field">
+          <mat-label>Interest method</mat-label>
+          <mat-select [(ngModel)]="interestCalculationType" (ngModelChange)="calculateEMI()">
             <mat-option value="Reducing">Reducing Balance</mat-option>
             <mat-option value="Flat">Flat Rate</mat-option>
           </mat-select>
         </mat-form-field>
+
+        <div class="control-actions">
+          <button type="button">Compare banks <mat-icon>north_east</mat-icon></button>
+          <button type="button">Prepay savings <mat-icon>north_east</mat-icon></button>
+        </div>
+        <button type="button" class="apply-wide">Apply for this loan <mat-icon>north_east</mat-icon></button>
+      </div>
+    </aside>
+
+    <main class="result-panel">
+      <header class="top-actions">
+        <button type="button"><mat-icon>ios_share</mat-icon> Share</button>
+        <button type="button">Apply now <mat-icon>north_east</mat-icon></button>
+      </header>
+
+      <section class="hero-card">
+        <div>
+          <span>Monthly EMI</span>
+          <strong>₹{{ formatCurrency(emi) }}</strong>
+          <p>for {{ tenure * 12 }} months</p>
+        </div>
+        <div class="bubble red">
+          <span>Total interest</span>
+          <strong>₹{{ formatCompactCurrency(totalInterest) }}</strong>
+        </div>
+        <div class="bubble green">
+          <span>Total payable</span>
+          <strong>₹{{ formatCompactCurrency(totalPayable) }}</strong>
+        </div>
+        <div class="bubble blue">
+          <span>Processing fee</span>
+          <strong>₹{{ formatCurrency(processingFee) }}</strong>
+        </div>
+      </section>
+
+      <div class="insight-grid">
+        <section class="breakdown-card">
+          <div
+            class="donut"
+            [style.background]="'conic-gradient(#1f7bd8 0 ' + principalPercentage + '%, #ef5350 ' + principalPercentage + '% ' + (principalPercentage + interestPercentage) + '%, #a78bfa ' + (principalPercentage + interestPercentage) + '% 100%)'"
+          >
+            <span>{{ principalPercentage }}%<small>principal</small></span>
+          </div>
+          <div class="legend">
+            <p><i class="blue-dot"></i>Principal <strong>₹{{ formatCompactCurrency(loanAmount) }}</strong></p>
+            <p><i class="red-dot"></i>Interest <strong>₹{{ formatCompactCurrency(totalInterest) }}</strong></p>
+            <p><i class="violet-dot"></i>Fees <strong>₹{{ formatCurrency(processingFee) }}</strong></p>
+          </div>
+        </section>
+
+        <section class="year-card">
+          <h2>Year-wise interest outflow</h2>
+          <div class="year-row" *ngFor="let row of yearlyInterestRows">
+            <span>Yr {{ row.year }}</span>
+            <i><b [style.width.%]="row.progress"></b></i>
+            <strong>₹{{ formatCurrency(row.interest) }}</strong>
+          </div>
+        </section>
       </div>
 
-      <div class="field">
-        <label>Years to Pay</label>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Enter tenure in years</mat-label>
-          <input matInput [(ngModel)]="tenure" type="number" />
-        </mat-form-field>
-      </div>
-
-      <button mat-raised-button color="primary" (click)="calculateEMI()" class="calculate-btn">
-        CALCULATE
-      </button>
-
-      <div class="field" *ngIf="emi > 0">
-        <label>Monthly Payment</label>
-        <mat-form-field appearance="outline" class="full-width">
-          <input matInput [value]="'₹' + formatCurrency(emi)" readonly />
-          <span matSuffix>%</span>
-        </mat-form-field>
-      </div>
-    </div>
-
-    <div class="right-panel">
-      <div class="emi-card" *ngIf="emi > 0">
-        <h3>Monthly Home Loan EMI</h3>
-
-        <div class="emi-amount">
-          ₹{{ formatCurrency(emi) }}
+      <section class="schedule-card">
+        <div class="schedule-header">
+          <h2>Amortization schedule</h2>
+          <div class="segmented">
+            <button type="button" [class.active]="scheduleView === 'Monthly'" (click)="setScheduleView('Monthly')">Monthly</button>
+            <button type="button" [class.active]="scheduleView === 'Yearly'" (click)="setScheduleView('Yearly')">Yearly</button>
+          </div>
         </div>
 
-        <div class="summary-row">
-          <span>Principal Amount</span>
-          <strong>₹{{ formatCurrency(loanAmount) }}</strong>
-        </div>
-
-        <div class="summary-row">
-          <span>Interest Amount</span>
-          <strong>₹{{ formatCurrency(totalInterest) }}</strong>
-        </div>
-
-        <div class="summary-row">
-          <span>Total Amount Payable</span>
-          <strong>₹{{ formatCurrency(totalPayable) }}</strong>
-        </div>
-
-        <button
-          mat-raised-button
-          color="primary"
-          class="loan-btn">
-          Talk To Our Loan Expert
-        </button>
-      </div>
-    </div>
-  </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>EMI</th>
+              <th>Principal</th>
+              <th>Interest</th>
+              <th>Balance</th>
+              <th>Progress</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of amortizationRows">
+              <td>{{ row.month }}</td>
+              <td>₹{{ formatCurrency(row.emi) }}</td>
+              <td class="blue-text">₹{{ formatCurrency(row.principal) }}</td>
+              <td class="red-text">₹{{ formatCurrency(row.interest) }}</td>
+              <td>₹{{ formatCurrency(row.balance) }}</td>
+              <td><span class="mini-bar"><b [style.width.%]="row.progress"></b></span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="more-note">... {{ tenure * 12 - amortizationRows.length }} more EMIs</p>
+      </section>
+    </main>
+  </section>
 </div>

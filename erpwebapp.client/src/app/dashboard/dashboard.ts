@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -8,6 +9,7 @@ import { Router } from '@angular/router';
 import { finalize, Subject, takeUntil } from 'rxjs';
 
 import {
+  DashboardActiveLoan,
   DashboardInstallment,
   DashboardPayment,
   DashboardService,
@@ -19,6 +21,7 @@ import {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
@@ -30,6 +33,13 @@ import {
 export class Dashboard implements OnInit, OnDestroy {
   summary: LoanDashboardSummary = this.emptySummary();
   isLoading = false;
+  selectedTheme: 'dark' | 'light' | 'classic' = 'dark';
+
+  // Interactive Loan Calculator State
+  loanAmount: number = 1390000;
+  interestRate: number = 18.0;
+  tenureMonths: number = 186;
+  processingFee: number = 5000;
 
   private readonly destroy$ = new Subject<void>();
 
@@ -40,6 +50,11 @@ export class Dashboard implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    const savedTheme = localStorage.getItem('dashboardTheme') as 'dark' | 'light' | 'classic' | null;
+    if (savedTheme === 'dark' || savedTheme === 'light' || savedTheme === 'classic') {
+      this.selectedTheme = savedTheme;
+    }
+
     this.refresh();
   }
 
@@ -48,6 +63,87 @@ export class Dashboard implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  // Current Date formatted as: "Friday, 27 June 2026"
+  get formattedDate(): string {
+    const d = new Date();
+    const weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+    const day = d.getDate();
+    const month = d.toLocaleDateString('en-US', { month: 'long' });
+    const year = d.getFullYear();
+    return `${weekday}, ${day} ${month} ${year}`;
+  }
+
+  // Interactive Loan Calculator Getters
+  get calculatedMonthlyEmi(): number {
+    const P = this.loanAmount;
+    const r = (this.interestRate / 100) / 12;
+    const N = this.tenureMonths;
+    if (r === 0) return Math.round(P / N);
+    const emi = P * r * Math.pow(1 + r, N) / (Math.pow(1 + r, N) - 1);
+    return Math.round(emi);
+  }
+
+  get calculatedTotalPayable(): number {
+    // Run simulation to get exact total payable including last month's adjustment
+    return this.runAmortizationSimulation().totalPayable;
+  }
+
+  get calculatedTotalInterest(): number {
+    return this.runAmortizationSimulation().totalInterest;
+  }
+
+  get calculatedAmortizationSchedule(): any[] {
+    return this.runAmortizationSimulation().schedule.slice(0, 5);
+  }
+
+  private runAmortizationSimulation() {
+    const P = this.loanAmount;
+    const r = (this.interestRate / 100) / 12;
+    const N = this.tenureMonths;
+    const emi = this.calculatedMonthlyEmi;
+
+    let balance = P;
+    let totalInterestPaid = 0;
+    let totalPayableAmount = 0;
+    const schedule = [];
+
+    for (let i = 1; i <= N; i++) {
+      const interest = Math.round(balance * r);
+      let principal = emi - interest;
+
+      if (i === N || balance - principal < 0) {
+        principal = balance;
+        const lastEmi = principal + interest;
+        totalInterestPaid += interest;
+        totalPayableAmount += lastEmi;
+        schedule.push({
+          emiNumber: i,
+          principal: Math.round(principal),
+          interest: Math.round(interest),
+          balance: 0
+        });
+        break;
+      }
+
+      balance -= principal;
+      totalInterestPaid += interest;
+      totalPayableAmount += emi;
+      schedule.push({
+        emiNumber: i,
+        principal: Math.round(principal),
+        interest: Math.round(interest),
+        balance: Math.round(balance)
+      });
+    }
+
+    return {
+      totalInterest: totalInterestPaid,
+      totalPayable: totalPayableAmount,
+      schedule
+    };
+  }
+
+  // Fallbacks or properties mapping from Backend summary
   get totalPortfolio(): number {
     return this.summary.totalPortfolio;
   }
@@ -92,6 +188,49 @@ export class Dashboard implements OnInit, OnDestroy {
     return this.summary.recentPayments;
   }
 
+  get activeLoanSummaries(): DashboardActiveLoan[] {
+    return this.summary.activeLoanSummaries;
+  }
+
+  get nextEmiDue(): DashboardInstallment | undefined {
+    return this.upcomingInstallments[0];
+  }
+
+  get nextEmiAmount(): number {
+    return this.nextEmiDue?.emiAmount ?? 0;
+  }
+
+  get nextEmiDueText(): string {
+    if (!this.nextEmiDue) {
+      return 'No upcoming dues';
+    }
+
+    const dueDate = new Date(this.nextEmiDue.dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    const days = Math.ceil((dueDate.getTime() - today.getTime()) / 86400000);
+
+    if (days < 0) return `${Math.abs(days)} days overdue`;
+    if (days === 0) return 'Due today';
+    if (days === 1) return 'Due tomorrow';
+    return `in ${days} days`;
+  }
+
+  get interestPaidThisYear(): number {
+    return this.summary.recentPayments
+      .filter((payment) => new Date(payment.paymentDate).getFullYear() === new Date().getFullYear())
+      .reduce((total, payment) => total + payment.amountPaid, 0);
+  }
+
+  get creditScore(): number {
+    return this.summary.creditScore || 0;
+  }
+
+  get creditScoreChange(): number {
+    return this.summary.creditScoreChange || 0;
+  }
+
   get loanStatusBreakdown() {
     const statuses = [
       { label: 'Active', value: this.activeLoans, color: '#2563eb' },
@@ -133,6 +272,26 @@ export class Dashboard implements OnInit, OnDestroy {
       });
   }
 
+  setTheme(theme: 'dark' | 'light' | 'classic'): void {
+    this.selectedTheme = theme;
+    localStorage.setItem('dashboardTheme', theme);
+  }
+
+  cycleTheme(): void {
+    const nextTheme =
+      this.selectedTheme === 'dark'
+        ? 'light'
+        : this.selectedTheme === 'light'
+          ? 'classic'
+          : 'dark';
+
+    this.setTheme(nextTheme);
+  }
+
+  get themeLabel(): string {
+    return `${this.selectedTheme[0].toUpperCase()}${this.selectedTheme.slice(1)}`;
+  }
+
   createUser(): void {
     this.router.navigate(['/auth/signup']);
   }
@@ -151,6 +310,34 @@ export class Dashboard implements OnInit, OnDestroy {
     return `status-${(status || 'pending').toLowerCase()}`;
   }
 
+  activeLoanIcon(loan: DashboardActiveLoan): string {
+    const text = `${loan.loanNumber} ${loan.customerName}`.toLowerCase();
+    if (text.includes('home')) return 'home';
+    if (text.includes('car') || text.includes('vehicle')) return 'directions_car';
+    if (text.includes('education') || text.includes('study')) return 'school';
+    if (text.includes('personal')) return 'person';
+    return 'account_balance';
+  }
+
+  activeLoanTone(index: number): string {
+    return ['bg-blue', 'bg-green', 'bg-purple'][index % 3];
+  }
+
+  activeLoanProgressTone(index: number): string {
+    return ['bg-blue', 'bg-orange', 'bg-blue'][index % 3];
+  }
+
+  formatDate(value: string): string {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? '-'
+      : date.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        });
+  }
+
   private emptySummary(): LoanDashboardSummary {
     return {
       totalPortfolio: 0,
@@ -166,8 +353,15 @@ export class Dashboard implements OnInit, OnDestroy {
       collectionRate: 0,
       queryDurationMs: 0,
       generatedAtUtc: '',
+      creditScore: 0,
+      creditScoreChange: 0,
+      creditUtilization: 0,
+      averageLoanAgeYears: 0,
+      hardInquiries: 0,
+      paymentHistoryRating: 'No history',
       upcomingInstallments: [],
       recentPayments: [],
+      activeLoanSummaries: [],
     };
   }
 }

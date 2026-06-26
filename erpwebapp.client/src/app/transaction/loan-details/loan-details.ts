@@ -1,29 +1,35 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
+import { finalize } from 'rxjs';
+import { ConfirmDialogComponent } from '../../users/confirm-dialog-component/confirm-dialog-component';
 import { Loan, LoanEMISchedule, LoanService } from '../services/loan-service';
 
 @Component({
   selector: 'app-loan-details',
   standalone: true,
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule],
+  imports: [CommonModule, MatButtonModule, MatDialogModule, MatIconModule, MatProgressSpinnerModule, MatSnackBarModule],
   templateUrl: './loan-details.html',
   styleUrls: ['./loan-details.css'],
 })
 export class LoanDetailsComponent implements OnInit {
   loan?: Loan;
   isLoading = true;
+  isReviewActionBusy = false;
   loadError = '';
+  private loanId = 0;
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private loanService: LoanService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
@@ -34,7 +40,15 @@ export class LoanDetailsComponent implements OnInit {
       return;
     }
 
-    this.loanService.getLoanById(id).subscribe({
+    this.loanId = id;
+    this.loadLoan();
+  }
+
+  private loadLoan(): void {
+    this.isLoading = true;
+    this.loadError = '';
+
+    this.loanService.getLoanById(this.loanId).subscribe({
       next: (loan) => {
         this.loan = loan;
         this.isLoading = false;
@@ -70,8 +84,86 @@ export class LoanDetailsComponent implements OnInit {
     return `status-${(status ?? 'Pending').toLowerCase()}`;
   }
 
+  getStatusLabel(status: string | undefined): string {
+    const value = status || 'Pending';
+    return value.toLowerCase() === 'pending' ? 'Under review' : value;
+  }
+
+  get isPendingReview(): boolean {
+    const status = (this.loan?.status ?? 'Pending').toLowerCase();
+    return status === 'pending' || status === 'under review';
+  }
+
   backToLoans(): void {
     this.router.navigate(['/home/inventory/transactions']);
+  }
+
+  approve(): void {
+    if (!this.loan?.id || !this.isPendingReview || this.isReviewActionBusy) {
+      return;
+    }
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: 'Approve Loan',
+        message: `Approve ${this.loan.loanNumber}? This will activate the loan and generate its EMI schedule.`,
+        confirmText: 'Approve',
+        icon: 'check_circle',
+        confirmColor: 'primary',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (!confirmed || !this.loan?.id) {
+        return;
+      }
+
+      this.isReviewActionBusy = true;
+      this.loanService.approveLoan(this.loan.id)
+        .pipe(finalize(() => (this.isReviewActionBusy = false)))
+        .subscribe({
+          next: (response) => {
+            this.snackBar.open(response?.message || 'Loan approved successfully.', 'Close', { duration: 3000 });
+            this.loadLoan();
+          },
+          error: () => this.snackBar.open('Unable to approve loan.', 'Close', { duration: 5000 }),
+        });
+    });
+  }
+
+  reject(): void {
+    if (!this.loan?.id || !this.isPendingReview || this.isReviewActionBusy) {
+      return;
+    }
+
+    const dialogRef = this.dialog.open(ConfirmDialogComponent, {
+      width: '420px',
+      data: {
+        title: 'Reject Loan',
+        message: `Reject ${this.loan.loanNumber}? The loan will remain inactive and no EMI schedule will be created.`,
+        confirmText: 'Reject',
+        icon: 'cancel',
+        confirmColor: 'warn',
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (!confirmed || !this.loan?.id) {
+        return;
+      }
+
+      this.isReviewActionBusy = true;
+      this.loanService.rejectLoan(this.loan.id)
+        .pipe(finalize(() => (this.isReviewActionBusy = false)))
+        .subscribe({
+          next: (response) => {
+            this.snackBar.open(response?.message || 'Loan rejected successfully.', 'Close', { duration: 3000 });
+            this.loadLoan();
+          },
+          error: () => this.snackBar.open('Unable to reject loan.', 'Close', { duration: 5000 }),
+        });
+    });
   }
 
   print(): void {

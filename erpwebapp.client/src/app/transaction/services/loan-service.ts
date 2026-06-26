@@ -103,11 +103,11 @@ export class LoanService {
     return this.api
       .get<any[]>('Loan')
       .pipe(
-        map((res) => {
-          const items = res ?? [];
+        map((res: any) => {
+          const items = res?.data ?? res ?? [];
           // API may return null/undefined entries; filter them out safely.
           return items
-            .filter((x) => x != null)
+            .filter((x: any) => x != null)
             .map((loan: any) => this.normalizeLoan(loan));
         }),
         tap((loans) => {
@@ -119,7 +119,7 @@ export class LoanService {
   getLoanById(id: number) {
     return this.api
       .get<any>(`Loan/${id}`)
-      .pipe(map((loan) => this.normalizeLoan(loan)));
+      .pipe(map((response) => this.normalizeLoan(response?.data ?? response)));
   }
 
   createLoan(loan: Loan) {
@@ -181,7 +181,7 @@ export class LoanService {
       .get<any[]>(
         `loan-number/${encodeURIComponent(loanNumber)}`
       )
-      .pipe(map((response) => this.normalizeSchedules(response)));
+      .pipe(map((response: any) => this.normalizeSchedules(response?.data ?? response)));
   }
 
   private toLoanPayload(loan: Loan) {

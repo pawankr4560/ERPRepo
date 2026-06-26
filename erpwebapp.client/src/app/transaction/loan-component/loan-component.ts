@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -26,8 +26,9 @@ import {
   InterestCalculationType,
   InterestSettingService,
 } from '../../setting/interest-setting.service';
-import { finalize } from 'rxjs';
+import { catchError, finalize, map, of, switchMap } from 'rxjs';
 import { ToastService } from '../../shared/services/toast.service';
+import { LoanPaymentService } from '../services/loan-payment-service';
 
 interface EmiPreviewRow {
   installmentNo: number;
@@ -62,6 +63,7 @@ interface EmiPreviewRow {
 export class LoanComponent implements OnInit {
   loans: Loan[] = [];
   loanSearch = '';
+  loanStatusFilter: 'all' | 'active' | 'pending' | 'closed' = 'all';
   pageIndex = 0;
   pageSize = 10;
 
@@ -174,7 +176,8 @@ export class LoanComponent implements OnInit {
     private interestSettingService: InterestSettingService,
     private snackBar: MatSnackBar,
     private router: Router,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private loanPaymentService: LoanPaymentService
   ) {}
 
   ngOnInit(): void {
@@ -195,19 +198,67 @@ export class LoanComponent implements OnInit {
   load() {
     this.isLoading = true;
     this.loanService.loadLoans()
-      .pipe(finalize(() => (this.isLoading = false)))
+      .pipe(
+        switchMap((loans) => this.bindLoanDetails(loans)),
+        finalize(() => (this.isLoading = false))
+      )
       .subscribe({
+        next: (loans) => {
+          this.loans = loans;
+        },
         error: (error) => this.showApiError('Unable to load loans.', error),
       });
   }
 
-  get filteredLoans(): Loan[] {
-    const query = this.loanSearch?.trim().toLowerCase();
-    if (!query) {
-      return this.loans;
+  private bindLoanDetails(loans: Loan[]) {
+    if (!loans.length) {
+      return of([]);
     }
 
+    return this.loanPaymentService.loadPayments().pipe(
+      catchError(() => of([] as LoanPayment[])),
+      map((payments) =>
+        loans.map((loan) => ({
+          ...loan,
+          emiSchedules: loan.emiSchedules ?? [],
+          payments: this.getPaymentsForLoan(loan, payments),
+        }))
+      )
+    );
+  }
+
+  private getPaymentsForLoan(loan: Loan, apiPayments: LoanPayment[]): LoanPayment[] {
+    const existing = loan.payments ?? [];
+    const matching = loan.id == null
+      ? []
+      : apiPayments.filter((payment) => Number(payment.loanId) === Number(loan.id));
+
+    const byKey = new Map<string, LoanPayment>();
+    [...existing, ...matching].forEach((payment) => {
+      const key = payment.id != null
+        ? `id-${payment.id}`
+        : `${payment.loanId}-${payment.scheduleId}-${payment.paymentDate}-${payment.amountPaid}`;
+      byKey.set(key, payment);
+    });
+
+    return [...byKey.values()].sort(
+      (a, b) =>
+        (this.parseBusinessDate(b.paymentDate)?.getTime() ?? 0) -
+        (this.parseBusinessDate(a.paymentDate)?.getTime() ?? 0)
+    );
+  }
+
+  get filteredLoans(): Loan[] {
+    const query = this.loanSearch?.trim().toLowerCase();
     return this.loans.filter((loan) => {
+      if (!this.matchesLoanStatusFilter(loan)) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
       const loanNumber = loan.loanNumber?.toString().toLowerCase() ?? '';
       const userName = loan.userName?.toString().toLowerCase() ?? '';
       const amount = loan.loanAmount?.toString().toLowerCase() ?? '';
@@ -223,6 +274,11 @@ export class LoanComponent implements OnInit {
         endDate.includes(query)
       );
     });
+  }
+
+  setLoanStatusFilter(filter: 'all' | 'active' | 'pending' | 'closed'): void {
+    this.loanStatusFilter = filter;
+    this.pageIndex = 0;
   }
 
   get pageCount(): number {
@@ -269,6 +325,14 @@ export class LoanComponent implements OnInit {
     this.router.navigate(['/home/inventory/transactions', loan.id]);
   }
 
+  openPayEmi(): void {
+    this.router.navigate(['/home/pay-emi']);
+  }
+
+  openPayments(): void {
+    this.openPayEmi();
+  }
+
   get selectedLoanCount(): number {
     return this.loans.filter((loan) => loan.isSelected).length;
   }
@@ -288,6 +352,57 @@ export class LoanComponent implements OnInit {
       (a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()
     );
   }
+
+  get activeLoanCount(): number {
+    return this.loans.filter((loan) => this.isApproved(loan)).length;
+  }
+
+  get activeLoans(): Loan[] {
+    return this.loans.filter((loan) => this.isApproved(loan));
+  }
+
+  get totalOutstanding(): number {
+    return this.loans.reduce((total, loan) => total + this.getLoanOutstanding(loan), 0);
+  }
+
+  get totalMonthlyEmi(): number {
+    return this.activeLoans.reduce((total, loan) => total + this.loanEMI(loan), 0);
+  }
+
+  get totalRepaid(): number {
+    return this.loans.reduce((total, loan) => total + this.getLoanRepaidAmount(loan), 0);
+  }
+
+  get totalInterestThisYear(): number {
+    const currentYear = new Date().getFullYear();
+    return this.loans.reduce((total, loan) => {
+      const loanInterest = (loan.emiSchedules ?? [])
+        .filter((schedule) => {
+          const date = this.parseBusinessDate(schedule.paidDate ?? schedule.dueDate);
+          return date?.getFullYear() === currentYear;
+        })
+        .reduce((sum, schedule) => sum + Number(schedule.interestAmount ?? 0), 0);
+      return total + loanInterest;
+    }, 0);
+  }
+
+  get nextDueDateText(): string {
+    const nextDue = this.activeLoans
+      .map((loan) => this.getNextUnpaidSchedule(loan)?.dueDate)
+      .filter((date): date is string => !!date)
+      .map((date) => this.parseBusinessDate(date))
+      .filter((date): date is Date => !!date)
+      .sort((a, b) => a.getTime() - b.getTime())[0];
+
+    return nextDue ? this.formatShortDate(nextDue.toISOString()) : 'No dues';
+  }
+
+  get repaymentCompletion(): number {
+    const total = this.loans.reduce((sum, loan) => sum + this.getLoanScheduleCount(loan), 0);
+    const paid = this.loans.reduce((sum, loan) => sum + this.getLoanPaidCount(loan), 0);
+    return total ? Math.round((paid / total) * 100) : 0;
+  }
+
 
   get paidScheduleCount(): number {
     return this.selectedSchedules.filter((schedule) => schedule.isPaid).length;
@@ -310,6 +425,230 @@ export class LoanComponent implements OnInit {
   getLoanPaidProgress(loan: Loan): number {
     const total = this.getLoanScheduleCount(loan);
     return total ? Math.round((this.getLoanPaidCount(loan) / total) * 100) : 0;
+  }
+
+  getLoanOutstanding(loan: Loan): number {
+    const nextSchedule = this.getNextUnpaidSchedule(loan);
+    if (nextSchedule) {
+      return Number(nextSchedule.outstandingBalance ?? loan.loanAmount ?? 0);
+    }
+
+    const repaidPrincipal = (loan.emiSchedules ?? [])
+      .filter((schedule) => schedule.isPaid)
+      .reduce((total, schedule) => total + Number(schedule.principalAmount ?? 0), 0);
+    return Math.max(0, Number(loan.loanAmount ?? 0) - repaidPrincipal);
+  }
+
+  getLoanRepaidAmount(loan: Loan): number {
+    const paymentTotal = (loan.payments ?? []).reduce(
+      (total, payment) => total + Number(payment.amountPaid ?? 0),
+      0
+    );
+    if (paymentTotal > 0) {
+      return paymentTotal;
+    }
+
+    return (loan.emiSchedules ?? [])
+      .filter((schedule) => schedule.isPaid)
+      .reduce((total, schedule) => total + Number(schedule.emiAmount ?? 0), 0);
+  }
+
+  getNextUnpaidSchedule(loan: Loan): LoanEMISchedule | undefined {
+    return [...(loan.emiSchedules ?? [])]
+      .filter((schedule) => !schedule.isPaid)
+      .sort(
+        (a, b) =>
+          (this.parseBusinessDate(a.dueDate)?.getTime() ?? 0) -
+          (this.parseBusinessDate(b.dueDate)?.getTime() ?? 0)
+      )[0];
+  }
+
+  getLoanTitle(loan: Loan): string {
+    const name = loan.loanNumber || loan.userName || 'Loan';
+    const normalized = name.toLowerCase();
+    if (normalized.includes('home')) {
+      return 'Home loan';
+    }
+    if (normalized.includes('car') || normalized.includes('vehicle')) {
+      return 'Car loan';
+    }
+    if (normalized.includes('education') || normalized.includes('study')) {
+      return 'Education loan';
+    }
+    if (normalized.includes('personal')) {
+      return 'Personal loan';
+    }
+    return loan.userName ? `${loan.userName} loan` : 'Loan';
+  }
+
+  getLoanBank(loan: Loan): string {
+    return loan.userName || loan.loanNumber || 'Loan account';
+  }
+
+  getLoanBankShort(loan: Loan): string {
+    return loan.userName || loan.loanNumber || 'Loan';
+  }
+
+  getLoanIcon(loan: Loan): string {
+    const title = this.getLoanTitle(loan).toLowerCase();
+    if (title.includes('home')) {
+      return 'home';
+    }
+    if (title.includes('car')) {
+      return 'directions_car';
+    }
+    if (title.includes('education')) {
+      return 'school';
+    }
+    if (title.includes('personal')) {
+      return 'person';
+    }
+    return 'payments';
+  }
+
+  getMonthsRemaining(loan: Loan): number {
+    const total = loan.tenure ?? 0;
+    const paid = this.getLoanPaidCount(loan);
+    return Math.max(0, total - paid);
+  }
+
+  getLoanTone(loan: Loan): string {
+    const seed = `${loan.loanNumber || ''}${loan.userName || ''}`.toLowerCase();
+    if (seed.includes('home')) {
+      return 'sky';
+    }
+    if (seed.includes('car') || seed.includes('vehicle')) {
+      return 'green';
+    }
+    if (seed.includes('education') || seed.includes('study')) {
+      return 'violet';
+    }
+    if (seed.includes('personal')) {
+      return 'amber';
+    }
+    const tones = ['sky', 'green', 'violet', 'amber'];
+    return tones[Math.abs(seed.length) % tones.length];
+  }
+
+  getLoanStatusLabel(loan: Loan): string {
+    const status = loan.status || 'Pending';
+    return status.toLowerCase() === 'pending' ? 'Under review' : status;
+  }
+
+  getLoanStatusTone(loan: Loan): string {
+    const status = (loan.status ?? 'Pending').toLowerCase();
+    if (status === 'active') {
+      return 'active';
+    }
+    if (status === 'closed') {
+      return 'closed';
+    }
+    return 'review';
+  }
+
+  getLoanDueSummary(loan: Loan): string {
+    const nextSchedule = this.getNextUnpaidSchedule(loan);
+    if (!nextSchedule && !this.getLoanScheduleCount(loan)) {
+      return 'EMI schedule unavailable';
+    }
+
+    const amount = nextSchedule?.emiAmount ?? this.loanEMI(loan);
+    const date = nextSchedule?.dueDate ? this.formatShortDate(nextSchedule.dueDate) : this.nextDueDateText;
+    return `Next EMI ${this.formatCurrency(amount)} on ${date}`;
+  }
+
+  formatCurrency(value: number | null | undefined): string {
+    return `\u20b9${Number(value ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  }
+
+  formatCompactCurrency(value: number | null | undefined): string {
+    const amount = Number(value ?? 0);
+    if (amount >= 100000) {
+      return `\u20b9${(amount / 100000).toFixed(amount % 100000 === 0 ? 0 : 1)}L`;
+    }
+    return this.formatCurrency(amount);
+  }
+
+  formatShortDate(value: string | undefined): string {
+    const date = this.parseBusinessDate(value);
+    if (!date) {
+      return 'Not set';
+    }
+
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+    });
+  }
+
+  formatTxDate(value: string | undefined): string {
+    const date = this.parseBusinessDate(value);
+    if (!date) {
+      return 'Not set';
+    }
+
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
+
+  formatMonthName(value: string | undefined): string {
+    const date = this.parseBusinessDate(value);
+    if (!date) {
+      return 'Unknown';
+    }
+    return date.toLocaleDateString('en-US', { month: 'long' });
+  }
+
+  get loanTransactions(): Array<{
+    title: string;
+    subtitle: string;
+    amount: number;
+    positive: boolean;
+    tone: string;
+  }> {
+    const payments = this.loans.flatMap((loan) =>
+      (loan.payments ?? []).map((payment) => ({
+        title: `${this.getLoanTitle(loan)} EMI - ${this.formatMonthName(payment.paymentDate)}`,
+        subtitle: `${this.getLoanBankShort(loan)} | ${this.formatTxDate(payment.paymentDate)} | ${payment.paymentMode || payment.paymentStatus || 'Payment'}`,
+        amount: Number(payment.amountPaid ?? 0),
+        positive: false,
+        tone: this.getLoanTone(loan),
+        time: this.parseBusinessDate(payment.paymentDate)?.getTime() ?? 0,
+      }))
+    );
+
+    const scheduleFallback = this.loans.flatMap((loan) =>
+      (loan.emiSchedules ?? [])
+        .filter((schedule) => schedule.isPaid)
+        .map((schedule) => {
+          const txDate = schedule.paidDate ?? schedule.dueDate;
+          return {
+            title: `${this.getLoanTitle(loan)} EMI - ${this.formatMonthName(txDate)}`,
+            subtitle: `${this.getLoanBankShort(loan)} | ${this.formatTxDate(txDate)} | Schedule`,
+            amount: Number(schedule.emiAmount ?? this.loanEMI(loan)),
+            positive: false,
+            tone: this.getLoanTone(loan),
+            time: this.parseBusinessDate(txDate)?.getTime() ?? 0,
+          };
+        })
+    );
+
+    return (payments.length ? payments : scheduleFallback)
+      .sort((a, b) => b.time - a.time)
+      .slice(0, 4);
+  }
+  private matchesLoanStatusFilter(loan: Loan): boolean {
+    const status = (loan.status ?? 'Pending').toLowerCase();
+    if (this.loanStatusFilter === 'all') {
+      return true;
+    }
+    if (this.loanStatusFilter === 'pending') {
+      return status === 'pending' || status === 'under review';
+    }
+    return status === this.loanStatusFilter;
   }
 
   onLoanSelected(loan: Loan) {
@@ -425,7 +764,7 @@ export class LoanComponent implements OnInit {
             </div>
             <div class="print-meta">
               <div><strong>Customer</strong><span>${loan.userName ?? '-'}</span></div>
-              <div><strong>Loan Amount</strong><span>₹${loanAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+              <div><strong>Loan Amount</strong><span>&#8377;${loanAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
               <div><strong>Rate</strong><span>${rate.toFixed(2)}%</span></div>
               <div><strong>Tenure</strong><span>${tenureYears} years</span></div>
             </div>
@@ -445,7 +784,7 @@ export class LoanComponent implements OnInit {
                   (item) => `
                     <tr>
                       <td>${item.monthLabel}</td>
-                      <td>₹${item.emi.toFixed(2)}</td>
+                      <td>&#8377;${item.emi.toFixed(2)}</td>
                       <td>${item.dueDate}</td>
                     </tr>`
                 )
@@ -454,7 +793,7 @@ export class LoanComponent implements OnInit {
             <tfoot>
               <tr>
                 <td><strong>Total</strong></td>
-                <td><strong>₹${totalEMI.toFixed(2)}</strong></td>
+                <td><strong>&#8377;${totalEMI.toFixed(2)}</strong></td>
                 <td></td>
               </tr>
             </tfoot>
@@ -723,6 +1062,42 @@ export class LoanComponent implements OnInit {
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = 'loan-export.csv';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  downloadStatements(): void {
+    const header = [
+      'Loan',
+      'Customer',
+      'Status',
+      'Sanctioned',
+      'Outstanding',
+      'Monthly EMI',
+      'Rate',
+      'Paid Progress',
+    ];
+
+    const rows = this.filteredLoans.map((loan) => [
+      this.getLoanTitle(loan),
+      loan.userName ?? '',
+      this.getLoanStatusLabel(loan),
+      String(loan.loanAmount ?? 0),
+      String(this.getLoanOutstanding(loan)),
+      String(this.loanEMI(loan)),
+      String(loan.rate ?? 0),
+      `${this.getLoanPaidProgress(loan)}%`,
+    ]);
+
+    const csvContent = [header, ...rows]
+      .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
+      .join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'loan-statements.csv';
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -1327,4 +1702,5 @@ export class LoanDeleteConfirmDialog {
     this.dialogRef.close(false);
   }
 }
+
 

@@ -15,6 +15,14 @@
         <div><h1>{{ item.loanNumber }}</h1><p>{{ item.userName || item.userId || '-' }}</p></div>
       </div>
       <div class="export-actions">
+        <ng-container *ngIf="isPendingReview">
+          <button mat-stroked-button class="reject-button" type="button" (click)="reject()" [disabled]="isReviewActionBusy">
+            <mat-icon>cancel</mat-icon> Reject
+          </button>
+          <button mat-raised-button color="primary" type="button" (click)="approve()" [disabled]="isReviewActionBusy">
+            <mat-icon>check_circle</mat-icon> Approve
+          </button>
+        </ng-container>
         <button mat-stroked-button type="button" (click)="print()"><mat-icon>print</mat-icon> Print</button>
         <button mat-stroked-button class="pdf-button" type="button" (click)="exportPdf()"><mat-icon>picture_as_pdf</mat-icon> Export PDF</button>
         <button mat-stroked-button class="excel-button" type="button" (click)="exportExcel()"><mat-icon>table_chart</mat-icon> Export Excel</button>
@@ -28,7 +36,7 @@
       <div><span>Monthly EMI</span><strong>INR {{ item.emi || 0 | number:'1.2-2' }}</strong></div>
       <div><span>Start Date</span><strong>{{ item.startDate | date:'dd MMM yyyy' }}</strong></div>
       <div><span>End Date</span><strong>{{ item.endDate | date:'dd MMM yyyy' }}</strong></div>
-      <div><span>Status</span><strong class="status-pill" [ngClass]="getStatusClass(item.status)">{{ item.status || 'Pending' }}</strong></div>
+      <div><span>Status</span><strong class="status-pill" [ngClass]="getStatusClass(item.status)">{{ getStatusLabel(item.status) }}</strong></div>
       <div><span>Total Interest</span><strong>INR {{ totalInterest | number:'1.2-2' }}</strong></div>
     </section>
 

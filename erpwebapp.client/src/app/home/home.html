@@ -1,127 +1,146 @@
- <mat-sidenav-container class="layout-container">
+<mat-sidenav-container class="layout-container">
 
-  
+  <!-- Left Sidebar -->
   <mat-sidenav
     #drawer
     class="sidebar"
     [mode]="isMobile ? 'over' : 'side'"
     [opened]="!isMobile"
   >
-    <h3 class="logo">🎬 MyApp</h3>
+    <!-- Logo block -->
+    <div class="logo-container">
+      <div class="logo-icon">
+        <span class="logo-bar"></span>
+        <span class="logo-bar"></span>
+      </div>
+      <div class="logo-text">
+        <span class="brand-name">FinVault</span>
+        <span class="brand-sub">Loan Management</span>
+      </div>
+    </div>
 
-<mat-nav-list class="sidebar-menu">
+    <!-- Navigation Menu List -->
+    <div class="nav-wrapper">
+      <ng-template #menuTree let-items let-depth="depth">
+        <ng-container *ngFor="let menu of items">
+          <mat-expansion-panel
+            *ngIf="hasChildren(menu); else menuLink"
+            class="menu-expansion"
+            [class.nested-expansion]="depth > 0"
+            [expanded]="isParentActive(menu)"
+          >
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                <mat-icon>{{ getMenuIcon(menu) }}</mat-icon>
+                <span>{{ menu.title }}</span>
+              </mat-panel-title>
+            </mat-expansion-panel-header>
 
-  <ng-container
-    *ngTemplateOutlet="menuTemplate; context: { $implicit: menus }">
-  </ng-container>
+            <ng-container
+              *ngTemplateOutlet="menuTree; context: { $implicit: menu.children, depth: depth + 1 }"
+            ></ng-container>
+          </mat-expansion-panel>
 
-  <ng-template #menuTemplate let-items>
+          <ng-template #menuLink>
+            <a
+              mat-list-item
+              [routerLink]="getMenuPath(menu)"
+              routerLinkActive="active"
+              (click)="closeMobileMenu(drawer, $event)"
+              class="menu-item"
+              [class.child-menu-item]="depth > 0"
+            >
+              <mat-icon matListItemIcon>{{ getMenuIcon(menu) }}</mat-icon>
+              <span matListItemTitle>{{ menu.title }}</span>
+            </a>
+          </ng-template>
+        </ng-container>
+      </ng-template>
 
-  <ng-container *ngFor="let menu of items">
+      <div class="nav-section" *ngFor="let section of sidebarSections">
+        <div class="nav-section-title">{{ section.title | uppercase }}</div>
+        <mat-nav-list class="sidebar-menu">
+          <ng-container
+            *ngTemplateOutlet="menuTree; context: { $implicit: section.items, depth: 0 }"
+          ></ng-container>
+        </mat-nav-list>
+      </div>
 
-    <!-- LEAF MENU -->
-    <a
-      mat-list-item
-      *ngIf="menu.children.length === 0"
-      [routerLink]="getMenuPath(menu)"
-      routerLinkActive="active"
-      (click)="closeMobileMenu(drawer, $event)"
-    >
-      <mat-icon>{{ menu.iconClass }}</mat-icon>
-      <span>{{ menu.title }}</span>
-    </a>
+      <div class="menu-loading" *ngIf="isLoadingMenus">Loading menu...</div>
+    </div>
 
-    <!-- PARENT MENU -->
-   <mat-expansion-panel
-  *ngIf="menu.children.length > 0"
-  [expanded]="isParentActive(menu)"
-  class="parent-menu sidebar-panel"
-  style="box-shadow: none;"
->
-  <mat-expansion-panel-header class="profile-content" style="padding: none;">
-    <mat-icon>{{ menu.iconClass }}</mat-icon>
-    <span>{{ menu.title }}</span>
-  </mat-expansion-panel-header>
-
-  <ng-container
-    *ngTemplateOutlet="menuTemplate; context:{ $implicit: menu.children }">
-  </ng-container>
-</mat-expansion-panel>
-
-  </ng-container>
-
-</ng-template>
-
-</mat-nav-list>
-
+    <!-- User Profile Footer Card -->
+    <div class="sidebar-footer" (click)="accountDrawer.toggle()">
+      <div class="user-avatar">
+        {{ getInitials() }}
+      </div>
+      <div class="user-info">
+        <div class="user-name">{{ name || 'Avinash K.' }}</div>
+        <div class="user-role">Premium member</div>
+      </div>
+      <button mat-icon-button (click)="logOut(); $event.stopPropagation()" class="quick-logout" title="Log Out">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </div>
   </mat-sidenav>
 
+  <!-- Right Drawer for Full Details & Settings -->
+  <mat-sidenav
+    #accountDrawer
+    position="end"
+    class="account-sidebar"
+    [mode]="'over'"
+    [opened]="false"
+  >
+    <div class="account-panel">
+      <mat-card class="profile-card">
+        <mat-card-content class="profile-content">
+          <div class="profile-icon">
+            <mat-icon>account_circle</mat-icon>
+          </div>
+          <h3>{{ name }}</h3>
+          <p class="email">{{ email }}</p>
+          <p class="phone"><mat-icon>phone</mat-icon>{{ phone }}</p>
+        </mat-card-content>
+      </mat-card>
 
-<mat-sidenav
-  #accountDrawer
-  position="end"
-  class="account-sidebar"
-  [mode]="'over'"
-  [opened]="false">
+      <mat-tab-group class="account-tabs" mat-stretch-tabs>
+        <mat-tab label="Notification">
+          <p class="tab-content">No notifications yet.</p>
+        </mat-tab>
+        <mat-tab label="Messages">
+          <p class="tab-content">No messages yet.</p>
+        </mat-tab>
+        <mat-tab label="Profile">
+          <p class="tab-content">Profile settings here.</p>
+        </mat-tab>
+      </mat-tab-group>
 
-  <div class="account-panel">
+      <button mat-button (click)="logOut()" color="primary" class="logout-btn">
+        <mat-icon>logout</mat-icon> Log Out
+      </button>
+    </div>
+  </mat-sidenav>
 
-   
-    <mat-card class="profile-card">
-      <mat-card-content class="profile-content">
-        <div class="profile-icon">
-          <mat-icon>account_circle</mat-icon>
-        </div>
-        <h3>{{name}}</h3>
-        <p class="email">{{email}}</p>
-        <p class="phone"><mat-icon>phone</mat-icon>{{phone}}</p>
-      </mat-card-content>
-    </mat-card>
-
-   
-    <mat-tab-group class="account-tabs" mat-stretch-tabs>
-      <mat-tab label="Notification (0)">
-        <p class="tab-content">No notifications yet.</p>
-      </mat-tab>
-      <mat-tab label="Messages">
-        <p class="tab-content">No messages yet.</p>
-      </mat-tab>
-      <mat-tab label="Profile">
-        <p class="tab-content">Profile settings here.</p>
-      </mat-tab>
-    </mat-tab-group>
-
-  
-    <button mat-button (click)="logOut()" color="primary" class="logout-btn" >
-      <mat-icon>logout</mat-icon> Log Out
-    </button>
-
-  </div>
-</mat-sidenav>
-
-  <mat-sidenav-content>
-
-
+  <!-- Main Content Space -->
+  <mat-sidenav-content class="main-content-space">
+    <!-- Navbar for Mobile View Toggle -->
     <mat-toolbar color="primary" class="navbar">
       <button mat-icon-button (click)="drawer.toggle()">
         <mat-icon>menu</mat-icon>
       </button>
-
       <span class="spacer"></span>
-
+      <span class="mobile-brand">FinVault</span>
+      <span class="spacer"></span>
       <button mat-icon-button (click)="accountDrawer.toggle()">
         <mat-icon>account_circle</mat-icon>
       </button>
     </mat-toolbar>
 
-  
+    <!-- Content Router Outlet -->
     <div class="content">
       <router-outlet></router-outlet>
     </div>
-
   </mat-sidenav-content>
 
-</mat-sidenav-container> 
-
-
-
+</mat-sidenav-container>

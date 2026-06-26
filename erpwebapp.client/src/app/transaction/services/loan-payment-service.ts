@@ -32,7 +32,11 @@ export class LoanPaymentService {
 
   loadPayments() {
     return this.http.get<any[]>(this.apiUrl, { headers: this.headers }).pipe(
-      map((response) => (response ?? []).map((payment) => this.normalizePayment(payment))),
+      map((response: any) =>
+        (response?.data ?? response ?? []).map((payment: any) =>
+          this.normalizePayment(payment)
+        )
+      ),
       tap((payments) => this.paymentsSubject.next(payments))
     );
   }
@@ -50,8 +54,8 @@ export class LoanPaymentService {
         { headers: this.headers }
       )
       .pipe(
-        map((response) =>
-          (response ?? []).map((installment) =>
+        map((response: any) =>
+          (response?.data ?? response ?? []).map((installment: any) =>
             this.normalizeUnpaidInstallment(installment)
           )
         )
