@@ -9,7 +9,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { finalize, Subject, switchMap, takeUntil } from 'rxjs';
-import { Router } from '@angular/router';
 
 import { ConfirmDialogComponent } from '../../../users/confirm-dialog-component/confirm-dialog-component';
 import { BookingDialog } from '../booking-dialog/booking-dialog';
@@ -17,6 +16,7 @@ import { Booking, BookingDialogMode, BookingUser } from '../interfaces/booking';
 import { BookingService } from '../services/booking-service';
 import { Car } from '../../car/interfaces/car';
 import { ToastService } from '../../../shared/services/toast.service';
+import { RazorpayService } from '../../../transaction/services/razorpay-service';
 
 @Component({
   selector: 'app-booking-master',
@@ -62,8 +62,8 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
     private bookingService: BookingService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
-    private router: Router,
-    private toastService: ToastService
+    private toastService: ToastService,
+    private razorpayService: RazorpayService
   ) {}
 
   ngOnInit(): void {
@@ -133,9 +133,41 @@ export class BookingMaster implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  managePayments(booking: Booking): void {
-    this.router.navigate(['/home/booking/payments'], {
-      queryParams: { bookingId: booking.id },
+  payBooking(booking: Booking): void {
+    if (booking.paymentStatus?.toLowerCase() === 'paid') {
+      this.notify('This booking is already paid.');
+      return;
+    }
+
+    if (booking.status?.toLowerCase() === 'cancelled') {
+      this.notify('Payments cannot be made for a cancelled booking.');
+      return;
+    }
+
+    this.isMutating = true;
+    this.razorpayService.createBookingOrder(booking.id).subscribe({
+      next: (order) => {
+        this.razorpayService.openBookingCheckout(
+          order,
+          booking.id,
+          () => {
+            this.isMutating = false;
+            this.toastService.success('Booking payment completed successfully');
+            this.notify('Booking payment completed successfully');
+            this.bookingService.loadBookings().subscribe();
+          },
+          (message) => {
+            this.isMutating = false;
+            if (message !== 'Payment was cancelled.') {
+              this.notify(message);
+            }
+          }
+        );
+      },
+      error: (error) => {
+        this.isMutating = false;
+        this.notify(this.errorMessage(error, 'Unable to start Razorpay checkout'));
+      },
     });
   }
 

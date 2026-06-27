@@ -7,7 +7,7 @@ namespace ERPWebAppService.Booking.Car;
 public class BookingPaymentService : IBookingPaymentService
 {
     private static readonly string[] ValidMethods =
-        ["Cash", "Card", "UPI", "Bank Transfer", "Cheque"];
+        ["Cash", "Card", "UPI", "Bank Transfer", "Cheque", "Razorpay"];
 
     private static readonly string[] ValidStatuses =
         ["Pending", "Paid", "Failed", "Refunded"];

@@ -42,7 +42,8 @@ const ROUTE_ROLE_MAP: Record<string, string[]> = {
   'inventory/emi': ['admin'],
   'pay-emi': ['admin', 'user'],
   'booking/cars': ['admin'],
-  'booking/list': ['admin'],
+  'booking/items': ['admin'],
+  'booking/list': ['user'],
   'booking/payments': ['admin'],
   'dynamic': ['admin']
 };
@@ -333,6 +334,7 @@ export class Home implements OnDestroy,OnInit {
     const groupTitles: Record<string, string> = {
       home: 'Home',
       loan: 'Loan',
+      booking: 'Booking',
       configuration: 'Configuration',
     };
 
@@ -368,8 +370,13 @@ export class Home implements OnDestroy,OnInit {
         return true;
       }
 
+      if (['booking/cars', 'booking/items', 'booking/list', 'booking/payments'].includes(route)) {
+        getGroup('booking', 3, 'event_available').children.push({ ...item, parentId: -3 });
+        return true;
+      }
+
       if (route === 'settings') {
-        getGroup('configuration', 3, 'tune').children.push({ ...item, parentId: -3 });
+        getGroup('configuration', 4, 'tune').children.push({ ...item, parentId: -4 });
         return true;
       }
 
@@ -378,9 +385,13 @@ export class Home implements OnDestroy,OnInit {
 
     items.forEach((item) => {
       const title = item.title.toLowerCase();
-      if (!item.route && ['home', 'loan', 'configuration'].includes(title)) {
+      if (!item.route && ['home', 'loan', 'booking', 'configuration'].includes(title)) {
         const key = title as keyof typeof groupTitles;
-        const group = getGroup(key, item.orderNumber || (key === 'home' ? 1 : key === 'loan' ? 2 : 3), item.iconClass);
+        const group = getGroup(
+          key,
+          item.orderNumber || (key === 'home' ? 1 : key === 'loan' ? 2 : key === 'booking' ? 3 : 4),
+          item.iconClass
+        );
         group.id = item.id;
         group.parentId = item.parentId;
         group.iconClass = item.iconClass || group.iconClass;
@@ -423,8 +434,28 @@ export class Home implements OnDestroy,OnInit {
       return 'Calculator';
     }
 
+    if (cleanRoute === 'booking/cars') {
+      return 'Cars';
+    }
+
+    if (cleanRoute === 'booking/items') {
+      return 'Items';
+    }
+
+    if (cleanRoute === 'booking/list') {
+      return 'Bookings';
+    }
+
+    if (cleanRoute === 'booking/payments') {
+      return 'Booking Payments';
+    }
+
     if (!cleanRoute && (normalizedTitle === 'customer' || normalizedTitle === 'loans')) {
       return 'Loan';
+    }
+
+    if (!cleanRoute && normalizedTitle === 'booking') {
+      return 'Booking';
     }
 
     if (!cleanRoute && (normalizedTitle === 'system' || normalizedTitle === 'settings')) {
@@ -492,13 +523,26 @@ export class Home implements OnDestroy,OnInit {
       },
       {
         id: 7,
-        title: 'Configuration',
-        iconClass: 'tune',
+        title: 'Booking',
+        iconClass: 'event_available',
         route: null,
         orderNumber: 3,
         isActive: true,
         children: [
-          { id: 8, parentId: 7, title: 'Settings', iconClass: 'settings', route: 'settings', orderNumber: 1, isActive: true, children: [] },
+          { id: 8, parentId: 7, title: 'Cars', iconClass: 'directions_car', route: 'booking/cars', orderNumber: 1, isActive: true, children: [] },
+          { id: 9, parentId: 7, title: 'Items', iconClass: 'category', route: 'booking/items', orderNumber: 2, isActive: true, children: [] },
+          { id: 10, parentId: 7, title: 'Bookings', iconClass: 'event_available', route: 'booking/list', orderNumber: 3, isActive: true, children: [] },
+        ],
+      },
+      {
+        id: 11,
+        title: 'Configuration',
+        iconClass: 'tune',
+        route: null,
+        orderNumber: 4,
+        isActive: true,
+        children: [
+          { id: 12, parentId: 11, title: 'Settings', iconClass: 'settings', route: 'settings', orderNumber: 1, isActive: true, children: [] },
         ],
       },
     ];

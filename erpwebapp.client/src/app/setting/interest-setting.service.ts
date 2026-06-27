@@ -9,12 +9,18 @@ export interface InterestSetting {
   interestCalculationType: InterestCalculationType;
 }
 
+export interface BookingPaymentChargeSetting {
+  fixedCharge: number;
+  percentageCharge: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class InterestSettingService {
   private readonly storageKey = 'interestCalculationType';
   private readonly settingUrl = `${environment.apiUrl}/LoanSetting/interest-calculation-type`;
+  private readonly bookingChargeUrl = `${environment.apiUrl}/LoanSetting/booking-payment-charges`;
   private readonly headers = new HttpHeaders({
     'Content-Type': 'application/json; charset=utf-8',
     api_key: environment.apiKey,
@@ -67,6 +73,26 @@ export class InterestSettingService {
       );
   }
 
+  loadBookingPaymentCharges(): Observable<BookingPaymentChargeSetting> {
+    return this.http.get<any>(this.bookingChargeUrl, { headers: this.headers }).pipe(
+      map((response) => this.normalizeBookingPaymentCharges(response)),
+      catchError(() => of({ fixedCharge: 0, percentageCharge: 0 }))
+    );
+  }
+
+  saveBookingPaymentCharges(
+    setting: BookingPaymentChargeSetting
+  ): Observable<BookingPaymentChargeSetting> {
+    const payload = {
+      fixedCharge: Math.max(0, Number(setting.fixedCharge) || 0),
+      percentageCharge: Math.min(100, Math.max(0, Number(setting.percentageCharge) || 0)),
+    };
+
+    return this.http
+      .put<any>(this.bookingChargeUrl, payload, { headers: this.headers })
+      .pipe(map((response) => this.normalizeBookingPaymentCharges(response)));
+  }
+
   calculateEmi(
     amount: number,
     annualRate: number,
@@ -110,5 +136,13 @@ export class InterestSettingService {
 
   private readCachedType(): InterestCalculationType {
     return this.normalizeType(localStorage.getItem(this.storageKey));
+  }
+
+  private normalizeBookingPaymentCharges(value: any): BookingPaymentChargeSetting {
+    const source = value?.data ?? value?.Data ?? value ?? {};
+    return {
+      fixedCharge: Number(source?.fixedCharge ?? source?.FixedCharge ?? 0),
+      percentageCharge: Number(source?.percentageCharge ?? source?.PercentageCharge ?? 0),
+    };
   }
 }

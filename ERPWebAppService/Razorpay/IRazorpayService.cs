@@ -10,4 +10,6 @@ public interface IRazorpayService
     Task<List<LoanInstallmentDto>> GetUnpaidInstallmentsAsync(int loanId, string userId, bool isAdmin);
     Task<RazorpayEmiOrderResponse> CreateEmiOrderAsync(RazorpayEmiOrderRequest request, string userId, bool isAdmin);
     Task<RazorpayEmiVerifyResponse> VerifyEmiPaymentAsync(RazorpayEmiVerifyRequest request, string userId, bool isAdmin);
+    Task<RazorpayBookingOrderResponse> CreateBookingOrderAsync(RazorpayBookingOrderRequest request, string userId, bool isAdmin);
+    Task<RazorpayBookingVerifyResponse> VerifyBookingPaymentAsync(RazorpayBookingVerifyRequest request, string userId, bool isAdmin);
 }

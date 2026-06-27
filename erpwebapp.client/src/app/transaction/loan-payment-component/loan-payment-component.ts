@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { Router } from '@angular/router';
 import { finalize, forkJoin, Subject, takeUntil } from 'rxjs';
 import { ConfirmDialogComponent } from '../../users/confirm-dialog-component/confirm-dialog-component';
 import {
@@ -72,6 +73,7 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
     private loanService: LoanService,
     private dialog: MatDialog,
     private snackBar: MatSnackBar,
+    private router: Router,
     private toastService: ToastService
   ) {}
 
@@ -167,9 +169,7 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
   }
 
   startCreate(): void {
-    this.current = this.createEmptyPayment();
-    this.unpaidInstallments = [];
-    this.editing = true;
+    this.router.navigate(['/home/pay-emi']);
   }
 
   startEdit(payment: LoanPayment): void {

@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Router } from '@angular/router';
 import { BehaviorSubject, of, Subject, throwError } from 'rxjs';
 import { LoanPaymentComponent } from './loan-payment-component';
 import { Loan, LoanPayment, LoanService } from '../services/loan-service';
@@ -13,6 +14,7 @@ describe('LoanPaymentComponent', () => {
   let paymentService: jasmine.SpyObj<LoanPaymentService>;
   let dialog: jasmine.SpyObj<MatDialog>;
   let snackBar: jasmine.SpyObj<MatSnackBar>;
+  let router: jasmine.SpyObj<Router>;
   let loans$: BehaviorSubject<Loan[]>;
   let payments$: BehaviorSubject<LoanPayment[]>;
 
@@ -38,6 +40,7 @@ describe('LoanPaymentComponent', () => {
     );
     dialog = jasmine.createSpyObj<MatDialog>('MatDialog', ['open']);
     snackBar = jasmine.createSpyObj<MatSnackBar>('MatSnackBar', ['open']);
+    router = jasmine.createSpyObj<Router>('Router', ['navigate']);
     loanService.loadLoans.and.returnValue(of([testLoan]));
     paymentService.loadPayments.and.returnValue(of([payment]));
 
@@ -48,6 +51,7 @@ describe('LoanPaymentComponent', () => {
         { provide: LoanPaymentService, useValue: paymentService },
         { provide: MatDialog, useValue: dialog },
         { provide: MatSnackBar, useValue: snackBar },
+        { provide: Router, useValue: router },
       ],
     }).compileComponents();
     fixture = TestBed.createComponent(LoanPaymentComponent);
@@ -87,6 +91,11 @@ describe('LoanPaymentComponent', () => {
     request.complete();
     expect(component.isLoadingPayment).toBeFalse();
     expect(component.editing).toBeTrue();
+  });
+
+  it('navigates to pay EMI when recording a payment', () => {
+    component.startCreate();
+    expect(router.navigate).toHaveBeenCalledWith(['/home/pay-emi']);
   });
 
   it('loads unpaid installments and fills the selected EMI amount', () => {

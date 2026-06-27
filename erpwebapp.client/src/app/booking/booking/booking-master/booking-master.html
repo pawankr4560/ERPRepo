@@ -82,8 +82,9 @@
           <button
             mat-icon-button
             color="accent"
-            (click)="managePayments(booking)"
-            aria-label="Manage booking payments"
+            [disabled]="booking.paymentStatus?.toLowerCase() === 'paid'"
+            (click)="payBooking(booking)"
+            aria-label="Pay booking"
           >
             <mat-icon>payments</mat-icon>
           </button>

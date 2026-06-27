@@ -34,9 +34,32 @@ export interface RazorpayEmiOrder {
   customerPhone: string;
 }
 
+export interface RazorpayBookingOrder {
+  keyId: string;
+  orderId: string;
+  amount: number;
+  bookingAmount: number;
+  serviceFeeAmount: number;
+  totalAmount: number;
+  amountPaise: number;
+  currency: string;
+  bookingNumber: string;
+  carName: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+}
+
 export interface RazorpayEmiVerifyRequest {
   loanId: number;
   scheduleId: number;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+}
+
+export interface RazorpayBookingVerifyRequest {
+  bookingId: number;
   razorpayOrderId: string;
   razorpayPaymentId: string;
   razorpaySignature: string;
@@ -105,6 +128,22 @@ export class RazorpayService {
       .pipe(map((response) => this.normalizeVerifyResponse(response)));
   }
 
+  createBookingOrder(bookingId: number): Observable<RazorpayBookingOrder> {
+    return this.http
+      .post<any>(
+        `${this.apiUrl}/booking/order`,
+        { bookingId },
+        { headers: this.headers }
+      )
+      .pipe(map((response) => this.normalizeBookingOrder(response)));
+  }
+
+  verifyBookingPayment(request: RazorpayBookingVerifyRequest): Observable<RazorpayEmiVerifyResponse> {
+    return this.http
+      .post<any>(`${this.apiUrl}/booking/verify`, request, { headers: this.headers })
+      .pipe(map((response) => this.normalizeVerifyResponse(response)));
+  }
+
   openCheckout(
     order: RazorpayEmiOrder,
     loanId: number,
@@ -136,6 +175,64 @@ export class RazorpayService {
         this.verifyEmiPayment({
           loanId,
           scheduleId,
+          razorpayOrderId: response.razorpay_order_id,
+          razorpayPaymentId: response.razorpay_payment_id,
+          razorpaySignature: response.razorpay_signature,
+        }).subscribe({
+          next: (result) => {
+            if (result.success) {
+              onSuccess();
+            } else {
+              onError(result.message || 'Payment verification failed.');
+            }
+          },
+          error: (error) => {
+            onError(
+              error?.error?.message ??
+                error?.error?.Message ??
+                'Payment verification failed.'
+            );
+          },
+        });
+      },
+      modal: {
+        ondismiss: () => onError('Payment was cancelled.'),
+      },
+    };
+
+    const checkout = new window.Razorpay(options);
+    checkout.open();
+  }
+
+  openBookingCheckout(
+    order: RazorpayBookingOrder,
+    bookingId: number,
+    onSuccess: () => void,
+    onError: (message: string) => void
+  ): void {
+    if (!window.Razorpay) {
+      onError('Razorpay checkout could not be loaded.');
+      return;
+    }
+
+    const options: Record<string, unknown> = {
+      key: order.keyId,
+      amount: order.amountPaise,
+      currency: order.currency,
+      name: 'FinVault',
+      description: `Booking payment for ${order.bookingNumber}`,
+      order_id: order.orderId,
+      prefill: {
+        name: order.customerName,
+        email: order.customerEmail,
+        contact: order.customerPhone,
+      },
+      theme: {
+        color: '#1f3a6f',
+      },
+      handler: (response: RazorpayCheckoutResponse) => {
+        this.verifyBookingPayment({
+          bookingId,
           razorpayOrderId: response.razorpay_order_id,
           razorpayPaymentId: response.razorpay_payment_id,
           razorpaySignature: response.razorpay_signature,
@@ -222,6 +319,24 @@ export class RazorpayService {
       currency: value?.Currency ?? value?.currency ?? 'INR',
       loanNumber: value?.LoanNumber ?? value?.loanNumber ?? '',
       installmentNo: value?.InstallmentNo ?? value?.installmentNo ?? 0,
+      customerName: value?.CustomerName ?? value?.customerName ?? '',
+      customerEmail: value?.CustomerEmail ?? value?.customerEmail ?? '',
+      customerPhone: value?.CustomerPhone ?? value?.customerPhone ?? '',
+    };
+  }
+
+  private normalizeBookingOrder(value: any): RazorpayBookingOrder {
+    return {
+      keyId: value?.KeyId ?? value?.keyId ?? '',
+      orderId: value?.OrderId ?? value?.orderId ?? '',
+      amount: value?.Amount ?? value?.amount ?? 0,
+      bookingAmount: value?.BookingAmount ?? value?.bookingAmount ?? 0,
+      serviceFeeAmount: value?.ServiceFeeAmount ?? value?.serviceFeeAmount ?? 0,
+      totalAmount: value?.TotalAmount ?? value?.totalAmount ?? value?.Amount ?? value?.amount ?? 0,
+      amountPaise: value?.AmountPaise ?? value?.amountPaise ?? 0,
+      currency: value?.Currency ?? value?.currency ?? 'INR',
+      bookingNumber: value?.BookingNumber ?? value?.bookingNumber ?? '',
+      carName: value?.CarName ?? value?.carName ?? '',
       customerName: value?.CustomerName ?? value?.customerName ?? '',
       customerEmail: value?.CustomerEmail ?? value?.customerEmail ?? '',
       customerPhone: value?.CustomerPhone ?? value?.customerPhone ?? '',

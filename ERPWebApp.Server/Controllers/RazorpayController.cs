@@ -75,6 +75,36 @@ public class RazorpayController : ControllerBase
         }
     }
 
+    [HttpPost("booking/order")]
+    public async Task<IActionResult> CreateBookingOrder([FromBody] RazorpayBookingOrderRequest request)
+    {
+        try
+        {
+            var (userId, isAdmin) = GetCurrentUserContext();
+            var result = await _razorpayService.CreateBookingOrderAsync(request, userId, isAdmin);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("booking/verify")]
+    public async Task<IActionResult> VerifyBookingPayment([FromBody] RazorpayBookingVerifyRequest request)
+    {
+        try
+        {
+            var (userId, isAdmin) = GetCurrentUserContext();
+            var result = await _razorpayService.VerifyBookingPaymentAsync(request, userId, isAdmin);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     private (string UserId, bool IsAdmin) GetCurrentUserContext()
     {
         var userId = User.FindFirst("Id")?.Value

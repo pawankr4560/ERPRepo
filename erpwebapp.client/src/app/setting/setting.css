@@ -28,6 +28,7 @@
   background: #fff;
   padding: 24px;
   border-radius: 8px;
+  margin-bottom: 18px;
 }
 
 .settings-section.loading {
@@ -92,6 +93,13 @@
   font-size: 14px;
 }
 
+.charge-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 22px 0 4px;
+}
+
 @media (max-width: 640px) {
   .settings-page {
     padding: 16px;
@@ -100,5 +108,9 @@
   .settings-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .charge-grid {
+    grid-template-columns: 1fr;
   }
 }

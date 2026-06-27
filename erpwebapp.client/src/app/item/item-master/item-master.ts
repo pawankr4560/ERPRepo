@@ -82,6 +82,8 @@ export class ItemMaster implements OnInit, AfterViewInit {
   openAddDialog() {
     const dialogRef = this.dialog.open(AddItemDialog, {
       width: '520px',
+      maxWidth: 'calc(100vw - 24px)',
+      maxHeight: 'calc(100vh - 24px)',
       data: null,
     });
 
