@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApp.Model.Common;
 using WebApp.Model.Order;
@@ -23,8 +24,8 @@ namespace WebApp.Server.Controllers
         {
             try
             {
-              var result = await _orderService.CreateOrder(model);
-              return Ok(new ApiResponse(true, null, result));
+                var result = await _orderService.CreateOrder(model);
+                return Ok(new ApiResponse(true, null, result));
             }
             catch (Exception ex)
             {
@@ -44,6 +45,64 @@ namespace WebApp.Server.Controllers
             {
                 return BadRequest(new ApiResponse(false, ex.Message, null));
             }
+        }
+
+        [HttpGet("SalesItems")]
+        public async Task<IActionResult> SalesItems()
+        {
+            try
+            {
+                var result = await _orderService.GetSalesItemsAsync();
+                return Ok(new ApiResponse(true, null, result));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse(false, ex.Message, null));
+            }
+        }
+
+        [HttpPost("SalesCheckout")]
+        public async Task<IActionResult> SalesCheckout([FromBody] SalesOrderCheckoutRequest model)
+        {
+            try
+            {
+                var result = await _orderService.CreateSalesOrderCheckoutAsync(model, GetCurrentUserId());
+                return Ok(new ApiResponse(true, null, result));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse(false, ex.Message, null));
+            }
+        }
+
+        [HttpPost("VerifySalesPayment")]
+        public async Task<IActionResult> VerifySalesPayment([FromBody] SalesOrderVerifyRequest model)
+        {
+            try
+            {
+                var result = await _orderService.VerifySalesOrderPaymentAsync(model, GetCurrentUserId());
+                return result.Success
+                    ? Ok(new ApiResponse(true, result.Message, result))
+                    : BadRequest(new ApiResponse(false, result.Message, result));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse(false, ex.Message, null));
+            }
+        }
+
+        private string GetCurrentUserId()
+        {
+            var userId = User.FindFirst("Id")?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                throw new InvalidOperationException("User context is missing.");
+            }
+
+            return userId;
         }
     }
 }

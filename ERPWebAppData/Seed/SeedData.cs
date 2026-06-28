@@ -25,6 +25,7 @@ namespace WebApp.Data.SeedData
             await SeedRoles();
             await SeedUsers();
             await SeedCarCategories();
+            await SeedUnits();
         }
 
         public async Task SeedRoles()
@@ -94,6 +95,41 @@ namespace WebApp.Data.SeedData
             }
 
             _dbContext.Categories.AddRange(categoriesToAdd);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task SeedUnits()
+        {
+            var defaultUnits = new[]
+            {
+                new UnitOfMeasure { UOMCode = "PCS", UOMName = "Pieces" },
+                new UnitOfMeasure { UOMCode = "KG", UOMName = "Kilogram" },
+                new UnitOfMeasure { UOMCode = "GM", UOMName = "Gram" },
+                new UnitOfMeasure { UOMCode = "LTR", UOMName = "Litre" },
+                new UnitOfMeasure { UOMCode = "ML", UOMName = "Millilitre" },
+                new UnitOfMeasure { UOMCode = "BOX", UOMName = "Box" }
+            };
+
+            var existingCodes = await _dbContext.UnitOfMeasure
+                .Select(unit => unit.UOMCode)
+                .ToListAsync();
+
+            var unitsToAdd = defaultUnits
+                .Where(unit => !existingCodes.Contains(unit.UOMCode, StringComparer.OrdinalIgnoreCase))
+                .Select(unit =>
+                {
+                    unit.CreatedOn = DateTime.UtcNow;
+                    unit.CreatedBy = "System";
+                    return unit;
+                })
+                .ToList();
+
+            if (unitsToAdd.Count == 0)
+            {
+                return;
+            }
+
+            _dbContext.UnitOfMeasure.AddRange(unitsToAdd);
             await _dbContext.SaveChangesAsync();
         }
 

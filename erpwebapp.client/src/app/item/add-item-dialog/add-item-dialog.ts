@@ -8,6 +8,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 
 import { Item } from '../interfaces/item';
+import { Unit } from '../interfaces/unit';
+
+export interface AddItemDialogData {
+  item: Item | null;
+  units: Unit[];
+}
 
 @Component({
   selector: 'app-add-item-dialog',
@@ -30,10 +36,11 @@ export class AddItemDialog {
   constructor(
     private fb: FormBuilder,
     private dialogRef: MatDialogRef<AddItemDialog>,
-    @Inject(MAT_DIALOG_DATA) public data: Item | null
+    @Inject(MAT_DIALOG_DATA) public data: AddItemDialogData | null
   ) {
+    const item = data?.item ?? null;
     const d =
-      data ??
+      item ??
       ({
         id: '',
         code: '',
@@ -53,7 +60,7 @@ export class AddItemDialog {
       code: [d.code, Validators.required],
       name: [d.name, Validators.required],
       categorie: [d.categorie, Validators.required],
-      uomIndex: [d.uomIndex, [Validators.required]],
+      uomIndex: [d.uomIndex || null, [Validators.required]],
       locationIndex: [d.locationIndex, [Validators.required]],
       stockQty: [d.stockQty, [Validators.required, Validators.min(0)]],
       status: [d.status],
@@ -61,6 +68,10 @@ export class AddItemDialog {
       description: [d.description],
       image: [d.image],
     });
+  }
+
+  get units(): Unit[] {
+    return this.data?.units ?? [];
   }
 
   save() {

@@ -14,6 +14,7 @@ import { ItemService } from '../services/item-service';
 import { ConfirmDialogComponent } from '../../users/confirm-dialog-component/confirm-dialog-component';
 import { AddItemDialog } from '../add-item-dialog/add-item-dialog';
 import { MatSortModule } from '@angular/material/sort';
+import { Unit } from '../interfaces/unit';
 
 @Component({
   selector: 'app-item-master',
@@ -33,6 +34,7 @@ import { MatSortModule } from '@angular/material/sort';
 export class ItemMaster implements OnInit, AfterViewInit {
   isMobile = false;
   isLoading = false;
+  units: Unit[] = [];
 
   displayedColumns: string[] = [
     'code',
@@ -69,6 +71,10 @@ export class ItemMaster implements OnInit, AfterViewInit {
     });
 
     this.isLoading = true;
+    this.itemService.loadUnits().subscribe({
+      next: (units) => (this.units = units ?? []),
+      error: () => (this.units = []),
+    });
     this.itemService.loadItems().subscribe({
       complete: () => (this.isLoading = false),
       error: () => (this.isLoading = false),
@@ -80,11 +86,20 @@ export class ItemMaster implements OnInit, AfterViewInit {
   }
 
   openAddDialog() {
+    if (!this.units.length) {
+      this.snackBar.open('No units found. Please reload the page and try again.', 'Close', {
+        duration: 3000,
+        horizontalPosition: 'right',
+        verticalPosition: 'top',
+      });
+      return;
+    }
+
     const dialogRef = this.dialog.open(AddItemDialog, {
       width: '520px',
       maxWidth: 'calc(100vw - 24px)',
       maxHeight: 'calc(100vh - 24px)',
-      data: null,
+      data: { item: null, units: this.units },
     });
 
     dialogRef.afterClosed().subscribe((created: Item | null) => {

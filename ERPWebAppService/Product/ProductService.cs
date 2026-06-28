@@ -69,12 +69,16 @@ namespace WebApp.Service.Product
             catch (Exception) { throw; }
         }
 
-        public async Task<bool> Add(CreateProductRequestModel model)
+        public async Task<Data.Entity.Product> Add(CreateProductRequestModel model)
         {
             try
             {
                 var reuqest = _mapper.Map<Data.Entity.Product>(model);
                 reuqest.Id = Guid.NewGuid();
+                reuqest.CreatedOn = model.CreatedOn == default ? DateTime.UtcNow : model.CreatedOn;
+                reuqest.IsActive = model.IsActive || model.Status;
+                reuqest.IsDeleted = false;
+
                 if (model.ProfileImage != null)
                 {
                     var uploadsFolder = Path.Combine("wwwroot", "uploads", "images");
@@ -94,7 +98,7 @@ namespace WebApp.Service.Product
                 await _dbContext.Products.AddAsync(reuqest);
                 await _dbContext.SaveChangesAsync();
                 await RemoveProductListCacheAsync();
-                return true;
+                return reuqest;
             }
             catch (Exception) { throw; }
         }

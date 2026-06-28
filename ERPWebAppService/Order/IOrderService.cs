@@ -1,4 +1,4 @@
-﻿using WebApp.Model.Order;
+using WebApp.Model.Order;
 
 namespace WebApp.Service.Order
 {
@@ -6,5 +6,8 @@ namespace WebApp.Service.Order
     {
         Task<bool> CreateOrder(List<CreateOrderRequestModel> model);
         Task<dynamic> GetOrders();
+        Task<dynamic> GetSalesItemsAsync();
+        Task<SalesOrderRazorpayOrderResponse> CreateSalesOrderCheckoutAsync(SalesOrderCheckoutRequest request, string userId);
+        Task<SalesOrderVerifyResponse> VerifySalesOrderPaymentAsync(SalesOrderVerifyRequest request, string userId);
     }
 }

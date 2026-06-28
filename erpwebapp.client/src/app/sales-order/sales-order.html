@@ -1,0 +1,106 @@
+<section class="sales-order">
+  <header class="page-header">
+    <div>
+      <h1>Sales Order</h1>
+      <p>Select items, choose delivery or pickup, then pay securely with Razorpay.</p>
+    </div>
+    <button mat-icon-button type="button" (click)="loadItems()" [disabled]="isLoading">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </header>
+
+  <div class="order-layout">
+    <section class="items-panel">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search items</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input matInput [(ngModel)]="search" />
+      </mat-form-field>
+
+      <div class="loading" *ngIf="isLoading">
+        <mat-spinner diameter="36"></mat-spinner>
+      </div>
+
+      <div class="item-grid" *ngIf="!isLoading">
+        <article class="item-card" *ngFor="let item of filteredItems">
+          <div>
+            <h2>{{ item.name }}</h2>
+            <p>{{ item.code }} · {{ item.category || 'Item' }}</p>
+          </div>
+          <div class="item-meta">
+            <strong>{{ formatCurrency(item.price) }}</strong>
+            <span>{{ item.stockQty }} available</span>
+          </div>
+          <button mat-stroked-button color="primary" type="button" (click)="addToCart(item)">
+            <mat-icon>add_shopping_cart</mat-icon>
+            Add
+          </button>
+        </article>
+
+        <div class="empty" *ngIf="!filteredItems.length">No items available.</div>
+      </div>
+    </section>
+
+    <aside class="cart-panel">
+      <h2>Cart</h2>
+
+      <div class="cart-line" *ngFor="let line of cart">
+        <div>
+          <strong>{{ line.item.name }}</strong>
+          <span>{{ formatCurrency(line.item.price) }}</span>
+        </div>
+        <div class="qty-control">
+          <button mat-icon-button type="button" (click)="decrement(line)">
+            <mat-icon>remove</mat-icon>
+          </button>
+          <span>{{ line.quantity }}</span>
+          <button mat-icon-button type="button" (click)="increment(line)">
+            <mat-icon>add</mat-icon>
+          </button>
+        </div>
+        <button mat-icon-button type="button" color="warn" (click)="remove(line)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+
+      <div class="empty" *ngIf="!cart.length">Cart is empty.</div>
+
+      <mat-button-toggle-group [(ngModel)]="orderType" class="type-toggle">
+        <mat-button-toggle value="Delivery">Delivery</mat-button-toggle>
+        <mat-button-toggle value="Pickup">Pickup</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <mat-form-field appearance="outline" *ngIf="orderType === 'Delivery'">
+        <mat-label>Delivery address</mat-label>
+        <textarea matInput rows="3" [(ngModel)]="address"></textarea>
+      </mat-form-field>
+
+      <div class="summary">
+        <div>
+          <span>Subtotal</span>
+          <strong>{{ formatCurrency(subtotal) }}</strong>
+        </div>
+        <div *ngIf="lastServiceFee">
+          <span>Service fee</span>
+          <strong>{{ formatCurrency(lastServiceFee) }}</strong>
+        </div>
+        <div class="total">
+          <span>Total</span>
+          <strong>{{ formatCurrency(lastTotal || subtotal) }}</strong>
+        </div>
+      </div>
+
+      <button
+        mat-raised-button
+        color="primary"
+        type="button"
+        class="checkout-btn"
+        (click)="checkout()"
+        [disabled]="!canCheckout"
+      >
+        <mat-icon>payments</mat-icon>
+        {{ isCheckingOut ? 'Processing...' : 'Checkout' }}
+      </button>
+    </aside>
+  </div>
+</section>

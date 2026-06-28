@@ -3,6 +3,7 @@ import { BehaviorSubject, tap } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Item } from '../interfaces/item';
+import { Unit } from '../interfaces/unit';
 
 @Injectable({
   providedIn: 'root',
@@ -30,7 +31,7 @@ export class ItemService {
 
   loadItems() {
     return this.http
-      .get<any>(`${this.apiUrl}/Item/ItemList`, { headers: this.headers })
+      .get<any>(`${this.apiUrl}/Product/ProductList`, { headers: this.headers })
       .pipe(
         tap((res) => {
           if (res?.data) {
@@ -40,9 +41,13 @@ export class ItemService {
       );
   }
 
+  loadUnits() {
+    return this.http.get<Unit[]>(`${this.apiUrl}/Unit`, { headers: this.headers });
+  }
+
   createItem(item: Item) {
     return this.http
-      .post<any>(`${this.apiUrl}/Item/CreateItem`, item, { headers: this.headers })
+      .post<any>(`${this.apiUrl}/Product/AddProduct`, item, { headers: this.headers })
       .pipe(
         tap((res) => {
           if (res?.success && res?.data) {
@@ -54,7 +59,7 @@ export class ItemService {
 
   deleteItem(id: string) {
     return this.http
-      .delete<any>(`${this.apiUrl}/Item/RemoveItem`, {
+      .delete<any>(`${this.apiUrl}/Product/RemoveProduct`, {
         headers: this.headers,
         params: { id },
       })
@@ -71,7 +76,7 @@ export class ItemService {
 
   updateItem(item: Item) {
     return this.http
-      .put<any>(`${this.apiUrl}/Item/UpdateItem`, item, { headers: this.headers })
+      .put<any>(`${this.apiUrl}/Product/UpdateProduct`, item, { headers: this.headers })
       .pipe(
         tap((res) => {
           if (res?.success && res?.data) {

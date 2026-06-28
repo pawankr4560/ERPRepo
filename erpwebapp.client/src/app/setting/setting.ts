@@ -103,7 +103,7 @@ export class Setting implements OnInit {
           this.savedFixedCharge = setting.fixedCharge;
           this.savedPercentageCharge = setting.percentageCharge;
           this.isSavingCharges = false;
-          this.snackBar.open('Booking checkout charges saved.', 'Close', {
+          this.snackBar.open('Checkout charges saved.', 'Close', {
             duration: 3000,
           });
         },

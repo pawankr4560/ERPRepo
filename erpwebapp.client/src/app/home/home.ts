@@ -41,6 +41,7 @@ const ROUTE_ROLE_MAP: Record<string, string[]> = {
   'inventory/payments': ['admin'],
   'inventory/emi': ['admin'],
   'pay-emi': ['admin', 'user'],
+  'sales-order': ['user'],
   'booking/cars': ['admin'],
   'booking/items': ['admin'],
   'booking/list': ['user'],
@@ -142,6 +143,7 @@ export class Home implements OnDestroy,OnInit {
     if (title.includes('menu')) return 'menu_open';
     if (title.includes('permission')) return 'admin_panel_settings';
     if (title.includes('booking')) return 'event_available';
+    if (title.includes('sales') || title.includes('order')) return 'shopping_cart';
     if (title.includes('product')) return 'inventory_2';
     if (title.includes('item')) return 'category';
     return 'radio_button_unchecked';
@@ -365,6 +367,11 @@ export class Home implements OnDestroy,OnInit {
         return true;
       }
 
+      if (route === 'sales-order') {
+        getGroup('home', 1, 'home').children.push({ ...item, parentId: -1 });
+        return true;
+      }
+
       if (['inventory/transactions', 'inventory/payments', 'inventory/emi'].includes(route)) {
         getGroup('loan', 2, 'credit_card').children.push({ ...item, parentId: -2 });
         return true;
@@ -432,6 +439,10 @@ export class Home implements OnDestroy,OnInit {
 
     if (cleanRoute === 'inventory/emi') {
       return 'Calculator';
+    }
+
+    if (cleanRoute === 'sales-order') {
+      return 'Sales Order';
     }
 
     if (cleanRoute === 'booking/cars') {
@@ -506,6 +517,7 @@ export class Home implements OnDestroy,OnInit {
         isActive: true,
         children: [
           { id: 2, parentId: 1, title: 'Dashboard', iconClass: 'space_dashboard', route: 'dashboard', orderNumber: 1, isActive: true, children: [] },
+          { id: 13, parentId: 1, title: 'Sales Order', iconClass: 'shopping_cart', route: 'sales-order', orderNumber: 2, isActive: true, children: [] },
         ],
       },
       {

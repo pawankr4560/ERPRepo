@@ -101,6 +101,14 @@ export const routes: Routes = [
           ),
         canActivate: [AuthGuard],
       },
+      {
+        path: 'sales-order',
+        loadChildren: () =>
+          import('./sales-order/sales-order.module').then(
+            (module) => module.SalesOrderModule
+          ),
+        canActivate: [AuthGuard],
+      },
      
       // Other pages
       {

@@ -32,7 +32,7 @@ namespace WebApp.Server.Controllers
         }
 
         [HttpPost("AddProduct")]
-        public async Task<IActionResult> Add([FromForm] CreateProductRequestModel model)
+        public async Task<IActionResult> Add([FromBody] CreateProductRequestModel model)
         {
             try
             {

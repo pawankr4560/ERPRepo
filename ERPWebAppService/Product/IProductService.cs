@@ -4,7 +4,7 @@ namespace WebApp.Service.Product
 {
     public interface IProductService
     {
-        Task<bool> Add(CreateProductRequestModel model);
+        Task<Data.Entity.Product> Add(CreateProductRequestModel model);
         Task<bool> Delete(Guid id);
         Task<IEnumerable<Data.Entity.Product>> ProductList();
         Task<Data.Entity.Product> Update(UpdateProductModel model);
