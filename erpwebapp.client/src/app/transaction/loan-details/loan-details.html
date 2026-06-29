@@ -16,6 +16,9 @@
       </div>
       <div class="export-actions">
         <ng-container *ngIf="isPendingReview">
+          <button mat-stroked-button type="button" (click)="checkCreditScore()" [disabled]="isReviewActionBusy">
+            <mat-icon>credit_score</mat-icon> Check Credit Score
+          </button>
           <button mat-stroked-button class="reject-button" type="button" (click)="reject()" [disabled]="isReviewActionBusy">
             <mat-icon>cancel</mat-icon> Reject
           </button>
@@ -38,6 +41,13 @@
       <div><span>End Date</span><strong>{{ item.endDate | date:'dd MMM yyyy' }}</strong></div>
       <div><span>Status</span><strong class="status-pill" [ngClass]="getStatusClass(item.status)">{{ getStatusLabel(item.status) }}</strong></div>
       <div><span>Total Interest</span><strong>INR {{ totalInterest | number:'1.2-2' }}</strong></div>
+    </section>
+
+    <section class="credit-score-panel" *ngIf="creditScoreResult as credit" [ngClass]="getCreditScoreClass(credit.score)">
+      <div><span>Credit Score</span><strong>{{ credit.score }}</strong></div>
+      <div><span>Rating</span><strong>{{ credit.rating }}</strong></div>
+      <div><span>Risk</span><strong>{{ credit.risk }}</strong></div>
+      <div><span>Decision</span><strong>{{ credit.eligible ? 'Eligible for approval' : 'Needs manual review' }}</strong></div>
     </section>
 
     <section class="progress-card">

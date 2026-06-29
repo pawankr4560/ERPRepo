@@ -221,6 +221,29 @@
   font-size: 12px;
 }
 
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 16px;
+  color: #667085;
+  font-size: 12px;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #d0d5dd;
+}
+
+.google-login-button {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
 @keyframes gridDrift {
   from {
     background-position: 0 0;

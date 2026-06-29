@@ -162,14 +162,8 @@ export class Home implements OnDestroy,OnInit {
   }
 
   logOut() {
-    const user = localStorage.getItem('user');
-    if (user != null) {
-      var updatedUser = JSON.parse(user);
-      updatedUser.isLogedIn = false;
-      localStorage.setItem('user',JSON.stringify(updatedUser));
-      this.router.navigate(['auth']);
-    }
-    else this.router.navigate(['auth']);
+    this.authService.clearSession();
+    this.router.navigate(['/auth/login']);
   }
 
   hasAccess(route: string | null | undefined, role: string): boolean {

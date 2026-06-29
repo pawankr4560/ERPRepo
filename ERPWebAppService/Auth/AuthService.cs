@@ -13,6 +13,7 @@ using WebApp.Model.Auth;
 using System.Net;
 using System.Net.Mail;
 using Microsoft.AspNetCore.Http;
+using System.Security.Cryptography;
 
 namespace WebApp.Service.Auth
 {
@@ -225,7 +226,7 @@ namespace WebApp.Service.Auth
             return response.IsSuccessStatusCode;
         }
 
-        public async Task<string> Login(LoginRequestModel model)
+        public async Task<AuthTokenResponseModel> Login(LoginRequestModel model)
         {
             try
             {
@@ -237,20 +238,122 @@ namespace WebApp.Service.Auth
                 var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
 
                 if (result.Succeeded)
-                    return await CreateToken(user);
+                    return await CreateAuthResponse(user);
                 throw new Exception("Invalid email or password.");
             }
             catch (Exception) { throw; }
         }
 
+        public async Task<AuthTokenResponseModel> LoginWithGoogle(string email, string firstName, string lastName, string googleSubject)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                throw new ArgumentException("Google email is required.", nameof(email));
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                user = new User
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    UserName = email,
+                    Email = email,
+                    EmailConfirmed = true,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    CreatedOn = DateTime.UtcNow,
+                    IsActive = true,
+                    IsDeleted = false
+                };
+
+                var createResult = await _userManager.CreateAsync(user);
+                if (!createResult.Succeeded)
+                    throw new Exception(string.Join(" ", createResult.Errors.Select(error => error.Description)));
+
+                var roleResult = await _userManager.AddToRoleAsync(user, "User");
+                if (!roleResult.Succeeded)
+                    throw new Exception(string.Join(" ", roleResult.Errors.Select(error => error.Description)));
+            }
+            else if (!user.EmailConfirmed)
+            {
+                user.EmailConfirmed = true;
+                await _userManager.UpdateAsync(user);
+            }
+
+            var existingLogin = await _userManager.FindByLoginAsync("Google", googleSubject);
+            if (existingLogin == null)
+            {
+                var loginResult = await _userManager.AddLoginAsync(
+                    user,
+                    new UserLoginInfo("Google", googleSubject, "Google"));
+
+                if (!loginResult.Succeeded)
+                    throw new Exception(string.Join(" ", loginResult.Errors.Select(error => error.Description)));
+            }
+
+            return await CreateAuthResponse(user);
+        }
+
+        public async Task<AuthTokenResponseModel> RefreshToken(RefreshTokenRequestModel model)
+        {
+            var principal = GetPrincipalFromExpiredToken(model.AccessToken);
+            var userId = principal.FindFirst("Id")?.Value;
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new SecurityTokenException("Invalid access token.");
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null || user.IsDeleted || !user.IsActive)
+                throw new SecurityTokenException("Invalid user.");
+
+            var storedRefreshToken = await _userManager.GetAuthenticationTokenAsync(user, "ERPWebApp", "RefreshToken");
+            var storedRefreshTokenExpiry = await _userManager.GetAuthenticationTokenAsync(user, "ERPWebApp", "RefreshTokenExpiresUtc");
+
+            if (string.IsNullOrWhiteSpace(storedRefreshToken) ||
+                storedRefreshToken != model.RefreshToken ||
+                !DateTime.TryParse(storedRefreshTokenExpiry, out var refreshTokenExpiresAtUtc) ||
+                refreshTokenExpiresAtUtc <= DateTime.UtcNow)
+            {
+                throw new SecurityTokenException("Invalid refresh token.");
+            }
+
+            return await CreateAuthResponse(user);
+        }
+
+        public async Task<AuthTokenResponseModel> CreateAuthResponse(User user)
+        {
+            var accessTokenExpiresAtUtc = DateTime.UtcNow.AddHours(10);
+            var refreshTokenExpiresAtUtc = DateTime.UtcNow.AddDays(7);
+            var accessToken = await CreateToken(user, accessTokenExpiresAtUtc);
+            var refreshToken = GenerateRefreshToken();
+
+            await _userManager.SetAuthenticationTokenAsync(user, "ERPWebApp", "RefreshToken", refreshToken);
+            await _userManager.SetAuthenticationTokenAsync(
+                user,
+                "ERPWebApp",
+                "RefreshTokenExpiresUtc",
+                refreshTokenExpiresAtUtc.ToString("O"));
+
+            return new AuthTokenResponseModel
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                AccessTokenExpiresAtUtc = accessTokenExpiresAtUtc,
+                RefreshTokenExpiresAtUtc = refreshTokenExpiresAtUtc
+            };
+        }
+
         public async Task<string> CreateToken(User user)
+        {
+            return await CreateToken(user, DateTime.UtcNow.AddHours(10));
+        }
+
+        private async Task<string> CreateToken(User user, DateTime expiresAtUtc)
         {
             var roles = await _userManager.GetRolesAsync(user);
             var customer = await _dbContext.StripeCustomer.Where(x => x.UserId == user.Id).FirstOrDefaultAsync();
             var claims = new List<Claim>
             {
-               new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName),
-               new Claim("Email", user.Email),
+               new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName ?? string.Empty),
+               new Claim("Email", user.Email ?? string.Empty),
                new Claim("Id", user.Id),
                new Claim("Phone", user.Phone.ToString()??string.Empty),
                new Claim("FirstName", user.FirstName ?? string.Empty),
@@ -271,7 +374,7 @@ namespace WebApp.Service.Auth
             user.LastLogin = DateTime.UtcNow;
             await _userManager.UpdateAsync(user);
 
-            return GetToken(claims);
+            return GetToken(claims, expiresAtUtc);
         }
 
         public async Task<UserAddressResponseModel> GetAddress(string address)
@@ -293,6 +396,11 @@ namespace WebApp.Service.Auth
 
         public string GetToken(List<Claim> claims)
         {
+            return GetToken(claims, DateTime.UtcNow.AddHours(10));
+        }
+
+        private string GetToken(List<Claim> claims, DateTime expiresAtUtc)
+        {
             if (claims == null || !claims.Any())
                 throw new ArgumentException("Claims cannot be null or empty.", nameof(claims));
 
@@ -309,7 +417,7 @@ namespace WebApp.Service.Auth
                     issuer: _configuration["Jwt:Issuer"],
                     audience: _configuration["Jwt:Audience"],
                     claims: claims,
-                    expires: DateTime.UtcNow.AddHours(10),
+                    expires: expiresAtUtc,
                     signingCredentials: creds
                 );
 
@@ -319,6 +427,42 @@ namespace WebApp.Service.Auth
             {
                 throw new InvalidOperationException("Error generating JWT token.", ex);
             }
+        }
+
+        private ClaimsPrincipal GetPrincipalFromExpiredToken(string token)
+        {
+            var jwtKey = _configuration["Jwt:Key"];
+            if (string.IsNullOrWhiteSpace(jwtKey))
+                throw new InvalidOperationException("JWT signing key is not configured.");
+
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateAudience = true,
+                ValidateIssuer = true,
+                ValidateIssuerSigningKey = true,
+                ValidateLifetime = false,
+                ValidIssuer = _configuration["Jwt:Issuer"],
+                ValidAudience = _configuration["Jwt:Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out var securityToken);
+            if (securityToken is not JwtSecurityToken jwtSecurityToken ||
+                !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            {
+                throw new SecurityTokenException("Invalid access token.");
+            }
+
+            return principal;
+        }
+
+        private static string GenerateRefreshToken()
+        {
+            var randomBytes = new byte[64];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomBytes);
+            return Convert.ToBase64String(randomBytes);
         }
 
         public async Task<List<User>> UserList()

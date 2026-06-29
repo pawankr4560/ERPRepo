@@ -5,8 +5,27 @@ export interface LoginModel {
 
 
 export interface AuthenticatedResponse{
-  token: string;
-  errorMessage:string;
+  accessToken: string;
+  refreshToken: string;
+  accessTokenExpiresAtUtc: string;
+  refreshTokenExpiresAtUtc: string;
+  errorMessage?: string;
+}
+
+export interface ApiAuthResponse {
+  success: boolean;
+  message?: string;
+  errorMessage?: string;
+  data: AuthenticatedResponse;
+}
+
+export interface RefreshTokenRequest {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface GoogleLoginRequest {
+  idToken: string;
 }
 
 export interface SignupModel {

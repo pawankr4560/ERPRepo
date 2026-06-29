@@ -768,6 +768,46 @@
   color: #f87171;
 }
 
+.credit-score-card {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid #2d2d30;
+  border-radius: 12px;
+  background: #1e1e20;
+}
+
+.credit-score-card div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.credit-score-card span {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.credit-score-card strong {
+  color: #ffffff;
+  font-size: 18px;
+}
+
+.credit-score-card.excellent,
+.credit-score-card.good {
+  border-color: rgba(52, 211, 153, 0.55);
+}
+
+.credit-score-card.fair {
+  border-color: rgba(251, 191, 36, 0.55);
+}
+
+.credit-score-card.poor {
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
 .preview-heading {
   display: flex;
   align-items: flex-start;
@@ -1104,6 +1144,10 @@
     grid-template-columns: 1fr;
   }
 
+  .credit-score-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .wide-field {
     grid-column: auto;
   }
@@ -1165,5 +1209,9 @@
 
   ::ng-deep .mat-step-header {
     min-width: 124px;
+  }
+
+  .credit-score-card {
+    grid-template-columns: 1fr;
   }
 }

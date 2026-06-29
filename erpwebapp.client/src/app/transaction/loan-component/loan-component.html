@@ -340,6 +340,15 @@
             </mat-form-field>
           </div>
           <div class="wizard-actions">
+            <button
+              mat-stroked-button
+              type="button"
+              (click)="checkCreditScore()"
+              [disabled]="!isVerificationStepValid()"
+            >
+              <mat-icon>credit_score</mat-icon>
+              Check credit score
+            </button>
             <button mat-stroked-button matStepperPrevious type="button">Back</button>
             <button
               mat-raised-button
@@ -351,6 +360,12 @@
               Next
               <mat-icon>arrow_forward</mat-icon>
             </button>
+          </div>
+          <div class="credit-score-card" *ngIf="creditScoreResult as credit" [ngClass]="getCreditScoreTone(credit.score)">
+            <div><span>Credit score</span><strong>{{ credit.score }}</strong></div>
+            <div><span>Rating</span><strong>{{ credit.rating }}</strong></div>
+            <div><span>Risk</span><strong>{{ credit.risk }}</strong></div>
+            <div><span>Decision</span><strong>{{ credit.eligible ? 'Eligible' : 'Needs review' }}</strong></div>
           </div>
         </div>
       </mat-step>

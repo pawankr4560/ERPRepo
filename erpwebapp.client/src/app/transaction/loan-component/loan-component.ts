@@ -28,6 +28,7 @@ import {
 } from '../../setting/interest-setting.service';
 import { catchError, finalize, map, of, switchMap } from 'rxjs';
 import { ToastService } from '../../shared/services/toast.service';
+import { CreditScoreResult, CreditScoreService } from '../services/credit-score.service';
 import { LoanPaymentService } from '../services/loan-payment-service';
 
 interface EmiPreviewRow {
@@ -75,6 +76,7 @@ export class LoanComponent implements OnInit {
   isLoadingInterestSetting = false;
   isDeleting = false;
   approvalActionLoanId: number | null = null;
+  creditScoreResult: CreditScoreResult | null = null;
   systemInterestType: InterestCalculationType = 'Reducing';
   customerDetail: LoanCustomerDetail = this.createEmptyCustomerDetail();
 
@@ -177,7 +179,8 @@ export class LoanComponent implements OnInit {
     private snackBar: MatSnackBar,
     private router: Router,
     private toastService: ToastService,
-    private loanPaymentService: LoanPaymentService
+    private loanPaymentService: LoanPaymentService,
+    private creditScoreService: CreditScoreService
   ) {}
 
   ngOnInit(): void {
@@ -315,6 +318,30 @@ export class LoanComponent implements OnInit {
     this.current.userId = userId;
     const selected = this.customers.find((customer) => customer.id === userId);
     this.current.userName = selected?.customerName ?? '';
+    this.creditScoreResult = null;
+  }
+
+  checkCreditScore(): void {
+    if (!this.isVerificationStepValid()) {
+      this.snackBar.open('Complete customer verification before checking credit score.', 'Close', {
+        duration: 4000,
+      });
+      return;
+    }
+
+    this.creditScoreResult = this.creditScoreService.checkScore(this.current, this.customerDetail);
+    this.snackBar.open(
+      `Credit score ${this.creditScoreResult.score} - ${this.creditScoreResult.rating}`,
+      'Close',
+      { duration: 3500 }
+    );
+  }
+
+  getCreditScoreTone(score: number | undefined): string {
+    if (!score || score < 650) return 'poor';
+    if (score < 700) return 'fair';
+    if (score < 780) return 'good';
+    return 'excellent';
   }
 
   openLoanDetails(loan: Loan): void {
@@ -1173,6 +1200,7 @@ export class LoanComponent implements OnInit {
       status: 'Pending',
     };
     this.customerDetail = this.createEmptyCustomerDetail();
+    this.creditScoreResult = null;
 
     this.loadLoanData();
   }
@@ -1190,6 +1218,7 @@ export class LoanComponent implements OnInit {
     this.customerDetail = loan.customerDetail
       ? { ...loan.customerDetail }
       : this.createEmptyCustomerDetail();
+    this.creditScoreResult = null;
     this.loadLoanData();
   }
 
@@ -1212,6 +1241,7 @@ export class LoanComponent implements OnInit {
       active: true,
     };
     this.customerDetail = this.createEmptyCustomerDetail();
+    this.creditScoreResult = null;
     this.originalLoanNumber = undefined;
   }
 

@@ -8,6 +8,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ConfirmDialogComponent } from '../../users/confirm-dialog-component/confirm-dialog-component';
+import { CreditScoreResult, CreditScoreService } from '../services/credit-score.service';
 import { Loan, LoanEMISchedule, LoanService } from '../services/loan-service';
 
 @Component({
@@ -22,6 +23,7 @@ export class LoanDetailsComponent implements OnInit {
   isLoading = true;
   isReviewActionBusy = false;
   loadError = '';
+  creditScoreResult: CreditScoreResult | null = null;
   private loanId = 0;
 
   constructor(
@@ -29,7 +31,8 @@ export class LoanDetailsComponent implements OnInit {
     private router: Router,
     private loanService: LoanService,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private creditScoreService: CreditScoreService
   ) {}
 
   ngOnInit(): void {
@@ -51,6 +54,7 @@ export class LoanDetailsComponent implements OnInit {
     this.loanService.getLoanById(this.loanId).subscribe({
       next: (loan) => {
         this.loan = loan;
+        this.creditScoreResult = null;
         this.isLoading = false;
       },
       error: () => {
@@ -96,6 +100,26 @@ export class LoanDetailsComponent implements OnInit {
 
   backToLoans(): void {
     this.router.navigate(['/home/inventory/transactions']);
+  }
+
+  checkCreditScore(): void {
+    if (!this.loan) {
+      return;
+    }
+
+    this.creditScoreResult = this.creditScoreService.checkScore(this.loan, this.loan.customerDetail);
+    this.snackBar.open(
+      `Credit score ${this.creditScoreResult.score} - ${this.creditScoreResult.rating}`,
+      'Close',
+      { duration: 3500 }
+    );
+  }
+
+  getCreditScoreClass(score: number | undefined): string {
+    if (!score || score < 650) return 'score-poor';
+    if (score < 700) return 'score-fair';
+    if (score < 780) return 'score-good';
+    return 'score-excellent';
   }
 
   approve(): void {

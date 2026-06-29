@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System.Net;
 using WebApp.Data;
 using WebApp.Data.Entity;
 using WebApp.Model.Transaction;
-using WebApp.Service.Message;
+using WebApp.Service.Email;
 
 namespace WebApp.Service.Transaction
 {
@@ -15,16 +17,19 @@ namespace WebApp.Service.Transaction
 
         private readonly WebAppDbContext _dbContext;
         private readonly IMapper _mapper;
-        private readonly IMessageService _messageService;
+        private readonly IEmailService _emailService;
+        private readonly ILogger<LoanService> _logger;
 
         public LoanService(
             WebAppDbContext dbContext,
             IMapper mapper,
-            IMessageService messageService)
+            IEmailService emailService,
+            ILogger<LoanService> logger)
         {
             _dbContext = dbContext;
             _mapper = mapper;
-            _messageService = messageService;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         #region Get All
@@ -224,6 +229,7 @@ namespace WebApp.Service.Transaction
 
                 await _dbContext.LoanCustomerDetail.AddAsync(customerDetail);
                 await _dbContext.SaveChangesAsync();
+                await SendLoanEmailAsync(entity.Id, "created");
                 return isSavedSuccessfully;
             }
             catch (Exception ex)
@@ -354,6 +360,7 @@ namespace WebApp.Service.Transaction
                     }
                 }
 
+                await SendLoanEmailAsync(loan.Id, "updated");
                 return true;
             }
             catch (InvalidOperationException)
@@ -414,6 +421,7 @@ namespace WebApp.Service.Transaction
                 await GenerateEMIScheduleAsync(loan);
 
             await transaction.CommitAsync();
+            await SendLoanEmailAsync(loan.Id, "approved");
             return true;
         }
 
@@ -442,7 +450,13 @@ namespace WebApp.Service.Transaction
             loan.ApprovedByUserId = null;
             loan.F_Updated_Date_Time = DateTime.UtcNow;
 
-            return await _dbContext.SaveChangesAsync() > 0;
+            var saved = await _dbContext.SaveChangesAsync() > 0;
+            if (saved)
+            {
+                await SendLoanEmailAsync(loan.Id, "rejected");
+            }
+
+            return saved;
         }
 
         #endregion
@@ -594,6 +608,100 @@ namespace WebApp.Service.Transaction
 
             await _dbContext.LoanEMISchedule.AddRangeAsync(schedules);
             await _dbContext.SaveChangesAsync();
+        }
+
+        private async Task SendLoanEmailAsync(int loanId, string action)
+        {
+            try
+            {
+                var context = await GetLoanEmailContextAsync(loanId);
+                if (context == null || string.IsNullOrWhiteSpace(context.CustomerEmail))
+                {
+                    _logger.LogWarning("Loan email skipped for loan {LoanId}. Customer email is missing.", loanId);
+                    return;
+                }
+
+                var subject = action switch
+                {
+                    "created" => $"Loan application received - {context.LoanNumber}",
+                    "updated" => $"Loan application updated - {context.LoanNumber}",
+                    "approved" => $"Loan approved - {context.LoanNumber}",
+                    "rejected" => $"Loan rejected - {context.LoanNumber}",
+                    _ => $"Loan update - {context.LoanNumber}"
+                };
+
+                var body = BuildLoanEmailBody(context, action);
+                await _emailService.SendEmailAsync(context.CustomerEmail, subject, body);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unable to send {Action} loan email for loan {LoanId}.", action, loanId);
+            }
+        }
+
+        private async Task<LoanEmailContext?> GetLoanEmailContextAsync(int loanId)
+        {
+            return await (
+                from loan in _dbContext.Loan.AsNoTracking()
+                join user in _dbContext.Users.AsNoTracking()
+                    on loan.UserId equals user.Id
+                where loan.Id == loanId && !loan.IsDeleted
+                select new LoanEmailContext
+                {
+                    CustomerName = $"{user.FirstName} {user.LastName}".Trim(),
+                    CustomerEmail = user.Email ?? string.Empty,
+                    LoanNumber = loan.LoanNumber,
+                    LoanAmount = loan.LoanAmount,
+                    EMI = loan.EMI,
+                    Tenure = loan.Tenure,
+                    Status = loan.Status,
+                    StartDate = loan.StartDate,
+                    EndDate = loan.EndDate
+                })
+                .FirstOrDefaultAsync();
+        }
+
+        private static string BuildLoanEmailBody(LoanEmailContext context, string action)
+        {
+            var customerName = string.IsNullOrWhiteSpace(context.CustomerName)
+                ? "Customer"
+                : context.CustomerName;
+
+            var intro = action switch
+            {
+                "created" => "Your loan application has been created and is currently under review.",
+                "updated" => "Your loan application details have been updated.",
+                "approved" => "Good news. Your loan application has been approved.",
+                "rejected" => "Your loan application has been reviewed and rejected.",
+                _ => "There is an update on your loan application."
+            };
+
+            return $@"
+                <p>Hello {WebUtility.HtmlEncode(customerName)},</p>
+                <p>{WebUtility.HtmlEncode(intro)}</p>
+                <table cellpadding=""6"" cellspacing=""0"" style=""border-collapse:collapse"">
+                    <tr><td><strong>Loan Number</strong></td><td>{WebUtility.HtmlEncode(context.LoanNumber)}</td></tr>
+                    <tr><td><strong>Amount</strong></td><td>INR {context.LoanAmount:N2}</td></tr>
+                    <tr><td><strong>EMI</strong></td><td>INR {context.EMI:N2}</td></tr>
+                    <tr><td><strong>Tenure</strong></td><td>{context.Tenure} months</td></tr>
+                    <tr><td><strong>Status</strong></td><td>{WebUtility.HtmlEncode(context.Status)}</td></tr>
+                    <tr><td><strong>Start Date</strong></td><td>{context.StartDate:dd MMM yyyy}</td></tr>
+                    <tr><td><strong>End Date</strong></td><td>{context.EndDate:dd MMM yyyy}</td></tr>
+                </table>
+                <p>Thank you,<br/>GKFIN PVT LTD</p>";
+        }
+
+        private sealed class LoanEmailContext
+        {
+            public string CustomerName { get; set; } = string.Empty;
+            public string CustomerEmail { get; set; } = string.Empty;
+            public string LoanNumber { get; set; } = string.Empty;
+            public decimal LoanAmount { get; set; }
+            public decimal EMI { get; set; }
+            public int Tenure { get; set; }
+            public string Status { get; set; } = string.Empty;
+            public DateTime StartDate { get; set; }
+            public DateTime EndDate { get; set; }
         }
         #endregion
     }

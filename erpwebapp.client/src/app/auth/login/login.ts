@@ -1,4 +1,4 @@
-import { Component, OnInit } from "@angular/core";
+import { AfterViewInit, Component, ElementRef, OnInit, ViewChild } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from "@angular/forms";
 import { MatButtonModule } from "@angular/material/button";
@@ -10,6 +10,9 @@ import { Auth } from "../auth";
 import { LoginModel } from "../interfaces/login-model";
 import { MatSnackBar } from "@angular/material/snack-bar";
 import { ToastService } from "../../shared/services/toast.service";
+import { environment } from "../../../environments/environment";
+
+declare const google: any;
 
 @Component({
   selector: 'app-login',
@@ -23,7 +26,8 @@ import { ToastService } from "../../shared/services/toast.service";
   templateUrl: './login.html',
   styleUrl: './login.css',
 })
-export class Login implements OnInit {
+export class Login implements OnInit, AfterViewInit {
+  @ViewChild('googleButton', { static: false }) googleButton?: ElementRef<HTMLDivElement>;
   loginForm: FormGroup;
   pointerX = 50;
   pointerY = 50;
@@ -56,6 +60,14 @@ ngOnInit(): void {
   if (emailConfirmed === 'false') {
     this.toastService.error('Email confirmation link is invalid or expired.');
   }
+
+  if (this.authService.hasValidAccessToken()) {
+    this.router.navigate(['/home']);
+  }
+}
+
+ngAfterViewInit(): void {
+  this.loadGoogleSignIn();
 }
 
 updateBackgroundPointer(event: MouseEvent): void {
@@ -80,9 +92,7 @@ login() {
    this.authService.login(request).subscribe({
   next: (response) => {
     if(response.success){
-      const token = response.data;
-      localStorage.setItem("auth_token", token);
-      localStorage.setItem("jwt", token);
+      this.authService.storeTokens(response.data);
     this.snackBar.open('Login successful ✅', 'Close', {
       duration: 3000,
       horizontalPosition: 'right',
@@ -122,6 +132,65 @@ login() {
   //     localStorage.setItem('user',JSON.stringify(updatedUser));
   //   this.router.navigate(['/home']);
   // }
+}
+
+private loadGoogleSignIn(): void {
+  if (!environment.googleClientId || !this.googleButton?.nativeElement) {
+    return;
+  }
+
+  if (typeof google !== 'undefined') {
+    this.renderGoogleButton();
+    return;
+  }
+
+  const existingScript = document.querySelector<HTMLScriptElement>('script[src="https://accounts.google.com/gsi/client"]');
+  if (existingScript) {
+    existingScript.addEventListener('load', () => this.renderGoogleButton());
+    return;
+  }
+
+  const script = document.createElement('script');
+  script.src = 'https://accounts.google.com/gsi/client';
+  script.async = true;
+  script.defer = true;
+  script.onload = () => this.renderGoogleButton();
+  document.head.appendChild(script);
+}
+
+private renderGoogleButton(): void {
+  if (!this.googleButton?.nativeElement || typeof google === 'undefined') {
+    return;
+  }
+
+  google.accounts.id.initialize({
+    client_id: environment.googleClientId,
+    callback: (response: { credential: string }) => this.handleGoogleCredential(response.credential),
+  });
+
+  google.accounts.id.renderButton(this.googleButton.nativeElement, {
+    theme: 'outline',
+    size: 'large',
+    width: 340,
+    text: 'signin_with',
+  });
+}
+
+private handleGoogleCredential(idToken: string): void {
+  this.authService.googleLogin({ idToken }).subscribe({
+    next: (response) => {
+      if (response.success && response.data) {
+        this.authService.storeTokens(response.data);
+        this.toastService.success('Google login successful');
+        this.router.navigate(['/home']);
+      } else {
+        this.toastService.error(response.errorMessage || 'Google login failed');
+      }
+    },
+    error: (error) => {
+      this.toastService.error(error?.error?.message || error?.error?.errorMessage || 'Google login failed');
+    },
+  });
 }
 
 }

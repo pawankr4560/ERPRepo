@@ -65,30 +65,44 @@ namespace WebApp.Server.Controllers
             }
         }
 
-
-        [HttpGet("VerifyToken")]
-        public async Task<IActionResult> VerifyGoogleToken(string idToken)
+        [HttpPost("RefreshToken")]
+        public async Task<IActionResult> RefreshToken(RefreshTokenRequestModel model)
         {
             try
             {
-                var payload = await GoogleJsonWebSignature.ValidateAsync(idToken, new GoogleJsonWebSignature.ValidationSettings()
+                var result = await _authService.RefreshToken(model);
+                return Ok(new ApiResponse(true, "Token refreshed successfully", result));
+            }
+            catch (Exception ex)
+            {
+                return Unauthorized(new ApiResponse(false, ex.Message, null));
+            }
+        }
+
+        [HttpPost("GoogleLogin")]
+        public async Task<IActionResult> GoogleLogin(GoogleLoginRequestModel model)
+        {
+            try
+            {
+                var clientId = HttpContext.RequestServices
+                    .GetRequiredService<IConfiguration>()["GoogleAuth:ClientId"];
+
+                var audience = string.IsNullOrWhiteSpace(clientId)
+                    ? new[] { "154680420839-m4qrud76jiphfnvl905qipt6to24phvq.apps.googleusercontent.com" }
+                    : new[] { clientId };
+
+                var payload = await GoogleJsonWebSignature.ValidateAsync(model.IdToken, new GoogleJsonWebSignature.ValidationSettings()
                 {
                     Clock = new Clock(),
-                    Audience = new[] { "154680420839-m4qrud76jiphfnvl905qipt6to24phvq.apps.googleusercontent.com" }
+                    Audience = audience
                 });
 
-
-                var claims = new List<Claim>
-        {
-            new Claim(JwtRegisteredClaimNames.UniqueName, payload.Email),
-            new Claim("Email", payload.Email),
-            new Claim("Id", payload.JwtId),
-            new Claim("Name", payload.Name),
-            new Claim("Role", "User")
-        };
-
-                var result = _authService.GetToken(claims);
-                return Ok(new ApiResponse(true, null, result));
+                var result = await _authService.LoginWithGoogle(
+                    payload.Email,
+                    payload.GivenName ?? payload.Name ?? string.Empty,
+                    payload.FamilyName ?? string.Empty,
+                    payload.Subject);
+                return Ok(new ApiResponse(true, "Google login successfully", result));
             }
             catch (InvalidJwtException ex)
             {
@@ -98,6 +112,12 @@ namespace WebApp.Server.Controllers
             {
                 return BadRequest(new { message = "Unexpected error.", details = ex.Message });
             }
+        }
+
+        [HttpGet("VerifyToken")]
+        public Task<IActionResult> VerifyGoogleToken(string idToken)
+        {
+            return GoogleLogin(new GoogleLoginRequestModel { IdToken = idToken });
         }
 
         [HttpGet("GetAddress")]

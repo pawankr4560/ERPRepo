@@ -2,6 +2,7 @@ export const environment = {
   production: true,
   apiUrl: 'https://YOUR_PRODUCTION_API_URL/api',
   apiKey: '',
+  googleClientId: '',
   testUser: {
     token: {
       expires_in: 0,
