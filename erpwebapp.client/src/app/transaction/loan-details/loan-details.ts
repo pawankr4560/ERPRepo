@@ -122,6 +122,7 @@ export class LoanDetailsComponent implements OnInit {
 
   private buildPrintableHtml(title: string): string {
     const loan = this.loan!;
+    const customerMobile = loan.customerDetail?.customerMobileNo?.trim() || '-';
     const rows = this.schedules.map((item) => `
       <tr><td>${item.installmentNo}</td><td>${this.escapeHtml(this.formatDate(item.dueDate))}</td>
       <td>INR ${item.emiAmount.toFixed(2)}</td><td>INR ${item.principalAmount.toFixed(2)}</td>
@@ -136,7 +137,7 @@ export class LoanDetailsComponent implements OnInit {
         @page{size:landscape;margin:12mm}
       </style></head><body><header><div><h1>GKFIN PVT LTD</h1>
       <p>Loan schedule: <strong>${this.escapeHtml(loan.loanNumber)}</strong></p></div>
-      <div><p><strong>${this.escapeHtml(loan.userName ?? '-')}</strong></p><p>${this.escapeHtml(loan.status ?? 'Pending')}</p></div></header>
+      <div><p><strong>${this.escapeHtml(loan.userName ?? '-')}</strong></p><p>Mobile: ${this.escapeHtml(customerMobile)}</p><p>${this.escapeHtml(loan.status ?? 'Pending')}</p></div></header>
       <section class="summary"><div><span>Loan Amount</span><strong>INR ${loan.loanAmount.toFixed(2)}</strong></div>
       <div><span>Tenure</span><strong>${loan.tenure ?? 0} months</strong></div></section>
       <table><thead><tr><th>No.</th><th>Due Date</th><th>EMI</th><th>Principal</th><th>Balance</th><th>Status</th></tr></thead>

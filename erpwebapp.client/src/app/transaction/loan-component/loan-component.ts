@@ -416,6 +416,7 @@ export class LoanComponent implements OnInit {
     const loanAmount = loan.loanAmount ?? 0;
     const rate = loan.rate ?? 0;
     const tenureYears = loan.tenure ? loan.tenure / 12 : 0;
+    const customerMobile = loan.customerDetail?.customerMobileNo?.trim() || '-';
 
     return `
       <div class="print-page">
@@ -427,6 +428,7 @@ export class LoanComponent implements OnInit {
             </div>
             <div class="print-meta">
               <div><strong>Customer</strong><span>${loan.userName ?? '-'}</span></div>
+              <div><strong>Mobile</strong><span>${customerMobile}</span></div>
               <div><strong>Loan Amount</strong><span>₹${loanAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
               <div><strong>Rate</strong><span>${rate.toFixed(2)}%</span></div>
               <div><strong>Tenure</strong><span>${tenureYears} years</span></div>
@@ -507,6 +509,7 @@ export class LoanComponent implements OnInit {
       (sum, item) => sum + item.principalAmount,
       0
     );
+    const customerMobile = loan.customerDetail?.customerMobileNo?.trim() || '-';
 
     return `
       <div class="print-page">
@@ -518,6 +521,7 @@ export class LoanComponent implements OnInit {
             </div>
             <div class="print-meta">
               <div><strong>Customer</strong><span>${loan.userName ?? '-'}</span></div>
+              <div><strong>Mobile</strong><span>${customerMobile}</span></div>
               <div><strong>Loan Amount</strong><span>INR ${loan.loanAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
             </div>
           </div>
