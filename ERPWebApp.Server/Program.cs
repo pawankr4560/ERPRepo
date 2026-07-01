@@ -1,11 +1,9 @@
-using AutoMapper;
 using ERPWebAppService.Booking.Car;
+using ERPWebAppService.Dashbord;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Stripe;
@@ -205,6 +203,7 @@ builder.Services.AddTransient<
 // Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProductService, WebApp.Service.Product.ProductService>();
+builder.Services.AddScoped<IDashbordService, DashbordService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ILoanService, LoanService>();
 builder.Services.AddScoped<IEmailService, SmtpEmailService>();

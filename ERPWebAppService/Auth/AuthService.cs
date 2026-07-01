@@ -337,7 +337,15 @@ namespace WebApp.Service.Auth
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
                 AccessTokenExpiresAtUtc = accessTokenExpiresAtUtc,
-                RefreshTokenExpiresAtUtc = refreshTokenExpiresAtUtc
+                RefreshTokenExpiresAtUtc = refreshTokenExpiresAtUtc,
+                User = new UserRes
+                {
+                    FirstName = user.FirstName,
+                    Id= user.Id,
+                    LastName = user.LastName,
+                    Phone = user.Phone.ToString(),
+                    Email = user.Email
+                }
             };
         }
 

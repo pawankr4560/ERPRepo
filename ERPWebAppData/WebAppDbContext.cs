@@ -86,5 +86,9 @@ namespace WebApp.Data
         public DbSet<Category> Categories { get; set; }
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<BookingPayment> BookingPayments { get; set; }
+        public DbSet<Notification> Notification { get; set; }
+        public DbSet<PreApprovedOffer> PreApprovedOffer { get; set; }
+        public DbSet<LoanApplication> LoanApplication { get; set; }
+        public DbSet<LoanApplicationDocument> LoanApplicationDocuments { get; set; }
     }
 }

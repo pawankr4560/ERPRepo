@@ -4,12 +4,13 @@ using System.Security.Claims;
 using WebApp.Model.Transaction;
 using WebApp.Service.Message;
 using WebApp.Service.Transaction;
+using ERPWebAppModels.Transaction;
 
 namespace WebApp.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    //[Authorize(Roles = "Admin")]
     public class LoanController : ControllerBase
     {
         private readonly ILoanService _loanService;
@@ -136,5 +137,47 @@ namespace WebApp.Server.Controllers
 
             return BadRequest(new { success = false, message = "Failed to dispatch SMS via MSG91." });
         }
+
+        #region UserSide
+        [HttpPost("loan-applications")]
+        public async Task<IActionResult> CreateLoanApplication(
+        [FromBody] CreateLoanApplicationRequestDto model)
+            {
+                var result = await _loanService.CreateLoanApplication(model);
+
+                return Ok(result);
+            }
+
+        [HttpGet("loan-applications")]
+        public async Task<IActionResult> GetLoanApplications(string userId)
+        {
+            var result = await _loanService.GetLoanApplicationsAsync(userId);
+
+            return Ok(result);
+        }
+        [HttpGet("users/{userId}/loan-applications/{id}/status")]
+        public async Task<IActionResult> GetLoanApplicationStatus(
+        string userId,
+        string id)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                return BadRequest("UserId is required.");
+
+            var result = await _loanService.GetLoanApplicationStatusAsync(userId, id);
+
+            return Ok(result);
+        }
+
+        [HttpPost("documents")]
+        public async Task<IActionResult> UploadDocuments([FromBody] UploadLoanDocumentsRequestDto request)
+            {
+                var result = await _loanService.UploadLoanDocumentsAsync(request);
+
+                if (!result.Success)
+                    return NotFound(result);
+
+                return Ok(result);
+            }
+        #endregion
     }
 }

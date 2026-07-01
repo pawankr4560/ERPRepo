@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using ERPWebAppData.Entity;
+using ERPWebAppModels.Transaction;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -704,5 +706,262 @@ namespace WebApp.Service.Transaction
             public DateTime EndDate { get; set; }
         }
         #endregion
+
+        #region Application section
+        public LoanTypeResponseDto LoanTypes()
+        {
+            return new LoanTypeResponseDto
+            {
+                Data = new List<LoanTypeDto>
+        {
+            new() { Id = "home", Label = "Home", Icon = "home_outlined" },
+            new() { Id = "auto", Label = "Auto", Icon = "directions_car_outlined" },
+            new() { Id = "personal", Label = "Personal", Icon = "person_outline" },
+            new() { Id = "education", Label = "Education", Icon = "school_outlined" }
+        }
+            };
+        }
+        public async Task<CreateLoanApplicationResponseDto> CreateLoanApplication(
+        CreateLoanApplicationRequestDto model)
+            {
+                var loanNumber = await GetLoanNumber();
+
+                var loan = new Loan
+                {
+                    UserId = model.UserId,
+                    LoanNumber = loanNumber.LoanNumber,
+                    LoanAmount = model.AmountRequested,
+                    Rate = 9.25m,
+                    Tenure = model.Tenure,
+                    EMI = 0,
+                    IsReducingInterest = true,
+                    StartDate = DateTime.UtcNow,
+                    EndDate = DateTime.UtcNow.AddMonths(model.Tenure),
+                    Status = "Submitted",
+                    Active = true,
+                    IsDeleted = false,
+                    F_Created_Date_Time = DateTime.UtcNow,
+                    F_Updated_Date_Time = DateTime.UtcNow,
+                    F_User_Index_Created = 0
+                };
+
+                await _dbContext.Loan.AddAsync(loan);
+                await _dbContext.SaveChangesAsync();
+
+                var loanApplication = new LoanApplication
+                {
+                    LoanId = loan.Id,
+                    UserId = model.UserId,
+                    FullName = model.FullName,
+                    DOB = model.DOB,
+                    Address = model.Address,
+                    PANNumber = model.PANNumber,
+                    EmploymentType = model.EmploymentType,
+                    EmployerName = model.EmployerName,
+                    MonthlyIncome = model.MonthlyIncome,
+                    WorkExperience = model.WorkExperience,
+                    LoanType = model.LoanType,
+                    Purpose = model.Purpose,
+                    IsDeleted = false,
+                    CreatedOn = DateTime.UtcNow,
+                    UpdatedOn = DateTime.UtcNow
+                };
+
+                await _dbContext.LoanApplication.AddAsync(loanApplication);
+                await _dbContext.SaveChangesAsync();
+
+                return new CreateLoanApplicationResponseDto
+                {
+                    ApplicationId = loan.LoanNumber,
+                    Status = loan.Status,
+                    StepsCompleted = 1,
+                    LoanType = "Personal",
+                    Amount = model.AmountRequested,
+                    Tenure = model.Tenure,
+                    SubmittedDate = DateTime.UtcNow,
+                };
+            }
+
+        public async Task<List<LoanApplicationListDto>> GetLoanApplicationsAsync(string userId)
+        {
+            return await (
+                from loan in _dbContext.Loan
+                join application in _dbContext.LoanApplication
+                    on loan.Id equals application.LoanId
+                where loan.UserId == userId
+                      && application.UserId == userId
+                      && !loan.IsDeleted
+                      && !application.IsDeleted
+                      && loan.Active
+                orderby loan.F_Created_Date_Time descending
+                select new LoanApplicationListDto
+                {
+                    Id = loan.LoanNumber,
+                    Type = application.LoanType + " Loan",
+                    Amount = loan.LoanAmount,
+                    Status = loan.Status,
+                    StepsCompleted = loan.Status == "Submitted" ? 1
+                        : loan.Status == "Under review" ? 2
+                        : loan.Status == "Approved" ? 3
+                        : loan.Status == "Disbursed" ? 4
+                        : 0,
+                    SubmittedDate = loan.F_Created_Date_Time
+                }
+            ).ToListAsync();
+        }
+
+        public async Task<LoanApplicationStatusDto> GetLoanApplicationStatusAsync(
+        string userId,
+        string applicationId)
+            {
+                var application = await (
+                    from loan in _dbContext.Loan
+                    join loanApplication in _dbContext.LoanApplication
+                        on loan.Id equals loanApplication.LoanId
+                    where loan.UserId == userId
+                          && loanApplication.UserId == userId
+                          && loan.LoanNumber == applicationId
+                          && !loan.IsDeleted
+                          && !loanApplication.IsDeleted
+                    select new
+                    {
+                        loan.LoanNumber,
+                        loan.LoanAmount,
+                        loan.Status,
+                        loan.F_Created_Date_Time,
+                        loan.ApprovedAtUtc,
+                        loan.RejectedAtUtc,
+                        loanApplication.LoanType
+                    }
+                ).FirstOrDefaultAsync();
+
+                if (application == null)
+                {
+                    return null;
+                }
+
+                var stages = BuildLoanStages(
+                    application.Status,
+                    application.F_Created_Date_Time,
+                    application.ApprovedAtUtc);
+
+                var result = new LoanApplicationStatusDto
+                {
+                    Id = application.LoanNumber,
+                    Type = $"{application.LoanType} Loan",
+                    Amount = application.LoanAmount,
+                    Status = application.Status,
+                    StepsCompleted = GetStepsCompleted(application.Status),
+                    Stages = stages
+                };
+
+                return result;
+            }
+        #endregion
+
+        #region Helper Method
+        private static int GetStepsCompleted(string status)
+        {
+            return status switch
+            {
+                "Submitted" => 1,
+                "Under review" => 2,
+                "Approved" => 3,
+                "Disbursed" => 4,
+                "Rejected" => 1,
+                _ => 0
+            };
+        }
+
+        private static List<LoanApplicationStageDto> BuildLoanStages(
+            string currentStatus,
+            DateTime submittedDate,
+            DateTime? approvedDate)
+        {
+            var stepsCompleted = GetStepsCompleted(currentStatus);
+
+            return new List<LoanApplicationStageDto>
+    {
+        new()
+        {
+            Title = "Submitted",
+            Status = stepsCompleted >= 1 ? "done" : "pending",
+            Date = submittedDate
+        },
+        new()
+        {
+            Title = "Under review",
+            Status = currentStatus == "Under review"
+                ? "inProgress"
+                : stepsCompleted > 2 ? "done" : "pending"
+        },
+        new()
+        {
+            Title = "Approved",
+            Status = currentStatus == "Approved"
+                ? "inProgress"
+                : stepsCompleted > 3 ? "done" : "pending",
+            Date = approvedDate
+        },
+        new()
+        {
+            Title = "Disbursed",
+            Status = currentStatus == "Disbursed"
+                ? "done"
+                : "pending"
+        }
+    };
+        }
+
+        public async Task<UploadLoanDocumentsResponseDto> UploadLoanDocumentsAsync(
+        UploadLoanDocumentsRequestDto request)
+        {
+            var loan = await _dbContext.Loan
+                .FirstOrDefaultAsync(x =>
+                    x.LoanNumber == request.ApplicationId &&
+                    !x.IsDeleted);
+
+            if (loan == null)
+            {
+                return new UploadLoanDocumentsResponseDto
+                {
+                    Success = false,
+                    Message = "Loan application not found."
+                };
+            }
+
+            foreach (var document in request.Documents)
+            {
+                var entity = new LoanApplicationDocument
+                {
+                    LoanId = loan.Id,
+                    DocumentType = document.Type,
+                    DocumentUrl = document.Url,
+                    IsDeleted = false,
+                    CreatedOn = DateTime.UtcNow
+                };
+
+                await _dbContext.LoanApplicationDocuments.AddAsync(entity);
+            }
+
+            await _dbContext.SaveChangesAsync();
+
+            return new UploadLoanDocumentsResponseDto
+            {
+                Success = true,
+                Message = "Documents uploaded successfully"
+            };
+        }
+        #endregion
+    }
+    public class LoanTypeDto
+    {
+        public string Id { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+    }
+    public class LoanTypeResponseDto
+    {
+        public List<LoanTypeDto> Data { get; set; } = new();
     }
 }
