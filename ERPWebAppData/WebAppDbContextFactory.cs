@@ -13,7 +13,10 @@ public sealed class WebAppDbContextFactory : IDesignTimeDbContextFactory<WebAppD
             ?? ReadConnectionString(FindAppSettingsPath());
 
         var options = new DbContextOptionsBuilder<WebAppDbContext>()
-            .UseSqlServer(connectionString)
+            .UseSqlServer(connectionString, sqlOptions =>
+            {
+                sqlOptions.EnableRetryOnFailure();
+            })
             .Options;
 
         return new WebAppDbContext(options);

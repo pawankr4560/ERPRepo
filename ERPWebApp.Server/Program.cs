@@ -72,7 +72,10 @@ if (string.IsNullOrWhiteSpace(connectionString))
 
 builder.Services.AddDbContext<WebAppDbContext>(options =>
 {
-    options.UseSqlServer(connectionString);
+    options.UseSqlServer(connectionString, sqlOptions =>
+    {
+        sqlOptions.EnableRetryOnFailure();
+    });
 });
 
 builder.Services.AddStackExchangeRedisCache(options =>

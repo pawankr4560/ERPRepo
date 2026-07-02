@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://YOUR_PRODUCTION_API_URL/api',
+  apiUrl: 'https://testwbapp-ecg6d9grbnguf0b2.centralindia-01.azurewebsites.net/api',
   apiKey: '',
   googleClientId: '',
   testUser: {
