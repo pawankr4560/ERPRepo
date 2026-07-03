@@ -10,6 +10,9 @@ namespace WebApp.Service.Auth
         Task<bool> AuthenticateUser(string token);
         Task<bool> ConfirmEmail(string email, string token);
         Task<AuthTokenResponseModel> CreateAuthResponse(User user);
+        Task<UpdateUserProfileResponseDto> UpdateUserProfileAsync(
+        string userId,
+        UpdateUserProfileRequestDto request);
         Task<string> CreateToken(User user);
         string GetEmailConfirmationRedirectUrl(bool confirmed);
         Task<UserAddressResponseModel> GetAddress(string address);

@@ -476,10 +476,10 @@ public class RazorpayService : IRazorpayService
             throw new InvalidOperationException("Payments can only be made for approved active loans.");
         }
 
-        if (!isAdmin && !string.Equals(loan.UserId, userId, StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException("You are not allowed to pay for this loan.");
-        }
+        //if (!isAdmin && !string.Equals(loan.UserId, userId, StringComparison.Ordinal))
+        //{
+        //    throw new InvalidOperationException("You are not allowed to pay for this loan.");
+        //}
 
         return loan;
     }

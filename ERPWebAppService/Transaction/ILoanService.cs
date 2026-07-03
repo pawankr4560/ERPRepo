@@ -21,5 +21,6 @@ namespace WebApp.Service.Transaction
     string applicationId);
         Task<UploadLoanDocumentsResponseDto> UploadLoanDocumentsAsync(
     UploadLoanDocumentsRequestDto request);
+        Task<LoanDocumentsResponseDto> GetLoanDocumentsAsync(string applicationId);
     }
 }

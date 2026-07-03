@@ -1,5 +1,6 @@
 using ERPWebAppService.Booking.Car;
 using ERPWebAppService.Dashbord;
+using ERPWebAppService.Payment;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
@@ -219,6 +220,7 @@ builder.Services.AddScoped<ICarService, CarService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IBookingPaymentService, BookingPaymentService>();
 builder.Services.AddScoped<IRazorpayService, RazorpayService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 // Stripe Services
 builder.Services.AddScoped<CustomerService>();

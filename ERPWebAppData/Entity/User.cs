@@ -14,5 +14,7 @@ namespace WebApp.Data.Entity
         public string Gender { get; set; } = string.Empty;
         public int LoginCount { get; set; }
         public long Phone { get; set; }
+        public string? Address { get; set; }
+        public string? ImageUrl { get; set; }
     }
 }

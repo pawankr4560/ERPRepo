@@ -7,6 +7,7 @@ using WebApp.Model.Common;
 using WebApp.Service.Auth;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 
 namespace WebApp.Server.Controllers
@@ -36,17 +37,45 @@ namespace WebApp.Server.Controllers
                 return BadRequest(new ApiResponse(false, ex.Message, ex));
             }
         }
+        [HttpPut("users/{userId}/profile")]
+        public async Task<IActionResult> UpdateUserProfile(
+        string userId,
+        [FromBody] UpdateUserProfileRequestDto request)
+        {
+            var result = await _authService.UpdateUserProfileAsync(userId, request);
+
+            if (!result.Success)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
 
         [HttpGet("ConfirmEmail")]
-        public async Task<IActionResult> ConfirmEmail([FromQuery] string email, [FromQuery] string token)
+        public async Task<IActionResult> ConfirmEmail(
+        [FromQuery] string email,
+        [FromQuery] string token,
+        [FromQuery] string client = "web")
         {
             try
             {
                 await _authService.ConfirmEmail(email, token);
+
+                if (client.Equals("flutter", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Redirect("loantracker://login?emailConfirmed=true");
+                }
+
                 return Redirect(_authService.GetEmailConfirmationRedirectUrl(true));
             }
             catch
             {
+                if (client.Equals("flutter", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Redirect("loantracker://login?emailConfirmed=false");
+                }
+
                 return Redirect(_authService.GetEmailConfirmationRedirectUrl(false));
             }
         }

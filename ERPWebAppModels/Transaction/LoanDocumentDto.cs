@@ -2,8 +2,10 @@
 {
     public class LoanDocumentDto
     {
-        public string Type { get; set; } = string.Empty;
-
-        public string Url { get; set; } = string.Empty;
+        public int DocumentId { get; set; }
+        public string Type { get; set; }
+        public string Url { get; set; }
+        public DateTime? UploadedAt { get; set; }
+        public string? FileName { get; set; }
     }
 }

@@ -178,6 +178,21 @@ namespace WebApp.Server.Controllers
 
                 return Ok(result);
             }
+        [HttpGet("{applicationId}/documents")]
+        public async Task<IActionResult> GetLoanDocuments(string applicationId)
+        {
+            var result = await _loanService.GetLoanDocumentsAsync(applicationId);
+
+            if (result == null)
+            {
+                return NotFound(new
+                {
+                    message = "Loan application not found."
+                });
+            }
+
+            return Ok(result);
+        }
         #endregion
     }
 }

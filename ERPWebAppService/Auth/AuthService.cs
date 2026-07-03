@@ -78,12 +78,58 @@ namespace WebApp.Service.Auth
                 }
 
                 var emailConfirmationToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                var confirmationLink = BuildEmailConfirmationLink(user.Email!, emailConfirmationToken);
+                //var confirmationLink = BuildEmailConfirmationLink(user.Email!, emailConfirmationToken);
+                var client = _httpContextAccessor.HttpContext?.Request.Headers["X-Client"].ToString();
+
+                var confirmationLink = BuildEmailConfirmationLink(
+                    user.Email!,
+                    emailConfirmationToken,
+                    client?.Equals("Flutter", StringComparison.OrdinalIgnoreCase) == true
+                        ? "flutter"
+                        : "web");
                 var emailBody = BuildSignupEmailBody(user, confirmationLink);
                 await SendEmailFromSmtpAsync(user.Email!, "Welcome to ERP Web App", emailBody);
                 return true;
             }
             catch (Exception) { throw; }
+        }
+        public async Task<UpdateUserProfileResponseDto> UpdateUserProfileAsync(
+        string userId,
+        UpdateUserProfileRequestDto request)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+
+            if (user == null)
+            {
+                return new UpdateUserProfileResponseDto
+                {
+                    Success = false,
+                    Message = "User not found."
+                };
+            }
+
+            user.FirstName = request.FirstName ?? user.FirstName;
+            user.LastName = request.LastName ?? user.LastName;
+            user.PhoneNumber = request.Mobile ?? user.PhoneNumber;
+            user.Address = request.Address ?? user.Address;
+            user.ImageUrl = request.profileImageUrl;
+
+            var result = await _userManager.UpdateAsync(user);
+
+            if (!result.Succeeded)
+            {
+                return new UpdateUserProfileResponseDto
+                {
+                    Success = false,
+                    Message = string.Join(", ", result.Errors.Select(x => x.Description))
+                };
+            }
+
+            return new UpdateUserProfileResponseDto
+            {
+                Success = true,
+                Message = "Profile updated successfully."
+            };
         }
 
         public async Task<bool> ConfirmEmail(string email, string token)
@@ -161,7 +207,7 @@ namespace WebApp.Service.Auth
             await smtpClient.SendMailAsync(message);
         }
 
-        private string BuildEmailConfirmationLink(string email, string token)
+        private string BuildEmailConfirmationLink(string email, string token, string? client = null)
         {
             var baseUrl = _configuration["EmailConfirmation:BaseUrl"];
             var request = _httpContextAccessor.HttpContext?.Request;
@@ -176,18 +222,26 @@ namespace WebApp.Service.Auth
                 baseUrl = _configuration["Jwt:Issuer"];
             }
 
-            if (string.IsNullOrWhiteSpace(baseUrl) || !Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri))
+            if (string.IsNullOrWhiteSpace(baseUrl) ||
+                !Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri))
             {
                 throw new InvalidOperationException("Email confirmation base URL is not configured.");
             }
 
             var confirmPath = "api/Auth/ConfirmEmail";
-            var builder = new UriBuilder(new Uri(baseUri, confirmPath))
-            {
-                Query = $"email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}"
-            };
 
-            return builder.Uri.ToString();
+            var query = $"email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
+
+            // Sirf Flutter ke liye client parameter add hoga
+            if (!string.IsNullOrWhiteSpace(client))
+            {
+                query += $"&client={Uri.EscapeDataString(client)}";
+            }
+
+            return new UriBuilder(new Uri(baseUri, confirmPath))
+            {
+                Query = query
+            }.Uri.ToString();
         }
 
         public string GetEmailConfirmationRedirectUrl(bool confirmed)

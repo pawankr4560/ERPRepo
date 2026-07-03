@@ -952,6 +952,39 @@ namespace WebApp.Service.Transaction
                 Message = "Documents uploaded successfully"
             };
         }
+
+        public async Task<LoanDocumentsResponseDto> GetLoanDocumentsAsync(string applicationId)
+        {
+            var loan = await _dbContext.Loan
+                .FirstOrDefaultAsync(x =>
+                    x.LoanNumber == applicationId &&
+                    !x.IsDeleted);
+
+            if (loan == null)
+            {
+                return null;
+            }
+
+            var documents = await _dbContext.LoanApplicationDocuments
+                .Where(x =>
+                    x.LoanId == loan.Id &&
+                    !x.IsDeleted)
+                .OrderByDescending(x => x.CreatedOn)
+                .Select(x => new LoanDocumentDto
+                {
+                    DocumentId = x.Id,
+                    Type = x.DocumentType,
+                    Url = x.DocumentUrl,
+                    UploadedAt = x.CreatedOn
+                })
+                .ToListAsync();
+
+            return new LoanDocumentsResponseDto
+            {
+                ApplicationId = loan.LoanNumber,
+                Documents = documents
+            };
+        }
         #endregion
     }
     public class LoanTypeDto
