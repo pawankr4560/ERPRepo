@@ -1,4 +1,4 @@
-﻿
+
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ERPWebAppData.Entity;
@@ -69,6 +69,40 @@ namespace WebApp.Data
 
             modelBuilder.Entity<OrderHistory>()
                 .HasQueryFilter(x => !x.IsDeleted);
+
+            // New Modules Configurations
+            modelBuilder.Entity<Profile>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<Profile>()
+                .HasOne(p => p.User)
+                .WithOne()
+                .HasForeignKey<Profile>(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<MilkCollectionLog>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<MilkCollectionLog>().Property(x => x.QuantityInLiters).HasPrecision(18, 2);
+            modelBuilder.Entity<MilkCollectionLog>().Property(x => x.FatPercentage).HasPrecision(18, 2);
+            modelBuilder.Entity<MilkCollectionLog>().Property(x => x.RatePerLiter).HasPrecision(18, 2);
+
+            modelBuilder.Entity<InventoryItem>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<InventoryItem>().Property(x => x.CostPrice).HasPrecision(18, 2);
+            modelBuilder.Entity<InventoryItem>().Property(x => x.SellingPrice).HasPrecision(18, 2);
+
+            modelBuilder.Entity<FieldRecord>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<FieldRecord>().Property(x => x.AreaAcres).HasPrecision(18, 2);
+
+            modelBuilder.Entity<AgricultureStockItem>().HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<PlotListing>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<PlotListing>().Property(x => x.AreaSqFt).HasPrecision(18, 2);
+            modelBuilder.Entity<PlotListing>().Property(x => x.Price).HasPrecision(18, 2);
+
+            modelBuilder.Entity<Vehicle>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<Vehicle>().Property(x => x.DailyRate).HasPrecision(18, 2);
+
+            modelBuilder.Entity<CarBooking>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<CarBooking>().Property(x => x.DailyRate).HasPrecision(18, 2);
+
+            modelBuilder.Entity<ActivityLog>().HasQueryFilter(x => !x.IsDeleted);
         }
 
         public DbSet<Product> Products { get; set; }
@@ -90,5 +124,17 @@ namespace WebApp.Data
         public DbSet<PreApprovedOffer> PreApprovedOffer { get; set; }
         public DbSet<LoanApplication> LoanApplication { get; set; }
         public DbSet<LoanApplicationDocument> LoanApplicationDocuments { get; set; }
+
+        // New DbSets
+        public DbSet<Profile> Profiles { get; set; }
+        public DbSet<MilkCollectionLog> MilkCollectionLogs { get; set; }
+        public DbSet<InventoryItem> InventoryItems { get; set; }
+        public DbSet<FieldRecord> FieldRecords { get; set; }
+        public DbSet<AgricultureStockItem> AgricultureStockItems { get; set; }
+        public DbSet<PlotListing> PlotListings { get; set; }
+        public DbSet<Vehicle> Vehicles { get; set; }
+        public DbSet<CarBooking> CarBookings { get; set; }
+        public DbSet<ActivityLog> ActivityLogs { get; set; }
     }
 }
+

@@ -21,6 +21,13 @@ using WebApp.Service.Order;
 using WebApp.Service.Product;
 using WebApp.Service.Razorpay;
 using WebApp.Service.Transaction;
+using WebApp.Service.Profile;
+using WebApp.Service.Dashboard;
+using WebApp.Service.Dairy;
+using WebApp.Service.Inventory;
+using WebApp.Service.Agriculture;
+using WebApp.Service.Plot;
+using WebApp.Service.CarBooking;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -204,6 +211,14 @@ builder.Services.AddTransient<
     IGenericRepository<StripeCustomer>,
     GenericRepository<StripeCustomer>>();
 
+// New Repositories
+builder.Services.AddScoped<IProfileRepository, ProfileRepository>();
+builder.Services.AddScoped<IDairyRepository, DairyRepository>();
+builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+builder.Services.AddScoped<IAgricultureRepository, AgricultureRepository>();
+builder.Services.AddScoped<IPlotRepository, PlotRepository>();
+builder.Services.AddScoped<ICarBookingRepository, CarBookingRepository>();
+
 // Application Services
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IProductService, WebApp.Service.Product.ProductService>();
@@ -221,6 +236,16 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IBookingPaymentService, BookingPaymentService>();
 builder.Services.AddScoped<IRazorpayService, RazorpayService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+
+// New Services
+builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IDairyService, DairyService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IAgricultureService, AgricultureService>();
+builder.Services.AddScoped<IPlotService, PlotService>();
+builder.Services.AddScoped<ICarBookingService, CarBookingService>();
+
 
 // Stripe Services
 builder.Services.AddScoped<CustomerService>();

@@ -9,7 +9,7 @@ using WebApp.Model.Product;
 using WebApp.Model.Transaction;
 namespace WebApp.Data.Automapper
 {
-    public class Automapping : Profile
+    public class Automapping : AutoMapper.Profile
     {
         public Automapping()
         {

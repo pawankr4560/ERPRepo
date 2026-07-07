@@ -1,41 +1,56 @@
-using ERPWebAppService.Dashbord;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System;
 using System.Security.Claims;
-using WebApp.Service.Transaction;
+using System.Threading.Tasks;
+using WebApp.Model.Common;
+using WebApp.Service.Dashboard;
 
-namespace ERPWebApp.Server.Controllers;
-
-[Route("api/[controller]")]
-[ApiController]
-[Authorize]
-public class DashboardController : ControllerBase
+namespace WebApp.Server.Controllers
 {
-    private readonly ILoanDashboardService _dashboardService;
-    private readonly IDashbordService _userDashbordService;
-
-    public DashboardController(ILoanDashboardService dashboardService,IDashbordService userDashbordService)
+    [Route("api/[controller]")]
+    [ApiController]
+    [Authorize]
+    public class DashboardController : ControllerBase
     {
-        _dashboardService = dashboardService;
-        _userDashbordService =userDashbordService;
-    }
+        private readonly IDashboardService _dashboardService;
 
-    [HttpGet("loan-summary")]
-    [ResponseCache(Duration = 5, Location = ResponseCacheLocation.Any)]
-    public async Task<IActionResult> GetLoanSummary(CancellationToken cancellationToken)
-    {
-        var result = await _dashboardService.GetSummaryAsync(cancellationToken);
-        return Ok(result);
-    }
+        public DashboardController(IDashboardService dashboardService)
+        {
+            _dashboardService = dashboardService ?? throw new ArgumentNullException(nameof(dashboardService));
+        }
 
-    [HttpGet]
-    public async Task<IActionResult> GetDashboard(string userId)
-    {
-        var result = await _userDashbordService.GetDashboardAsync(userId);
+        [HttpGet("summary")]
+        public async Task<IActionResult> GetSummary()
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new ApiResponse(false, "Unauthorized", null));
+            }
 
-        if (result == null)
-            return NotFound("User not found");
+            var summary = await _dashboardService.GetSummaryAsync(userId);
+            return Ok(new ApiResponse(true, "Dashboard summary fetched successfully", summary));
+        }
 
-        return Ok(result);
+        [HttpGet("recent-activity")]
+        public async Task<IActionResult> GetRecentActivity([FromQuery] int limit = 10)
+        {
+            var userId = GetUserId();
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new ApiResponse(false, "Unauthorized", null));
+            }
+
+            var activity = await _dashboardService.GetRecentActivityAsync(userId, limit);
+            return Ok(new ApiResponse(true, "Recent activity fetched successfully", activity));
+        }
+
+        private string GetUserId()
+        {
+            return User.FindFirst("Id")?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? string.Empty;
+        }
     }
 }
