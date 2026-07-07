@@ -62,6 +62,7 @@ namespace WebApp.Service.Auth
                 user.CreatedOn = DateTime.UtcNow;
                 user.IsActive = true;
                 user.IsDeleted = false;
+                user.EmailConfirmed=true;
                 user.UserName = model.Email;
                 user.EmailConfirmed = false;
                 user.Id = Guid.NewGuid().ToString();
