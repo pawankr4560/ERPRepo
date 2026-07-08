@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using WebApp.Model.Transaction;
@@ -140,28 +140,43 @@ namespace WebApp.Server.Controllers
 
         #region UserSide
         [HttpPost("loan-applications")]
+        [Authorize]
         public async Task<IActionResult> CreateLoanApplication(
         [FromBody] CreateLoanApplicationRequestDto model)
             {
+                var userId = GetUserId();
+                if (string.IsNullOrWhiteSpace(userId))
+                {
+                    return Unauthorized();
+                }
+
+                model.UserId = userId;
                 var result = await _loanService.CreateLoanApplication(model);
 
                 return Ok(result);
             }
 
         [HttpGet("loan-applications")]
-        public async Task<IActionResult> GetLoanApplications(string userId)
+        [Authorize]
+        public async Task<IActionResult> GetLoanApplications()
         {
+            var userId = GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+
             var result = await _loanService.GetLoanApplicationsAsync(userId);
 
             return Ok(result);
         }
-        [HttpGet("users/{userId}/loan-applications/{id}/status")]
-        public async Task<IActionResult> GetLoanApplicationStatus(
-        string userId,
-        string id)
+        [HttpGet("loan-applications/{id}/status")]
+        [Authorize]
+        public async Task<IActionResult> GetLoanApplicationStatus(string id)
         {
+            var userId = GetUserId();
             if (string.IsNullOrWhiteSpace(userId))
-                return BadRequest("UserId is required.");
+                return Unauthorized();
 
             var result = await _loanService.GetLoanApplicationStatusAsync(userId, id);
 
@@ -194,5 +209,13 @@ namespace WebApp.Server.Controllers
             return Ok(result);
         }
         #endregion
+
+        private string GetUserId()
+        {
+            return User.FindFirst("Id")?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? string.Empty;
+        }
     }
 }
+

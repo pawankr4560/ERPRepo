@@ -1,11 +1,13 @@
-﻿using ERPWebAppService.Payment;
-using Microsoft.AspNetCore.Http;
+using ERPWebAppService.Payment;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace ERPWebApp.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class PaymentController : ControllerBase
     {
         private readonly IPaymentService _paymentService;
@@ -14,14 +16,16 @@ namespace ERPWebApp.Server.Controllers
         {
             _paymentService = paymentService;
         }
+
         [HttpGet("payments")]
-        public async Task<IActionResult> GetPayments([FromQuery] string userId)
+        public async Task<IActionResult> GetPayments()
         {
+            var userId = GetUserId();
             if (string.IsNullOrWhiteSpace(userId))
             {
-                return BadRequest(new
+                return Unauthorized(new
                 {
-                    message = "UserId is required."
+                    message = "Unauthorized"
                 });
             }
 
@@ -29,5 +33,15 @@ namespace ERPWebApp.Server.Controllers
 
             return Ok(result);
         }
+
+        private string GetUserId()
+        {
+            return User.FindFirst("Id")?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? string.Empty;
+        }
     }
 }
+
+
+

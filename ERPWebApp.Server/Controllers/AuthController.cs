@@ -1,4 +1,4 @@
-﻿using Google.Apis.Auth;
+using Google.Apis.Auth;
 using ERPWebAppModels.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -37,11 +37,18 @@ namespace WebApp.Server.Controllers
                 return BadRequest(new ApiResponse(false, ex.Message, ex));
             }
         }
-        [HttpPut("users/{userId}/profile")]
+
+        [Authorize]
+        [HttpPut("users/profile")]
         public async Task<IActionResult> UpdateUserProfile(
-        string userId,
         [FromBody] UpdateUserProfileRequestDto request)
         {
+            var userId = GetUserId();
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized(new ApiResponse(false, "Unauthorized", null));
+            }
+
             var result = await _authService.UpdateUserProfileAsync(userId, request);
 
             if (!result.Success)
@@ -176,5 +183,13 @@ namespace WebApp.Server.Controllers
                 return BadRequest(new ApiResponse(false, ex.Message, null));
             }
         }
+        private string GetUserId()
+        {
+            return User.FindFirst("Id")?.Value
+                ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                ?? string.Empty;
+        }
     }
 }
+
