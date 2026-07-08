@@ -28,6 +28,7 @@ using WebApp.Service.Inventory;
 using WebApp.Service.Agriculture;
 using WebApp.Service.Plot;
 using WebApp.Service.CarBooking;
+using ERPWebAppService.Construction;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -236,6 +237,7 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IBookingPaymentService, BookingPaymentService>();
 builder.Services.AddScoped<IRazorpayService, RazorpayService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IConstructionService, ConstructionService>();
 
 // New Services
 builder.Services.AddScoped<IProfileService, ProfileService>();

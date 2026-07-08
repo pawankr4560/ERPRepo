@@ -60,11 +60,11 @@ namespace WebApp.Server.Controllers
         }
 
         [HttpDelete("RemoveProduct")]
-        public async Task<IActionResult> Remove(string id)
+        public async Task<IActionResult> Remove(int id)
         {
             try
             {
-                var result = await _productService.Delete(Guid.Parse(id));
+                var result = await _productService.Delete(id);
                 return Ok(new ApiResponse(true, "Product deleted successfully.", result));
             }
             catch (Exception ex)

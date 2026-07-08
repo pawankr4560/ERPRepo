@@ -124,6 +124,8 @@ namespace WebApp.Data
         public DbSet<PreApprovedOffer> PreApprovedOffer { get; set; }
         public DbSet<LoanApplication> LoanApplication { get; set; }
         public DbSet<LoanApplicationDocument> LoanApplicationDocuments { get; set; }
+        public DbSet<ConstructionQuote> ConstructionQuotes { get; set; }
+        public DbSet<SubCategory> SubCategory { get; set; }
 
         // New DbSets
         public DbSet<Profile> Profiles { get; set; }

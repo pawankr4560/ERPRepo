@@ -47,15 +47,13 @@ namespace WebApp.Service.Order
         {
             return await _dbContext.Products
                 .AsNoTracking()
-                .Where(x => !x.IsDeleted && x.Status && x.StockQty > 0)
+                .Where(x => !x.IsDeleted && x.Status)
                 .OrderBy(x => x.Name)
                 .Select(x => new
                 {
                     id = x.Id.ToString(),
                     code = x.Code,
                     name = x.Name,
-                    category = x.Categorie,
-                    stockQty = x.StockQty,
                     price = x.Price,
                     image = x.Image,
                     description = x.Description
@@ -76,7 +74,8 @@ namespace WebApp.Service.Order
             }
 
             ValidateSalesOrderRequest(request);
-            var subtotal = await CalculateSubtotalAsync(request.Items);
+            //var subtotal = await CalculateSubtotalAsync(request.Items);
+            var subtotal = 0;
             var serviceFee = await GetCheckoutServiceFeeAmountAsync(subtotal);
             var total = subtotal + serviceFee;
             var amountPaise = ToPaise(total);
@@ -170,65 +169,67 @@ namespace WebApp.Service.Order
                 };
             }
 
-            var productIds = request.Items.Select(x => Guid.Parse(x.ProductId)).ToList();
-            var products = await _dbContext.Products
-                .Where(x => productIds.Contains(x.Id) && !x.IsDeleted && x.Status)
-                .ToListAsync();
+            //var productIds = request.Items.Select(x => Guid.Parse(x.ProductId)).ToList();
+            //var products = await _dbContext.Products
+            //    .Where(x => x.Id == && !x.IsDeleted && x.Status)
 
-            if (products.Count != request.Items.Count)
-            {
-                throw new InvalidOperationException("One or more selected items are unavailable.");
-            }
+            //   .Where(x => !x.IsDeleted && x.Status)
+            //    .ToListAsync();
 
-            foreach (var item in request.Items)
-            {
-                var product = products.First(x => x.Id == Guid.Parse(item.ProductId));
-                if (product.StockQty < item.Quantity)
-                {
-                    throw new InvalidOperationException($"{product.Name} has only {product.StockQty} in stock.");
-                }
-            }
+            //if (products.Count != request.Items.Count)
+            //{
+            //    throw new InvalidOperationException("One or more selected items are unavailable.");
+            //}
 
-            var subtotal = request.Items.Sum(item =>
-            {
-                var product = products.First(x => x.Id == Guid.Parse(item.ProductId));
-                return Convert.ToDecimal(product.Price) * item.Quantity;
-            });
-            var serviceFee = await GetCheckoutServiceFeeAmountAsync(subtotal);
-            var chargedAmount = subtotal + serviceFee;
+            //foreach (var item in request.Items)
+            //{
+            //    var product = products.First(x => x.Id == item.ProductId);
+            //    if (product.StockQty < item.Quantity)
+            //    {
+            //        throw new InvalidOperationException($"{product.Name} has only {product.StockQty} in stock.");
+            //    }
+            //}
 
-            foreach (var item in request.Items)
-            {
-                var product = products.First(x => x.Id == Guid.Parse(item.ProductId));
-                var lineTotal = product.Price * item.Quantity;
-                product.StockQty -= item.Quantity;
-                _dbContext.OrderHistory.Add(new OrderHistory
-                {
-                    Id = Guid.NewGuid(),
-                    ProductId = product.Id.ToString(),
-                    Name = product.Name,
-                    Price = product.Price,
-                    Quantity = item.Quantity,
-                    LineTotal = lineTotal,
-                    Image = product.Image ?? string.Empty,
-                    Address = NormalizeOrderType(request.OrderType) == "Pickup"
-                        ? string.Empty
-                        : request.Address.Trim(),
-                    OrderType = NormalizeOrderType(request.OrderType),
-                    PaymentMethod = "Razorpay",
-                    PaymentStatus = "Paid",
-                    TransactionReference = request.RazorpayPaymentId,
-                    RazorpayOrderId = request.RazorpayOrderId,
-                    ServiceFeeAmount = Convert.ToSingle(serviceFee),
-                    ChargedAmount = Convert.ToSingle(chargedAmount),
-                    UserId = userId,
-                    IsActive = true,
-                    IsDeleted = false,
-                    CreatedOn = DateTime.UtcNow
-                });
-            }
+            //var subtotal = request.Items.Sum(item =>
+            //{
+            //    var product = products.First(x => x.Id == Guid.Parse(item.ProductId));
+            //    return Convert.ToDecimal(product.Price) * item.Quantity;
+            //});
+            //var serviceFee = await GetCheckoutServiceFeeAmountAsync(subtotal);
+            //var chargedAmount = subtotal + serviceFee;
 
-            await _dbContext.SaveChangesAsync();
+            //foreach (var item in request.Items)
+            //{
+            //    var product = products.First(x => x.Id == Guid.Parse(item.ProductId));
+            //    var lineTotal = product.Price * item.Quantity;
+            //    product.StockQty -= item.Quantity;
+            //    _dbContext.OrderHistory.Add(new OrderHistory
+            //    {
+            //        Id = Guid.NewGuid(),
+            //        ProductId = product.Id.ToString(),
+            //        Name = product.Name,
+            //        Price = product.Price,
+            //        Quantity = item.Quantity,
+            //        LineTotal = lineTotal,
+            //        Image = product.Image ?? string.Empty,
+            //        Address = NormalizeOrderType(request.OrderType) == "Pickup"
+            //            ? string.Empty
+            //            : request.Address.Trim(),
+            //        OrderType = NormalizeOrderType(request.OrderType),
+            //        PaymentMethod = "Razorpay",
+            //        PaymentStatus = "Paid",
+            //        TransactionReference = request.RazorpayPaymentId,
+            //        RazorpayOrderId = request.RazorpayOrderId,
+            //        ServiceFeeAmount = Convert.ToSingle(serviceFee),
+            //        ChargedAmount = Convert.ToSingle(chargedAmount),
+            //        UserId = userId,
+            //        IsActive = true,
+            //        IsDeleted = false,
+            //        CreatedOn = DateTime.UtcNow
+            //    });
+            //}
+
+            //await _dbContext.SaveChangesAsync();
 
             return new SalesOrderVerifyResponse
             {
@@ -264,30 +265,30 @@ namespace WebApp.Service.Order
             }
         }
 
-        private async Task<decimal> CalculateSubtotalAsync(List<SalesOrderItemRequest> items)
-        {
-            var productIds = items.Select(x => Guid.Parse(x.ProductId)).ToList();
-            var products = await _dbContext.Products
-                .AsNoTracking()
-                .Where(x => productIds.Contains(x.Id) && !x.IsDeleted && x.Status && x.StockQty > 0)
-                .ToListAsync();
+        //private async Task<decimal> CalculateSubtotalAsync(List<SalesOrderItemRequest> items)
+        //{
+            //var productIds = items.Select(x => Guid.Parse(x.ProductId)).ToList();
+            //var products = await _dbContext.Products
+            //    .AsNoTracking()
+            //    .Where(x => productIds.Contains(x.Id) && !x.IsDeleted && x.Status && x.StockQty > 0)
+            //    .ToListAsync();
 
-            if (products.Count != items.Count)
-            {
-                throw new InvalidOperationException("One or more selected items are unavailable.");
-            }
+            //if (products.Count != items.Count)
+            //{
+            //    throw new InvalidOperationException("One or more selected items are unavailable.");
+            //}
 
-            return items.Sum(item =>
-            {
-                var product = products.First(x => x.Id == Guid.Parse(item.ProductId));
-                if (product.StockQty < item.Quantity)
-                {
-                    throw new InvalidOperationException($"{product.Name} has only {product.StockQty} in stock.");
-                }
+            //return items.Sum(item =>
+            //{
+            //    var product = products.First(x => x.Id == Guid.Parse(item.ProductId));
+            //    if (product.StockQty < item.Quantity)
+            //    {
+            //        throw new InvalidOperationException($"{product.Name} has only {product.StockQty} in stock.");
+            //    }
 
-                return Convert.ToDecimal(product.Price) * item.Quantity;
-            });
-        }
+            //    return Convert.ToDecimal(product.Price) * item.Quantity;
+            //});
+        //}
 
         private async Task<decimal> GetCheckoutServiceFeeAmountAsync(decimal amount)
         {

@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebApp.Data;
 
 #nullable disable
 
-namespace WebApp.Data.Migrations
+namespace ERPWebAppData.Migrations
 {
     [DbContext(typeof(WebAppDbContext))]
-    partial class WebAppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260708102724_quoteEntityAdded")]
+    partial class quoteEntityAdded
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -759,30 +762,6 @@ namespace WebApp.Data.Migrations
                     b.ToTable("Profiles");
                 });
 
-            modelBuilder.Entity("ERPWebAppData.Entity.SubCategory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SubCategory");
-                });
-
             modelBuilder.Entity("ERPWebAppData.Entity.Vehicle", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1430,13 +1409,12 @@ namespace WebApp.Data.Migrations
 
             modelBuilder.Entity("WebApp.Data.Entity.Product", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("uniqueidentifier");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CategoryId")
+                    b.Property<int>("CategorieID")
+                        .HasMaxLength(100)
                         .HasColumnType("int");
 
                     b.Property<string>("Code")
@@ -1467,16 +1445,16 @@ namespace WebApp.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<float>("Price")
+                        .HasColumnType("real");
 
                     b.Property<bool>("Status")
                         .HasColumnType("bit");
 
-                    b.Property<int>("SubcategoryId")
+                    b.Property<int>("StockQty")
                         .HasColumnType("int");
 
-                    b.Property<int>("UnitId")
+                    b.Property<int>("UOMIndex")
                         .HasColumnType("int");
 
                     b.HasKey("Id");

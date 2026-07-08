@@ -1,9 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebApp.Data.Entity
 {
-    public class Product : BaseEntity
+    public class Product
     {
+        [Key]
+        public int Id { get; set; }
         [Required]
         [StringLength(20)]
         public string Code { get; set; } = string.Empty;
@@ -12,14 +15,15 @@ namespace WebApp.Data.Entity
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
         [Required]
-        [StringLength(100)]
-        public string Categorie { get; set; } = string.Empty;
+        public int CategoryId { get; set; }
+        public int SubcategoryId { get; set; }
 
-        public int StockQty { get; set; }
-        public int UOMIndex { get; set; }
-        public int LocationIndex { get; set; }
+        public int UnitId { get; set; }
         public bool Status { get; set; }
-        public float Price { get; set; }
+        public DateTime CreatedOn { get; set; }
+        public bool IsActive { get; set; }
+        public decimal Price { get; set; }
+        public bool IsDeleted { get; set; }
         [Required]
         [StringLength(200)]
         public string? Description { get; set; } = string.Empty;

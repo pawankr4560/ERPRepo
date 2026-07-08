@@ -74,7 +74,7 @@ namespace WebApp.Service.Product
             try
             {
                 var reuqest = _mapper.Map<Data.Entity.Product>(model);
-                reuqest.Id = Guid.NewGuid();
+                
                 reuqest.CreatedOn = model.CreatedOn == default ? DateTime.UtcNow : model.CreatedOn;
                 reuqest.IsActive = model.IsActive || model.Status;
                 reuqest.IsDeleted = false;
@@ -108,7 +108,7 @@ namespace WebApp.Service.Product
             try
             {
                 var data = _mapper.Map<Data.Entity.Product>(model);
-                data.Id = Guid.Parse(model.Id);
+                data.Id = model.Id;
                 _dbContext.Products.Update(data);
                 await _dbContext.SaveChangesAsync();
                 await RemoveProductListCacheAsync();
@@ -117,7 +117,7 @@ namespace WebApp.Service.Product
             catch (Exception) { throw; }
         }
 
-        public async Task<bool> Delete(Guid id)
+        public async Task<bool> Delete(int id)
         {
             try
             {

@@ -1,6 +1,9 @@
+using ERPWebAppModels.Construction;
+using ERPWebAppService.Construction;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Concurrent;
+using System.Security.Claims;
 
 namespace ERPWebApp.Server.Controllers;
 
@@ -9,21 +12,6 @@ namespace ERPWebApp.Server.Controllers;
 [Authorize]
 public class ConstructionController : ControllerBase
 {
-    private static int _quoteSequence = 1;
-
-    private static readonly List<ConstructionCategoryDto> Categories =
-    [
-        new("cat_cement", "Cement", "OPC, PPC, bags"),
-        new("cat_steel", "Steel", "TMT bars, rods, sheets"),
-    ];
-
-    private static readonly List<ConstructionProductDto> Products =
-    [
-        new("prod_001", "UltraTech PPC Cement", "cat_cement", "Cement", "Bag", "Available", 380m, null),
-        new("prod_002", "ACC OPC Cement", "cat_cement", "Cement", "Bag", "Available", 395m, null),
-        new("prod_003", "TMT Steel Bar 12mm", "cat_steel", "Steel", "Ton", "Available", 58000m, "Fe 500"),
-    ];
-
     private static readonly ConcurrentBag<ConstructionQuoteDto> Quotes =
     [
         new(
@@ -50,26 +38,16 @@ public class ConstructionController : ControllerBase
         new("delivery_001", "CM-2026-0001", "Cement", "UP65 AB 1234", "Ramesh Kumar", "9876543210", "Out for Delivery", "2 hours", 0.72m),
         new("delivery_002", "CM-2026-0002", "Steel", "MP09 CD 4567", "Amit Verma", "9876543211", "Scheduled", "Tomorrow", 0.10m),
     ];
-
-    [HttpGet("dashboard")]
-    public IActionResult GetDashboard()
+    private readonly IConstructionService constService;
+    public ConstructionController(IConstructionService constService)
     {
-        var data = new
-        {
-            totalProducts = 48,
-            pendingQuotes = Quotes.Count(quote => quote.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase)),
-            activeOrders = Orders.Count(order => !order.Status.Equals("Delivered", StringComparison.OrdinalIgnoreCase)),
-            deliveriesToday = 2,
-            recentActivities = new[]
-            {
-                new ConstructionActivityDto(
-                    "act_001",
-                    "QUOTE",
-                    "Quote requested for TMT Steel",
-                    "Supplier confirmation pending",
-                    DateTime.Parse("2026-07-08T10:30:00Z").ToUniversalTime())
-            }
-        };
+        this.constService = constService;
+    }
+   
+    [HttpGet("dashboard")]
+    public async Task<IActionResult> GetDashboard()
+    {
+        var data = await constService.DashbordData(GetUserId());
 
         return Ok(new { success = true, data });
     }
@@ -77,97 +55,28 @@ public class ConstructionController : ControllerBase
     [HttpGet("categories")]
     public IActionResult GetCategories()
     {
-        return Ok(new { success = true, data = Categories });
+        return Ok(new { success = true, data = constService.GetCategories() });
     }
 
     [HttpGet("products")]
     public IActionResult GetProducts(
-        [FromQuery] string? categoryId,
+        [FromQuery] int categoryId,
         [FromQuery] string? search,
         [FromQuery] int page = 1,
         [FromQuery] int limit = 20)
     {
-        page = Math.Max(1, page);
-        limit = Math.Clamp(limit, 1, 100);
-
-        var query = Products.AsEnumerable();
-
-        if (!string.IsNullOrWhiteSpace(categoryId))
-        {
-            query = query.Where(product => product.CategoryId.Equals(categoryId, StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            query = query.Where(product =>
-                product.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                product.CategoryName.Contains(search, StringComparison.OrdinalIgnoreCase));
-        }
-
-        var total = query.Count();
-        var items = query
-            .Skip((page - 1) * limit)
-            .Take(limit)
-            .ToList();
-
+       
         return Ok(new
         {
             success = true,
-            data = new
-            {
-                items,
-                pagination = new
-                {
-                    page,
-                    limit,
-                    total = total == 0 ? 48 : total
-                }
-            }
+            data = constService.GetProducts(categoryId=2,search,page,limit)
         });
     }
 
     [HttpPost("quotes")]
-    public IActionResult CreateQuote([FromBody] ConstructionQuoteRequest request)
+    public async Task<IActionResult> CreateQuote([FromBody] ConstructionQuoteRequest request)
     {
-        if (request == null)
-        {
-            return BadRequest(new { success = false, message = "Request body is required." });
-        }
-
-        var product = Products.FirstOrDefault(item => item.Id.Equals(request.ProductId, StringComparison.OrdinalIgnoreCase));
-        if (product == null)
-        {
-            return BadRequest(new { success = false, message = "Product not found." });
-        }
-
-        var quoteId = $"quote_{Interlocked.Increment(ref _quoteSequence):000}";
-        var createdAt = DateTime.UtcNow;
-        var quote = new ConstructionQuoteDto(
-            quoteId,
-            product.Name,
-            product.CategoryName,
-            request.Quantity,
-            request.Unit,
-            request.DeliveryLocation,
-            request.RequiredDate,
-            "Pending",
-            product.Rate * request.Quantity,
-            createdAt);
-
-        Quotes.Add(quote);
-
-        var data = new
-        {
-            quoteId = quote.Id,
-            status = quote.Status,
-            productName = quote.ProductName,
-            quantity = quote.Quantity,
-            unit = quote.Unit,
-            deliveryLocation = quote.DeliveryLocation,
-            requiredDate = quote.RequiredDate,
-            createdAt = quote.CreatedAt
-        };
-
+        var data = await constService.CreateQuote(request, GetUserId());
         return Ok(new
         {
             success = true,
@@ -245,15 +154,11 @@ public class ConstructionController : ControllerBase
     public record ConstructionOrderDto(string Id, string Material, int Quantity, string Unit, decimal Amount, string Status, string DeliveryDate, string DeliveryLocation);
     public record ConstructionDeliveryDto(string Id, string OrderId, string Material, string VehicleNumber, string DriverName, string DriverPhone, string Status, string Eta, decimal Progress);
 
-    public class ConstructionQuoteRequest
+  
+    private string GetUserId()
     {
-        public string CategoryId { get; set; } = string.Empty;
-        public string ProductId { get; set; } = string.Empty;
-        public int Quantity { get; set; }
-        public string Unit { get; set; } = string.Empty;
-        public string DeliveryLocation { get; set; } = string.Empty;
-        public string RequiredDate { get; set; } = string.Empty;
-        public string ContactNumber { get; set; } = string.Empty;
-        public string? Notes { get; set; }
+        return User.FindFirst("Id")?.Value
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? string.Empty;
     }
 }
