@@ -14,8 +14,12 @@ namespace WebApp.Data.Automapper
         public Automapping()
         {
             CreateMap<SignupRequestModel, User>();
-            CreateMap<CreateProductRequestModel, Product>();
-            CreateMap<UpdateProductModel, Product>();
+            CreateMap<CreateProductRequestModel, Product>()
+                .ForMember(dest => dest.UnitId, opt => opt.MapFrom(src => src.UnitId != 0 ? src.UnitId : src.UOMIndex))
+                .ForMember(dest => dest.Price, opt => opt.MapFrom(src => Convert.ToDecimal(src.Price)));
+            CreateMap<UpdateProductModel, Product>()
+                .ForMember(dest => dest.UnitId, opt => opt.MapFrom(src => src.UnitId != 0 ? src.UnitId : src.UOMIndex))
+                .ForMember(dest => dest.Price, opt => opt.MapFrom(src => Convert.ToDecimal(src.Price)));
             CreateMap<LoanRequestModel, Loan>();
             CreateMap<LoanEMISchedule, LoanEMIScheduleDto>().ReverseMap();
             CreateMap<LoanPayment, LoanPaymentDto>().ReverseMap();
@@ -29,3 +33,4 @@ namespace WebApp.Data.Automapper
         }
     }
 }
+

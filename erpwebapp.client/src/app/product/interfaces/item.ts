@@ -1,13 +1,18 @@
-export interface Item {
-   id: string;               // BaseEntity Id
-  code: string;             // Product.Code
-  name: string;             // Product.Name
-  categorie: string;        // Product.Categorie
-  stockQty: number;         // Product.StockQty
-  uomIndex: number;         // Product.UOMIndex
-  locationIndex: number;    // Product.LocationIndex
-  status: boolean;          // Product.Status
-  price: number;            // Product.Price
-  description: string;      // Product.Description
-  image: string;  
+﻿export interface Item {
+  id: string;
+  code: string;
+  name: string;
+  categorie: string;
+  categoryId: number;
+  subcategoryId: number;
+  categoryName?: string;
+  subcategoryName?: string;
+  stockQty: number;
+  uomIndex: number;
+  unitId: number;
+  locationIndex: number;
+  status: boolean;
+  price: number;
+  description: string;
+  image: string;
 }

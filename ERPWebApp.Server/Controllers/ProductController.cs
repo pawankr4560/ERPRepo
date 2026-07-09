@@ -31,6 +31,34 @@ namespace WebApp.Server.Controllers
             }
         }
 
+
+        [HttpGet("Categories")]
+        public async Task<IActionResult> GetCategories()
+        {
+            try
+            {
+                var result = await _productService.CategoryList();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse(false, ex.Message, null));
+            }
+        }
+
+        [HttpGet("SubCategories")]
+        public async Task<IActionResult> GetSubCategories()
+        {
+            try
+            {
+                var result = await _productService.SubCategoryList();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new ApiResponse(false, ex.Message, null));
+            }
+        }
         [HttpPost("AddProduct")]
         public async Task<IActionResult> Add([FromBody] CreateProductRequestModel model)
         {
@@ -74,3 +102,4 @@ namespace WebApp.Server.Controllers
         }
     }
 }
+

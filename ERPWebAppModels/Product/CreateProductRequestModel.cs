@@ -9,7 +9,10 @@ namespace WebApp.Model.Product
         public float Price { get; set; }
         public int StockQty { get; set; }
         public int UOMIndex { get; set; }
+        public int UnitId { get; set; }
         public int LocationIndex { get; set; }
+        public int CategoryId { get; set; }
+        public int SubcategoryId { get; set; }
         public bool Status { get; set; }
         public string Description { get; set; } = string.Empty;
         public IFormFile? ProfileImage { get; set; }
@@ -20,3 +23,4 @@ namespace WebApp.Model.Product
         public bool IsDeleted { get; set; }
     }
 }
+

@@ -1,9 +1,10 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { BehaviorSubject, tap } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { Item } from '../interfaces/item';
 import { Unit } from '../interfaces/unit';
+import { Category, SubCategory } from '../interfaces/category';
 
 @Injectable({
   providedIn: 'root',
@@ -18,6 +19,7 @@ export class ItemService {
   }
 
   private headers!: HttpHeaders;
+  private silentHeaders!: HttpHeaders;
 
   private itemsSubject = new BehaviorSubject<Item[]>([]);
   items$ = this.itemsSubject.asObservable();
@@ -27,6 +29,7 @@ export class ItemService {
       'Content-Type': 'application/json; charset=utf-8',
       api_key: this.apiKey,
     });
+    this.silentHeaders = this.headers.set('X-Skip-Error-Toast', 'true');
   }
 
   loadItems() {
@@ -45,13 +48,24 @@ export class ItemService {
     return this.http.get<Unit[]>(`${this.apiUrl}/Unit`, { headers: this.headers });
   }
 
+  loadCategories() {
+    return this.http.get<Category[]>(`${this.apiUrl}/Product/Categories`, { headers: this.silentHeaders });
+  }
+
+  loadSubCategories() {
+    return this.http.get<SubCategory[]>(`${this.apiUrl}/Product/SubCategories`, { headers: this.silentHeaders });
+  }
+
   createItem(item: Item) {
     return this.http
       .post<any>(`${this.apiUrl}/Product/AddProduct`, item, { headers: this.headers })
       .pipe(
         tap((res) => {
           if (res?.success && res?.data) {
-            this.itemsSubject.next([...(this.itemsSubject.value ?? []), res.data]);
+            this.itemsSubject.next([
+              ...(this.itemsSubject.value ?? []),
+              { ...item, ...res.data, categorie: item.categorie },
+            ]);
           }
         })
       );
@@ -81,7 +95,8 @@ export class ItemService {
         tap((res) => {
           if (res?.success && res?.data) {
             const current = this.itemsSubject.value ?? [];
-            const updated = current.map((i) => (i.id === res.data.id ? res.data : i));
+            const updatedItem = { ...item, ...res.data, categorie: item.categorie };
+            const updated = current.map((i) => (i.id === res.data.id ? updatedItem : i));
             this.itemsSubject.next(updated);
           }
         })

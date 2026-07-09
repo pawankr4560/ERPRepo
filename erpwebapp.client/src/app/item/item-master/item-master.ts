@@ -1,5 +1,7 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, OnInit, ViewChild } from '@angular/core';
+import { forkJoin, of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator';
 import { MatDialog } from '@angular/material/dialog';
@@ -15,6 +17,7 @@ import { ConfirmDialogComponent } from '../../users/confirm-dialog-component/con
 import { AddItemDialog } from '../add-item-dialog/add-item-dialog';
 import { MatSortModule } from '@angular/material/sort';
 import { Unit } from '../interfaces/unit';
+import { Category, SubCategory } from '../interfaces/category';
 
 @Component({
   selector: 'app-item-master',
@@ -34,7 +37,10 @@ import { Unit } from '../interfaces/unit';
 export class ItemMaster implements OnInit, AfterViewInit {
   isMobile = false;
   isLoading = false;
+  lookupLoadFailed = false;
   units: Unit[] = [];
+  categories: Category[] = [];
+  subCategories: SubCategory[] = [];
 
   displayedColumns: string[] = [
     'code',
@@ -71,14 +77,28 @@ export class ItemMaster implements OnInit, AfterViewInit {
     });
 
     this.isLoading = true;
-    this.itemService.loadUnits().subscribe({
-      next: (units) => (this.units = units ?? []),
-      error: () => (this.units = []),
-    });
-    this.itemService.loadItems().subscribe({
-      complete: () => (this.isLoading = false),
-      error: () => (this.isLoading = false),
-    });
+    forkJoin({
+      units: this.itemService.loadUnits().pipe(catchError(() => of([] as Unit[]))),
+      categories: this.itemService.loadCategories().pipe(
+        catchError(() => {
+          this.lookupLoadFailed = true;
+          return of([] as Category[]);
+        })
+      ),
+      subCategories: this.itemService.loadSubCategories().pipe(
+        catchError(() => {
+          this.lookupLoadFailed = true;
+          return of([] as SubCategory[]);
+        })
+      ),
+      items: this.itemService.loadItems().pipe(catchError(() => of(null))),
+    })
+      .pipe(finalize(() => (this.isLoading = false)))
+      .subscribe(({ units, categories, subCategories }) => {
+        this.units = units ?? [];
+        this.categories = categories ?? [];
+        this.subCategories = subCategories ?? [];
+      });
   }
 
   ngAfterViewInit(): void {
@@ -86,8 +106,11 @@ export class ItemMaster implements OnInit, AfterViewInit {
   }
 
   openAddDialog() {
-    if (!this.units.length) {
-      this.snackBar.open('No units found. Please reload the page and try again.', 'Close', {
+    if (!this.units.length || !this.categories.length) {
+      const message = this.lookupLoadFailed
+        ? 'Category list is not available from the server. Please deploy the latest API and reload.'
+        : 'Units or categories are not loaded yet. Please try again in a moment.';
+      this.snackBar.open(message, 'Close', {
         duration: 3000,
         horizontalPosition: 'right',
         verticalPosition: 'top',
@@ -99,7 +122,12 @@ export class ItemMaster implements OnInit, AfterViewInit {
       width: '520px',
       maxWidth: 'calc(100vw - 24px)',
       maxHeight: 'calc(100vh - 24px)',
-      data: { item: null, units: this.units },
+      data: {
+        item: null,
+        units: this.units,
+        categories: this.categories,
+        subCategories: this.subCategories,
+      },
     });
 
     dialogRef.afterClosed().subscribe((created: Item | null) => {
@@ -108,7 +136,7 @@ export class ItemMaster implements OnInit, AfterViewInit {
       this.itemService.createItem(created).subscribe({
         next: (res) => {
           if (res?.success) {
-            this.snackBar.open('Item created successfully ✅', 'Close', {
+            this.snackBar.open('Item created successfully', 'Close', {
               duration: 3000,
               horizontalPosition: 'right',
               verticalPosition: 'top',
@@ -116,7 +144,7 @@ export class ItemMaster implements OnInit, AfterViewInit {
           }
         },
         error: (err) => {
-          this.snackBar.open(err?.error?.errorMessage || 'Create failed ❌', 'Close', {
+          this.snackBar.open(err?.error?.errorMessage || 'Create failed', 'Close', {
             duration: 3000,
             horizontalPosition: 'right',
             verticalPosition: 'top',
@@ -126,6 +154,55 @@ export class ItemMaster implements OnInit, AfterViewInit {
     });
   }
 
+
+  editItem(item: Item) {
+    if (!this.units.length || !this.categories.length) {
+      const message = this.lookupLoadFailed
+        ? 'Category list is not available from the server. Please deploy the latest API and reload.'
+        : 'Units or categories are not loaded yet. Please try again in a moment.';
+      this.snackBar.open(message, 'Close', {
+        duration: 3000,
+        horizontalPosition: 'right',
+        verticalPosition: 'top',
+      });
+      return;
+    }
+
+    const dialogRef = this.dialog.open(AddItemDialog, {
+      width: '520px',
+      maxWidth: 'calc(100vw - 24px)',
+      maxHeight: 'calc(100vh - 24px)',
+      data: {
+        item: { ...item },
+        units: this.units,
+        categories: this.categories,
+        subCategories: this.subCategories,
+      },
+    });
+
+    dialogRef.afterClosed().subscribe((updated: Item | null) => {
+      if (!updated) return;
+
+      this.itemService.updateItem(updated).subscribe({
+        next: (res) => {
+          if (res?.success) {
+            this.snackBar.open('Item updated successfully', 'Close', {
+              duration: 3000,
+              horizontalPosition: 'right',
+              verticalPosition: 'top',
+            });
+          }
+        },
+        error: (err) => {
+          this.snackBar.open(err?.error?.errorMessage || 'Update failed', 'Close', {
+            duration: 3000,
+            horizontalPosition: 'right',
+            verticalPosition: 'top',
+          });
+        },
+      });
+    });
+  }
   deleteItem(item: Item) {
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '380px',
@@ -142,7 +219,7 @@ export class ItemMaster implements OnInit, AfterViewInit {
         next: (res) => {
           if (res?.success) {
             this.paginator.firstPage();
-            this.snackBar.open(res?.message + ' ✅', 'Close', {
+            this.snackBar.open(res?.message || 'Item deleted successfully', 'Close', {
               duration: 3000,
               horizontalPosition: 'right',
               verticalPosition: 'top',

@@ -26,7 +26,7 @@ namespace WebApp.Service.Product
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<Data.Entity.Product>> ProductList()
+        public async Task<IEnumerable<ProductListItemDto>> ProductList()
         {
             try
             {
@@ -44,11 +44,42 @@ namespace WebApp.Service.Product
 
                 if (!string.IsNullOrWhiteSpace(cachedProducts))
                 {
-                    return System.Text.Json.JsonSerializer.Deserialize<List<Data.Entity.Product>>(cachedProducts)
+                    return System.Text.Json.JsonSerializer.Deserialize<List<ProductListItemDto>>(cachedProducts)
                         ?? [];
                 }
 
-                var products = await _dbContext.Products.Where(x=>!x.IsDeleted).ToListAsync();
+                var products = await (
+                    from product in _dbContext.Products.AsNoTracking().Where(x => !x.IsDeleted)
+                    join category in _dbContext.Categories.AsNoTracking()
+                        on product.CategoryId equals category.Id into categories
+                    from category in categories.DefaultIfEmpty()
+                    join subCategory in _dbContext.SubCategory.AsNoTracking()
+                        on product.SubcategoryId equals subCategory.Id into subCategories
+                    from subCategory in subCategories.DefaultIfEmpty()
+                    orderby product.Name
+                    select new ProductListItemDto
+                    {
+                        Id = product.Id,
+                        Code = product.Code,
+                        Name = product.Name,
+                        CategoryId = product.CategoryId,
+                        SubcategoryId = product.SubcategoryId,
+                        Categorie = category != null ? category.Name : string.Empty,
+                        CategoryName = category != null ? category.Name : string.Empty,
+                        SubcategoryName = subCategory != null ? subCategory.Name : string.Empty,
+                        UOMIndex = product.UnitId,
+                        UnitId = product.UnitId,
+                        LocationIndex = 0,
+                        StockQty = 0,
+                        Status = product.Status,
+                        IsActive = product.IsActive,
+                        Price = product.Price,
+                        Description = product.Description ?? string.Empty,
+                        Image = product.Image ?? string.Empty,
+                        CreatedOn = product.CreatedOn,
+                        IsDeleted = product.IsDeleted
+                    })
+                    .ToListAsync();
 
                 try
                 {
@@ -69,6 +100,34 @@ namespace WebApp.Service.Product
             catch (Exception) { throw; }
         }
 
+
+        public async Task<IEnumerable<CategoryLookupDto>> CategoryList()
+        {
+            return await _dbContext.Categories
+                .AsNoTracking()
+                .OrderBy(category => category.Name)
+                .Select(category => new CategoryLookupDto
+                {
+                    Id = category.Id,
+                    Name = category.Name
+                })
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<SubCategoryLookupDto>> SubCategoryList()
+        {
+            return await _dbContext.SubCategory
+                .AsNoTracking()
+                .OrderBy(subCategory => subCategory.Name)
+                .Select(subCategory => new SubCategoryLookupDto
+                {
+                    Id = subCategory.Id,
+                    Name = subCategory.Name,
+                    Description = subCategory.Description,
+                    CategoryId = subCategory.CategoryId
+                })
+                .ToListAsync();
+        }
         public async Task<Data.Entity.Product> Add(CreateProductRequestModel model)
         {
             try
@@ -146,3 +205,5 @@ namespace WebApp.Service.Product
         }
     }
 }
+
+

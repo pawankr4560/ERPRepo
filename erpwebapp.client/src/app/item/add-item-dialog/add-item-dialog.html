@@ -1,4 +1,4 @@
-<h2 mat-dialog-title class="dialog-title">Add Item</h2>
+﻿<h2 mat-dialog-title class="dialog-title">{{ isEditMode ? 'Edit Item' : 'Add Item' }}</h2>
 
 <form [formGroup]="form" mat-dialog-content class="dialog-content form-grid">
   <mat-form-field appearance="outline">
@@ -11,9 +11,24 @@
     <input matInput formControlName="name" />
   </mat-form-field>
 
-  <mat-form-field appearance="outline" class="full-row">
+  <mat-form-field appearance="outline">
     <mat-label>Category</mat-label>
-    <input matInput formControlName="categorie" />
+    <mat-select formControlName="categoryId">
+      <mat-option [value]="null">Select category</mat-option>
+      <mat-option *ngFor="let category of categories" [value]="category.id">
+        {{ category.name }}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Sub Category</mat-label>
+    <mat-select formControlName="subcategoryId">
+      <mat-option [value]="null">Select sub category</mat-option>
+      <mat-option *ngFor="let subCategory of filteredSubCategories" [value]="subCategory.id">
+        {{ subCategory.name }}
+      </mat-option>
+    </mat-select>
   </mat-form-field>
 
   <mat-form-field appearance="outline">
@@ -63,7 +78,9 @@
 <mat-dialog-actions align="end" class="dialog-actions">
   <button mat-stroked-button (click)="cancel()">Cancel</button>
   <button mat-raised-button color="primary" (click)="save()" [disabled]="form.invalid">
-    Save
+    {{ isEditMode ? 'Update' : 'Save' }}
   </button>
 </mat-dialog-actions>
+
+
 

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import {
   HttpErrorResponse,
   HttpEvent,
@@ -21,6 +21,10 @@ export class ErrorInterceptor implements HttpInterceptor {
     request: HttpRequest<unknown>,
     next: HttpHandler
   ): Observable<HttpEvent<unknown>> {
+    if (request.headers.has('X-Skip-Error-Toast')) {
+      return next.handle(request).pipe(catchError((error: HttpErrorResponse) => throwError(() => error)));
+    }
+
     return next.handle(request).pipe(
       catchError((error: HttpErrorResponse) => {
         this.handleError(error);
@@ -72,3 +76,4 @@ export class ErrorInterceptor implements HttpInterceptor {
     return Object.values(errors).flat()[0] ?? null;
   }
 }
+
