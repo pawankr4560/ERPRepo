@@ -95,8 +95,8 @@ namespace ERPWebAppService.Construction
                 {
                     Id = x.Product.Id.ToString(),
                     Name = x.Product.Name,
-                    CategoryId = x.Product.CategoryId,
-                    CategoryName = x.CategoryName,
+                    CategoryId = x.Product.SubcategoryId,
+                    CategoryName = x.SubCategoryName,
                     Rate = x.Product.Price,
                     UnitIndex = x.Product.UnitId,
                     Unit = x.UnitName
