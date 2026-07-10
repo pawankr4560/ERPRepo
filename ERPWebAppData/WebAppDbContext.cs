@@ -126,6 +126,8 @@ namespace WebApp.Data
         public DbSet<LoanApplicationDocument> LoanApplicationDocuments { get; set; }
         public DbSet<ConstructionQuote> ConstructionQuotes { get; set; }
         public DbSet<SubCategory> SubCategory { get; set; }
+        public DbSet<ConstructionOrder> ConstructionOrders { get; set; }
+        public DbSet<ConstructionDelivery> ConstructionDelivery { get; set; }
 
         // New DbSets
         public DbSet<Profile> Profiles { get; set; }

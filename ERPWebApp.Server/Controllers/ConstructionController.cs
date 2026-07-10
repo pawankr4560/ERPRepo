@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Concurrent;
 using System.Security.Claims;
+using WebApp.Data.Entity;
 using WebApp.Model.Common;
 
 namespace ERPWebApp.Server.Controllers;
@@ -13,33 +14,6 @@ namespace ERPWebApp.Server.Controllers;
 [Authorize]
 public class ConstructionController : ControllerBase
 {
-    private static readonly ConcurrentBag<ConstructionQuoteDto> Quotes =
-    [
-        new(
-            "quote_001",
-            "UltraTech PPC Cement",
-            "Cement",
-            10,
-            "Bag",
-            "Site A, Indore",
-            "2026-07-09",
-            "Pending",
-            3800m,
-            DateTime.Parse("2026-07-08T11:00:00Z").ToUniversalTime())
-    ];
-
-    private static readonly List<ConstructionOrderDto> Orders =
-    [
-        new("CM-2026-0001", "TMT Steel Bar 12mm", 2, "Ton", 116000m, "Confirmed", "2026-07-08", "Site A, Indore"),
-        new("CM-2026-0002", "UltraTech PPC Cement", 25, "Bag", 9500m, "Processing", "2026-07-09", "Site B, Indore"),
-    ];
-
-    private static readonly List<ConstructionDeliveryDto> Deliveries =
-    [
-        new("delivery_001", "CM-2026-0001", "Cement", "UP65 AB 1234", "Ramesh Kumar", "9876543210", "Out for Delivery", "2 hours", 0.72m),
-        new("delivery_002", "CM-2026-0002", "Steel", "MP09 CD 4567", "Amit Verma", "9876543211", "Scheduled", "Tomorrow", 0.10m),
-    ];
-
     private readonly IConstructionService constService;
 
     public ConstructionController(IConstructionService constService)
@@ -53,6 +27,34 @@ public class ConstructionController : ControllerBase
         try
         {
             var data = await constService.DashbordData(GetUserId());
+            return Ok(new ApiResponse(true, null, data));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new ApiResponse(false, ex.Message, null));
+        }
+    }
+
+    [HttpGet("units")]
+    public async Task<IActionResult> GetUnits()
+    {
+        try
+        {
+            var data = await constService.Units();
+            return Ok(new ApiResponse(true, null, data));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new ApiResponse(false, ex.Message, null));
+        }
+    }
+
+    [HttpPut("quotes/{quoteId:int}/price")]
+    public async Task<IActionResult> GetUnits(int quoteId,[FromBody] UpdateQuotePriceRequest request)
+    {
+        try
+        {
+            var data = await constService.UpdateQuotePrice(quoteId,request);
             return Ok(new ApiResponse(true, null, data));
         }
         catch (Exception ex)
@@ -108,29 +110,25 @@ public class ConstructionController : ControllerBase
     }
 
     [HttpGet("quotes")]
-    public IActionResult GetQuotes(
-        [FromQuery] string? status,
-        [FromQuery] int page = 1,
-        [FromQuery] int limit = 20)
+    public async Task<IActionResult> GetQuotes()
     {
         try
         {
-            page = Math.Max(1, page);
-            limit = Math.Clamp(limit, 1, 100);
-
-            var query = Quotes.AsEnumerable();
-            if (!string.IsNullOrWhiteSpace(status))
-            {
-                query = query.Where(quote => quote.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
-            }
-
-            var items = query
-                .OrderByDescending(quote => quote.CreatedAt)
-                .Skip((page - 1) * limit)
-                .Take(limit)
-                .ToList();
-
-            return Ok(new ApiResponse(true, null, new { items }));
+            var items = await constService.GetQuotes(GetUserId());
+            return Ok(new ApiResponse(true, null, items));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new ApiResponse(false, ex.Message, null));
+        }
+    }
+    [HttpGet("orders")]
+    public async Task<IActionResult> GetOrders(int quoteId)
+    {
+        try
+        {
+           var data = await constService.GetOrders(GetUserId());
+            return Ok(new ApiResponse(true, null, data));
         }
         catch (Exception ex)
         {
@@ -138,29 +136,15 @@ public class ConstructionController : ControllerBase
         }
     }
 
-    [HttpGet("orders")]
-    public IActionResult GetOrders(
-        [FromQuery] string? status,
-        [FromQuery] int page = 1,
-        [FromQuery] int limit = 20)
+    [HttpPost("orders/from-quote/{quoteId:int}")]
+    public async Task<IActionResult> CreateOrderFromQuote(int quoteId)
     {
         try
         {
-            page = Math.Max(1, page);
-            limit = Math.Clamp(limit, 1, 100);
-
-            var query = Orders.AsEnumerable();
-            if (!string.IsNullOrWhiteSpace(status))
-            {
-                query = query.Where(order => order.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
-            }
-
-            var items = query
-                .Skip((page - 1) * limit)
-                .Take(limit)
-                .ToList();
-
-            return Ok(new ApiResponse(true, null, new { items }));
+            var data = await constService.CreateOrderFromQuote(
+             quoteId,
+             GetUserId());
+            return Ok(new ApiResponse(true, null, data));
         }
         catch (Exception ex)
         {
@@ -169,33 +153,18 @@ public class ConstructionController : ControllerBase
     }
 
     [HttpGet("deliveries")]
-    public IActionResult GetDeliveries(
-        [FromQuery] string? status,
-        [FromQuery] string? date)
+    public async Task<IActionResult> GetDeliveries()
     {
         try
         {
-            var query = Deliveries.AsEnumerable();
-
-            if (!string.IsNullOrWhiteSpace(status))
-            {
-                query = query.Where(delivery => delivery.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
-            }
-
-            return Ok(new ApiResponse(true, null, query.ToList()));
+            var data = await constService.GetDeliveries(GetUserId());
+            return Ok(new ApiResponse(true, null, data));
         }
         catch (Exception ex)
         {
             return BadRequest(new ApiResponse(false, ex.Message, null));
         }
     }
-
-    public record ConstructionActivityDto(string Id, string Type, string Title, string Subtitle, DateTime CreatedAt);
-    public record ConstructionCategoryDto(string Id, string Name, string Subtitle);
-    public record ConstructionProductDto(string Id, string Name, string CategoryId, string CategoryName, string Unit, string StockStatus, decimal Rate, string? Grade);
-    public record ConstructionQuoteDto(string Id, string ProductName, string CategoryName, int Quantity, string Unit, string DeliveryLocation, string RequiredDate, string Status, decimal EstimatedAmount, DateTime CreatedAt);
-    public record ConstructionOrderDto(string Id, string Material, int Quantity, string Unit, decimal Amount, string Status, string DeliveryDate, string DeliveryLocation);
-    public record ConstructionDeliveryDto(string Id, string OrderId, string Material, string VehicleNumber, string DriverName, string DriverPhone, string Status, string Eta, decimal Progress);
 
     private string GetUserId()
     {

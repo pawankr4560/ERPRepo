@@ -2,13 +2,14 @@
 {
     public class ConstructionQuoteRequest
     {
-        public string CategoryId { get; set; } = string.Empty;
-        public string ProductId { get; set; } = string.Empty;
-        public int Quantity { get; set; }
-        public string Unit { get; set; } = string.Empty;
-        public string DeliveryLocation { get; set; } = string.Empty;
-        public string RequiredDate { get; set; } = string.Empty;
-        public string ContactNumber { get; set; } = string.Empty;
-        public string? Notes { get; set; }
+        public int ProductId { get; set; }
+        public int CategoryId { get; set; }
+        public decimal Quantity { get; set; }
+        public int UnitId { get; set; }
+        public decimal EstimatedAmount { get; set; }
+        public string DeliveryLocation { get; set; }
+        public DateTime RequiredDate { get; set; }
+        public string ContactNumber { get; set; }
+        public string Notes { get; set; }
     }
 }
