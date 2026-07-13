@@ -166,6 +166,40 @@ public class ConstructionController : ControllerBase
         }
     }
 
+    [HttpPut("orders/{orderId:int}/status")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateOrderStatus(
+    int orderId,
+    [FromBody] UpdateConstructionOrderStatusRequest request)
+    {
+        try
+        {
+            var data = await constService.UpdateOrderStatus(orderId,request);
+            return Ok(new ApiResponse(true, null, data));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new ApiResponse(false, ex.Message, null));
+        }
+    }
+
+    [HttpPut("deliveries/{deliveryId:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateDelivery(
+    int deliveryId,
+    [FromBody] UpdateConstructionDeliveryRequest request)
+    {
+        try
+        {
+            var data = await constService.UpdateDelivery(deliveryId, request);
+            return Ok(new ApiResponse(true, null, data));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new ApiResponse(false, ex.Message, null));
+        }
+    }
+
     private string GetUserId()
     {
         return User.FindFirst("Id")?.Value

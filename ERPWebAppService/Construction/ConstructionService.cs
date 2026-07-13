@@ -196,37 +196,38 @@ namespace ERPWebAppService.Construction
 
                 orderby quote.CreatedAt descending
 
-                select new ConstructionQuoteDto
+                select new
                 {
-                    QuoteId = quote.Id,
-
-                    Status = quote.Status == 0
-                        ? "Pending"
-                        : quote.Status == 1
-                            ? "Approved"
-                            : quote.Status == 2
-                                ? "Rejected"
-                                : quote.Status == 3
-                                    ? "Completed"
-                                    : "Unknown",
-
+                    Quote = quote,
                     ProductName = product.Name,
                     CategoryName = category.Name,
-                    Quantity = quote.Quantity,
-
-                    UnitId = quote.UnitId,
-                    UnitName = unit.UOMName,
-
-                    EstimatedAmount = quote.EstimatedAmount,
-                    FinalQuotedAmount = quote.FinalQuotedAmount,
-
-                    DeliveryLocation = quote.DeliveryLocation,
-                    RequiredDate = quote.RequiredDate,
-                    CreatedAt = quote.CreatedAt
+                    UnitName = unit.UOMName
                 }
             ).ToListAsync();
 
-            return quotes;
+            return quotes.Select(x => new ConstructionQuoteDto
+            {
+                QuoteId = x.Quote.Id,
+
+                Status = Enum.IsDefined(typeof(ConstructionQuoteStatus), x.Quote.Status)
+                    ? ((ConstructionQuoteStatus)x.Quote.Status).ToString()
+                    : "Unknown",
+
+                ProductName = x.ProductName,
+                CategoryName = x.CategoryName,
+
+                Quantity = x.Quote.Quantity,
+
+                UnitId = x.Quote.UnitId,
+                UnitName = x.UnitName,
+
+                EstimatedAmount = x.Quote.EstimatedAmount,
+                FinalQuotedAmount = x.Quote.FinalQuotedAmount,
+
+                DeliveryLocation = x.Quote.DeliveryLocation,
+                RequiredDate = x.Quote.RequiredDate,
+                CreatedAt = x.Quote.CreatedAt
+            }).ToList();
         }
 
         public async Task<List<CategorieDto>> GetCategories()
@@ -295,7 +296,9 @@ namespace ERPWebAppService.Construction
             };
         }
 
-        public async Task<CreateConstructionOrderResponseDto> CreateOrderFromQuote(int quoteId,string userId)
+        public async Task<CreateConstructionOrderResponseDto> CreateOrderFromQuote(
+    int quoteId,
+    string userId)
         {
             if (quoteId <= 0)
                 throw new ArgumentException("A valid quote ID is required.");
@@ -312,29 +315,23 @@ namespace ERPWebAppService.Construction
                 throw new KeyNotFoundException("Construction quote not found.");
 
             if (quote.Status == (int)ConstructionQuoteStatus.Rejected)
-                throw new InvalidOperationException(
-                    "An order cannot be created from a rejected quote.");
+                throw new InvalidOperationException("An order cannot be created from a rejected quote.");
 
             if (quote.Status == (int)ConstructionQuoteStatus.Cancelled)
-                throw new InvalidOperationException(
-                    "An order cannot be created from a cancelled quote.");
+                throw new InvalidOperationException("An order cannot be created from a cancelled quote.");
 
             if (quote.Status == (int)ConstructionQuoteStatus.Completed)
-                throw new InvalidOperationException(
-                    "An order cannot be created from a completed quote.");
+                throw new InvalidOperationException("An order cannot be created from a completed quote.");
 
             if (quote.FinalQuotedAmount <= 0)
-                throw new InvalidOperationException(
-                    "The final quote price has not been shared.");
+                throw new InvalidOperationException("The final quote price has not been shared.");
 
             var orderAlreadyExists = await dbContext.ConstructionOrders
                 .AsNoTracking()
-                .AnyAsync(x =>
-                    x.QuoteId == quoteId);
+                .AnyAsync(x => x.QuoteId == quoteId);
 
             if (orderAlreadyExists)
-                throw new InvalidOperationException(
-                    "An order has already been placed for this quote.");
+                throw new InvalidOperationException("An order has already been placed for this quote.");
 
             var product = await dbContext.Products
                 .AsNoTracking()
@@ -351,57 +348,44 @@ namespace ERPWebAppService.Construction
                 .FirstOrDefaultAsync(x => x.UOMIndex == quote.UnitId);
 
             if (unit == null)
-                throw new KeyNotFoundException("Unit of measure not found.");
+                throw new KeyNotFoundException("Unit not found.");
 
             var currentUtcDate = DateTime.UtcNow;
 
-            await using var transaction =
-                await dbContext.Database.BeginTransactionAsync();
-
-            try
+            var order = new ConstructionOrder
             {
-                var order = new ConstructionOrder
-                {
-                    QuoteId = quote.Id,
-                    ProductId = quote.ProductId,
-                    UserId = userId,
-                    Quantity = quote.Quantity,
-                    UnitId = quote.UnitId,
-                    TotalAmount = quote.FinalQuotedAmount,
-                    DeliveryLocation = quote.DeliveryLocation,
-                    DeliveryDate = quote.RequiredDate,
-                    Status = (int)ConstructionOrderStatus.Placed,
-                    CreatedAt = currentUtcDate
-                };
+                QuoteId = quote.Id,
+                ProductId = quote.ProductId,
+                UserId = userId,
+                Quantity = quote.Quantity,
+                UnitId = quote.UnitId,
+                TotalAmount = quote.FinalQuotedAmount,
+                DeliveryLocation = quote.DeliveryLocation,
+                DeliveryDate = quote.RequiredDate,
+                Status = (int)ConstructionOrderStatus.Placed,
+                CreatedAt = currentUtcDate
+            };
 
-                await dbContext.ConstructionOrders.AddAsync(order);
+            await dbContext.ConstructionOrders.AddAsync(order);
 
-                quote.Status = (int)ConstructionQuoteStatus.OrderPlaced;
-                //quote.UpdatedAt = currentUtcDate;
+            quote.Status = (int)ConstructionQuoteStatus.OrderPlaced;
 
-                await dbContext.SaveChangesAsync();
-                await transaction.CommitAsync();
+            await dbContext.SaveChangesAsync();
 
-                return new CreateConstructionOrderResponseDto
-                {
-                    OrderId = order.Id,
-                    QuoteId = quote.Id,
-                    Status = ConstructionOrderStatus.Placed.ToString(),
-                    ProductName = product.Name,
-                    Quantity = order.Quantity,
-                    UnitId = order.UnitId,
-                    UnitName = unit.UOMName,
-                    TotalAmount = order.TotalAmount,
-                    DeliveryLocation = order.DeliveryLocation,
-                    DeliveryDate = order.DeliveryDate,
-                    CreatedAt = order.CreatedAt
-                };
-            }
-            catch
+            return new CreateConstructionOrderResponseDto
             {
-                await transaction.RollbackAsync();
-                throw;
-            }
+                OrderId = order.Id,
+                QuoteId = quote.Id,
+                Status = ConstructionOrderStatus.Placed.ToString(),
+                ProductName = product.Name,
+                Quantity = order.Quantity,
+                UnitId = order.UnitId,
+                UnitName = unit.UOMName,
+                TotalAmount = order.TotalAmount,
+                DeliveryLocation = order.DeliveryLocation,
+                DeliveryDate = order.DeliveryDate,
+                CreatedAt = order.CreatedAt
+            };
         }
 
         public async Task<List<ConstructionOrderDto>> GetOrders(string userId)
@@ -493,6 +477,249 @@ namespace ERPWebAppService.Construction
                 Progress = NormalizeProgress(x.Delivery.Progress)
             }).ToList();
         }
+        public async Task<UpdateConstructionOrderStatusResponseDto> UpdateOrderStatus(
+    int orderId,
+    UpdateConstructionOrderStatusRequest request)
+        {
+            if (orderId <= 0)
+                throw new ArgumentException("A valid order ID is required.");
+
+            if (request == null)
+                throw new ArgumentNullException(
+                    nameof(request),
+                    "Request body is required.");
+
+            if (!Enum.IsDefined(
+                    typeof(ConstructionOrderStatus),
+                    request.Status))
+            {
+                throw new ArgumentException(
+                    $"Invalid order status value: {request.Status}.");
+            }
+
+            var order = await dbContext.ConstructionOrders
+                .FirstOrDefaultAsync(x =>
+                    x.Id == orderId);
+
+            if (order == null)
+                throw new KeyNotFoundException("Construction order not found.");
+
+            if (!Enum.IsDefined(
+                    typeof(ConstructionOrderStatus),
+                    order.Status))
+            {
+                throw new InvalidOperationException(
+                    $"Order contains an invalid status value: {order.Status}.");
+            }
+
+            var currentStatus =
+                (ConstructionOrderStatus)order.Status;
+
+            var newStatus =
+                (ConstructionOrderStatus)request.Status;
+
+            ValidateOrderStatusTransition(
+                currentStatus,
+                newStatus);
+
+            var updatedAt = DateTime.UtcNow;
+
+            ConstructionDelivery? delivery = null;
+
+            if (currentStatus == ConstructionOrderStatus.Processing &&
+                newStatus == ConstructionOrderStatus.Shipped)
+            {
+                delivery = await dbContext.ConstructionDelivery
+                    .FirstOrDefaultAsync(x =>
+                        x.OrderId == order.Id &&
+                        !x.IsDeleted);
+
+                if (delivery == null)
+                {
+                    delivery = new ConstructionDelivery
+                    {
+                        OrderId = order.Id,
+                        VehicleNumber = string.Empty,
+                        DriverName = string.Empty,
+                        Status = (int)ConstructionDeliveryStatus.Preparing,
+                        EstimatedArrivalTime = null,
+                        Progress = 0m,
+                        CreatedAt = updatedAt,
+                        UpdatedAt = null,
+                        IsDeleted = false
+                    };
+
+                    await dbContext.ConstructionDelivery.AddAsync(delivery);
+                }
+            }
+            else
+            {
+                delivery = await dbContext.ConstructionDelivery
+                    .FirstOrDefaultAsync(x =>
+                        x.OrderId == order.Id &&
+                        !x.IsDeleted);
+            }
+
+            order.Status = (int)newStatus;
+
+            await dbContext.SaveChangesAsync();
+
+            return new UpdateConstructionOrderStatusResponseDto
+            {
+                OrderId = order.Id,
+                Status = order.Status,
+                DeliveryId = delivery?.Id,
+                UpdatedAt = updatedAt
+            };
+        }
+
+        public async Task<UpdateConstructionDeliveryResponseDto> UpdateDelivery(
+    int deliveryId,
+    UpdateConstructionDeliveryRequest request)
+        {
+            if (deliveryId <= 0)
+                throw new ArgumentException("A valid delivery ID is required.");
+
+            if (request == null)
+                throw new ArgumentNullException(
+                    nameof(request),
+                    "Request body is required.");
+
+            if (!Enum.IsDefined(
+                    typeof(ConstructionDeliveryStatus),
+                    request.Status))
+            {
+                throw new ArgumentException(
+                    $"Invalid delivery status value: {request.Status}.");
+            }
+
+            var delivery = await dbContext.ConstructionDelivery
+                .FirstOrDefaultAsync(x =>
+                    x.Id == deliveryId &&
+                    !x.IsDeleted);
+
+            if (delivery == null)
+                throw new KeyNotFoundException("Construction delivery not found.");
+
+            if (!Enum.IsDefined(
+                    typeof(ConstructionDeliveryStatus),
+                    delivery.Status))
+            {
+                throw new InvalidOperationException(
+                    $"Delivery has an invalid current status: {delivery.Status}.");
+            }
+
+            var currentStatus =
+                (ConstructionDeliveryStatus)delivery.Status;
+
+            var newStatus =
+                (ConstructionDeliveryStatus)request.Status;
+
+            ValidateDeliveryStatusTransition(currentStatus, newStatus);
+
+            /*
+             * Vehicle and driver are required when the delivery
+             * moves to Dispatched or OutForDelivery.
+             */
+            if (newStatus == ConstructionDeliveryStatus.Dispatched ||
+                newStatus == ConstructionDeliveryStatus.OutForDelivery)
+            {
+                if (string.IsNullOrWhiteSpace(request.VehicleNumber) &&
+                    string.IsNullOrWhiteSpace(delivery.VehicleNumber))
+                {
+                    throw new ArgumentException(
+                        "Vehicle number is required before dispatching the delivery.");
+                }
+
+                if (string.IsNullOrWhiteSpace(request.DriverName) &&
+                    string.IsNullOrWhiteSpace(delivery.DriverName))
+                {
+                    throw new ArgumentException(
+                        "Driver name is required before dispatching the delivery.");
+                }
+
+                if (!request.EstimatedArrivalTime.HasValue &&
+                    !delivery.EstimatedArrivalTime.HasValue)
+                {
+                    throw new ArgumentException(
+                        "Estimated arrival time is required before dispatching the delivery.");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.VehicleNumber))
+            {
+                delivery.VehicleNumber = request.VehicleNumber.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.DriverName))
+            {
+                delivery.DriverName = request.DriverName.Trim();
+            }
+
+            if (request.EstimatedArrivalTime.HasValue)
+            {
+                if (request.EstimatedArrivalTime.Value <= DateTime.UtcNow &&
+                    newStatus != ConstructionDeliveryStatus.Delivered)
+                {
+                    throw new ArgumentException(
+                        "Estimated arrival time must be in the future.");
+                }
+
+                delivery.EstimatedArrivalTime =
+                    request.EstimatedArrivalTime.Value;
+            }
+
+            var updatedAt = DateTime.UtcNow;
+
+            delivery.Status = (int)newStatus;
+            delivery.Progress = GetDeliveryProgress(
+                newStatus,
+                delivery.Progress);
+
+            delivery.UpdatedAt = updatedAt;
+
+            /*
+             * Synchronize final delivery status with the order.
+             */
+            if (newStatus == ConstructionDeliveryStatus.Delivered ||
+                newStatus == ConstructionDeliveryStatus.Cancelled)
+            {
+                var order = await dbContext.ConstructionOrders
+                    .FirstOrDefaultAsync(x =>
+                        x.Id == delivery.OrderId);
+
+                if (order == null)
+                    throw new KeyNotFoundException(
+                        "The order associated with this delivery was not found.");
+
+                if (newStatus == ConstructionDeliveryStatus.Delivered)
+                {
+                    order.Status =
+                        (int)ConstructionOrderStatus.Delivered;
+                }
+                else
+                {
+                    order.Status =
+                        (int)ConstructionOrderStatus.Cancelled;
+                }
+            }
+
+            await dbContext.SaveChangesAsync();
+
+            return new UpdateConstructionDeliveryResponseDto
+            {
+                DeliveryId = delivery.Id,
+                OrderId = delivery.OrderId,
+                Status = delivery.Status,
+                StatusName = GetDeliveryStatusName(delivery.Status),
+                VehicleNumber = delivery.VehicleNumber,
+                DriverName = delivery.DriverName,
+                EstimatedArrivalTime = delivery.EstimatedArrivalTime,
+                Progress = delivery.Progress,
+                UpdatedAt = updatedAt
+            };
+        }
+
         private static string GetDeliveryStatusName(int status)
         {
             return status switch
@@ -530,5 +757,139 @@ namespace ERPWebAppService.Construction
         {
             return Math.Clamp(progress, 0m, 1m);
         }
+
+        private static void ValidateOrderStatusTransition(
+    ConstructionOrderStatus currentStatus,
+    ConstructionOrderStatus newStatus)
+        {
+            if (currentStatus == newStatus)
+            {
+                throw new InvalidOperationException(
+                    $"Order is already in status '{(int)currentStatus}'.");
+            }
+
+            if (currentStatus == ConstructionOrderStatus.Delivered)
+            {
+                throw new InvalidOperationException(
+                    "A delivered order cannot be modified.");
+            }
+
+            if (currentStatus == ConstructionOrderStatus.Cancelled)
+            {
+                throw new InvalidOperationException(
+                    "A cancelled order cannot be modified.");
+            }
+
+            var isValidTransition = currentStatus switch
+            {
+                ConstructionOrderStatus.Placed =>
+                    newStatus == ConstructionOrderStatus.Confirmed ||
+                    newStatus == ConstructionOrderStatus.Cancelled,
+
+                ConstructionOrderStatus.Confirmed =>
+                    newStatus == ConstructionOrderStatus.Processing ||
+                    newStatus == ConstructionOrderStatus.Cancelled,
+
+                ConstructionOrderStatus.Processing =>
+                    newStatus == ConstructionOrderStatus.Shipped ||
+                    newStatus == ConstructionOrderStatus.Cancelled,
+
+                ConstructionOrderStatus.Shipped =>
+                    newStatus == ConstructionOrderStatus.Delivered ||
+                    newStatus == ConstructionOrderStatus.Cancelled,
+
+                _ => false
+            };
+
+            if (!isValidTransition)
+            {
+                throw new InvalidOperationException(
+                    $"Order status cannot be changed from " +
+                    $"'{(int)currentStatus}' to '{(int)newStatus}'.");
+            }
+        }
+
+        private static void ValidateDeliveryStatusTransition(
+    ConstructionDeliveryStatus currentStatus,
+    ConstructionDeliveryStatus newStatus)
+        {
+            if (currentStatus == newStatus)
+            {
+                throw new InvalidOperationException(
+                    $"Delivery is already in status '{(int)currentStatus}'.");
+            }
+
+            if (currentStatus == ConstructionDeliveryStatus.Delivered)
+            {
+                throw new InvalidOperationException(
+                    "A delivered delivery cannot be modified.");
+            }
+
+            if (currentStatus == ConstructionDeliveryStatus.Cancelled)
+            {
+                throw new InvalidOperationException(
+                    "A cancelled delivery cannot be modified.");
+            }
+
+            var isValidTransition = currentStatus switch
+            {
+                ConstructionDeliveryStatus.Preparing =>
+                    newStatus == ConstructionDeliveryStatus.Dispatched ||
+                    newStatus == ConstructionDeliveryStatus.Delayed ||
+                    newStatus == ConstructionDeliveryStatus.Cancelled,
+
+                ConstructionDeliveryStatus.Dispatched =>
+                    newStatus == ConstructionDeliveryStatus.OutForDelivery ||
+                    newStatus == ConstructionDeliveryStatus.Delayed ||
+                    newStatus == ConstructionDeliveryStatus.Cancelled,
+
+                ConstructionDeliveryStatus.OutForDelivery =>
+                    newStatus == ConstructionDeliveryStatus.Delivered ||
+                    newStatus == ConstructionDeliveryStatus.Delayed ||
+                    newStatus == ConstructionDeliveryStatus.Cancelled,
+
+                ConstructionDeliveryStatus.Delayed =>
+                    newStatus == ConstructionDeliveryStatus.Preparing ||
+                    newStatus == ConstructionDeliveryStatus.Dispatched ||
+                    newStatus == ConstructionDeliveryStatus.OutForDelivery ||
+                    newStatus == ConstructionDeliveryStatus.Cancelled,
+
+                ConstructionDeliveryStatus.Delivered => false,
+
+                ConstructionDeliveryStatus.Cancelled => false,
+
+                _ => false
+            };
+
+            if (!isValidTransition)
+            {
+                throw new InvalidOperationException(
+                    $"Delivery status cannot be changed from " +
+                    $"'{currentStatus}' to '{newStatus}'.");
+            }
+        }
+        private static decimal GetDeliveryProgress(
+    ConstructionDeliveryStatus status,
+    decimal currentProgress)
+        {
+            return status switch
+            {
+                ConstructionDeliveryStatus.Preparing => 0.00m,
+
+                ConstructionDeliveryStatus.Dispatched => 0.35m,
+
+                ConstructionDeliveryStatus.OutForDelivery => 0.75m,
+
+                ConstructionDeliveryStatus.Delivered => 1.00m,
+
+                ConstructionDeliveryStatus.Delayed =>
+                    Math.Clamp(currentProgress, 0m, 0.99m),
+
+                ConstructionDeliveryStatus.Cancelled => 0.00m,
+
+                _ => 0.00m
+            };
+        }
+        
     }
 }

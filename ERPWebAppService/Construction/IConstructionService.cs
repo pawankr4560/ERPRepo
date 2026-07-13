@@ -22,5 +22,11 @@ namespace ERPWebAppService.Construction
         Task<CreateConstructionOrderResponseDto> CreateOrderFromQuote(int quoteId, string userId);
         Task<List<ConstructionOrderDto>> GetOrders(string userId);
         Task<List<ConstructionDeliveryDto>> GetDeliveries(string userId);
+        Task<UpdateConstructionOrderStatusResponseDto> UpdateOrderStatus(
+    int orderId,
+    UpdateConstructionOrderStatusRequest request);
+        Task<UpdateConstructionDeliveryResponseDto> UpdateDelivery(
+    int deliveryId,
+    UpdateConstructionDeliveryRequest request);
     }
 }
