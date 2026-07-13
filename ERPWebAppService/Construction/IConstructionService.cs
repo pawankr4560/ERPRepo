@@ -15,13 +15,14 @@ namespace ERPWebAppService.Construction
     ConstructionQuoteRequest request,string userId);
         Task<List<CategorieDto>> GetCategories();
         Task<List<UnitDto>> Units();
-        Task<List<ConstructionQuoteDto>> GetQuotes(string userId);
+        Task<List<ConstructionQuoteDto>> GetQuotes(string userId, bool isAdmin = false);
         Task<UpdateQuotePriceResponseDto> UpdateQuotePrice(
     int quoteId,
     UpdateQuotePriceRequest request);
         Task<CreateConstructionOrderResponseDto> CreateOrderFromQuote(int quoteId, string userId);
-        Task<List<ConstructionOrderDto>> GetOrders(string userId);
-        Task<List<ConstructionDeliveryDto>> GetDeliveries(string userId);
+        Task<List<ConstructionOrderDto>> GetOrders(string userId, bool isAdmin = false);
+        Task<List<ConstructionDeliveryDto>> GetDeliveries(string userId, bool isAdmin = false);
+        Task<UpdateConstructionDeliveryResponseDto> CreateDeliveryForOrder(int orderId);
         Task<UpdateConstructionOrderStatusResponseDto> UpdateOrderStatus(
     int orderId,
     UpdateConstructionOrderStatusRequest request);

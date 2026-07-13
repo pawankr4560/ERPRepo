@@ -1,0 +1,102 @@
+:host { display: block; }
+
+.construction-page {
+  min-height: calc(100vh - 64px);
+  padding: 24px;
+  background: #f4f6f8;
+  color: #172033;
+}
+
+.page-header, .editor-heading, .toolbar, .editor-form, .delivery-form {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-header { margin-bottom: 18px; }
+.header-actions, .token-user { display: flex; align-items: center; gap: 12px; }
+.live-indicator { display: inline-flex; align-items: center; gap: 6px; color: #047857; font-size: 12px; font-weight: 800; }
+.live-indicator i { width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 4px rgba(16, 185, 129, .13); }
+.token-user { padding: 7px 11px; border: 1px solid #d7e5e2; border-radius: 9px; background: #f0faf7; color: #0f766e; }
+.token-user span, .token-user strong, .token-user small { display: block; }
+.token-user strong { color: #26364a; font-size: 13px; }
+.token-user small { margin-top: 1px; color: #667085; font-size: 11px; }
+.page-header h1, .editor-heading h2 { margin: 3px 0 4px; color: #172033; }
+.page-header h1 { font-size: 28px; }
+.page-header p { margin: 0; color: #667085; }
+.eyebrow { color: #0f766e; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+
+.summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+.summary-card {
+  display: flex; align-items: center; gap: 14px; padding: 18px; border: 1px solid #dde3ea;
+  border-radius: 12px; background: #fff; color: inherit; text-align: left; cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.summary-card:hover { transform: translateY(-2px); box-shadow: 0 7px 18px rgba(22, 32, 51, .08); }
+.summary-icon { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 10px; }
+.quote-card .summary-icon { background: #fff4df; color: #b45309; }
+.order-card .summary-icon { background: #e8f0ff; color: #1d4ed8; }
+.delivery-card .summary-icon { background: #e4f7f2; color: #047857; }
+.summary-card strong, .summary-card small { display: block; }
+.summary-card strong { font-size: 24px; line-height: 1.1; }
+.summary-card small { margin-top: 4px; color: #667085; font-weight: 600; }
+
+.editor-card, .workspace-card { border: 1px solid #dde3ea; border-radius: 12px; background: #fff; }
+.editor-card { margin-bottom: 18px; padding: 20px; border-left: 4px solid #0f766e; box-shadow: 0 8px 22px rgba(15, 118, 110, .08); }
+.editor-heading { margin-bottom: 16px; }
+.editor-heading h2 { font-size: 19px; }
+.editor-form { justify-content: flex-start; }
+.editor-form mat-form-field { width: min(340px, 100%); }
+.context-block { min-width: 230px; padding: 10px 14px; border-radius: 8px; background: #f7f9fb; }
+.context-block span, .context-block small { display: block; }
+.context-block span { font-weight: 700; }
+.context-block small { margin-top: 3px; color: #667085; }
+.delivery-form { display: grid; grid-template-columns: repeat(4, minmax(170px, 1fr)) auto; align-items: start; }
+.delivery-form button { margin-top: 5px; }
+
+.toolbar { padding: 14px 18px; border-bottom: 1px solid #e6eaf0; }
+.search-field { width: min(520px, 100%); }
+.last-state { display: inline-flex; align-items: center; gap: 8px; color: #667085; font-size: 13px; }
+.tab-count { margin-left: 7px; padding: 2px 7px; border-radius: 999px; background: #edf1f5; font-size: 11px; font-weight: 800; }
+:host ::ng-deep .mat-mdc-tab .mat-icon { margin-right: 7px; }
+
+.table-wrap { overflow-x: auto; }
+.data-table { width: 100%; min-width: 980px; border-collapse: collapse; }
+.data-table th, .data-table td { padding: 14px 16px; border-bottom: 1px solid #e9edf2; text-align: left; vertical-align: middle; }
+.data-table th { background: #f8fafb; color: #536176; font-size: 11px; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+.data-table tbody tr:hover { background: #fbfcfd; }
+.data-table td:last-child { text-align: right; white-space: nowrap; }
+.row-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.secondary { display: block; max-width: 260px; margin-top: 4px; overflow: hidden; color: #758195; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+
+.status-pill { display: inline-flex; justify-content: center; padding: 5px 10px; border-radius: 999px; background: #eef1f5; color: #475467; font-size: 11px; font-weight: 800; white-space: nowrap; }
+.status-pending, .status-delayed { background: #fff3d6; color: #9a5700; }
+.status-price-shared, .status-confirmed, .status-dispatched { background: #e6efff; color: #1d4ed8; }
+.status-accepted, .status-processing, .status-preparing { background: #f0eaff; color: #6d28d9; }
+.status-order-placed, .status-shipped, .status-out-for-delivery, .status-outfordelivery { background: #dff7f1; color: #047857; }
+.status-delivered, .status-completed { background: #dcfce7; color: #166534; }
+.status-rejected, .status-cancelled { background: #fee2e2; color: #991b1b; }
+
+.progress-label { display: flex; justify-content: flex-end; margin-bottom: 5px; color: #667085; font-size: 11px; font-weight: 700; }
+.delivery-table mat-progress-bar { width: 130px; }
+.empty-state { padding: 48px 20px !important; color: #7a8596; text-align: center !important; }
+.empty-state mat-icon, .empty-state strong, .empty-state span { display: block; margin: auto; }
+.empty-state mat-icon { width: 36px; height: 36px; margin-bottom: 8px; font-size: 36px; color: #aab3c0; }
+.empty-state strong { color: #475467; }
+.empty-state span { margin-top: 4px; font-size: 12px; }
+
+@media (max-width: 1050px) {
+  .delivery-form { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+  .delivery-form button { width: fit-content; }
+}
+
+@media (max-width: 700px) {
+  .construction-page { padding: 14px; }
+  .page-header, .editor-form { align-items: stretch; flex-direction: column; }
+  .header-actions { align-items: stretch; flex-direction: column; }
+  .summary-grid { grid-template-columns: 1fr; }
+  .editor-form mat-form-field { width: 100%; }
+  .delivery-form { grid-template-columns: 1fr; }
+  .toolbar { align-items: stretch; flex-direction: column; }
+}

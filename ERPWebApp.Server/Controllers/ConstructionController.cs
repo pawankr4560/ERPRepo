@@ -50,7 +50,8 @@ public class ConstructionController : ControllerBase
     }
 
     [HttpPut("quotes/{quoteId:int}/price")]
-    public async Task<IActionResult> GetUnits(int quoteId,[FromBody] UpdateQuotePriceRequest request)
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UpdateQuotePrice(int quoteId, [FromBody] UpdateQuotePriceRequest request)
     {
         try
         {
@@ -114,7 +115,7 @@ public class ConstructionController : ControllerBase
     {
         try
         {
-            var items = await constService.GetQuotes(GetUserId());
+            var items = await constService.GetQuotes(GetUserId(), User.IsInRole("Admin"));
             return Ok(new ApiResponse(true, null, items));
         }
         catch (Exception ex)
@@ -123,11 +124,11 @@ public class ConstructionController : ControllerBase
         }
     }
     [HttpGet("orders")]
-    public async Task<IActionResult> GetOrders(int quoteId)
+    public async Task<IActionResult> GetOrders()
     {
         try
         {
-           var data = await constService.GetOrders(GetUserId());
+           var data = await constService.GetOrders(GetUserId(), User.IsInRole("Admin"));
             return Ok(new ApiResponse(true, null, data));
         }
         catch (Exception ex)
@@ -157,8 +158,23 @@ public class ConstructionController : ControllerBase
     {
         try
         {
-            var data = await constService.GetDeliveries(GetUserId());
+            var data = await constService.GetDeliveries(GetUserId(), User.IsInRole("Admin"));
             return Ok(new ApiResponse(true, null, data));
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new ApiResponse(false, ex.Message, null));
+        }
+    }
+
+    [HttpPost("deliveries/from-order/{orderId:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CreateDeliveryForOrder(int orderId)
+    {
+        try
+        {
+            var data = await constService.CreateDeliveryForOrder(orderId);
+            return Ok(new ApiResponse(true, "Delivery setup created successfully", data));
         }
         catch (Exception ex)
         {

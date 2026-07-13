@@ -175,7 +175,7 @@ namespace ERPWebAppService.Construction
             };
         }
 
-        public async Task<List<ConstructionQuoteDto>> GetQuotes(string userId)
+        public async Task<List<ConstructionQuoteDto>> GetQuotes(string userId, bool isAdmin = false)
         {
             if (string.IsNullOrWhiteSpace(userId))
                 throw new UnauthorizedAccessException("User ID is required.");
@@ -192,7 +192,7 @@ namespace ERPWebAppService.Construction
                 join unit in dbContext.UnitOfMeasure.AsNoTracking()
                     on quote.UnitId equals unit.UOMIndex
 
-                where quote.UserId == userId
+                where isAdmin || quote.UserId == userId
 
                 orderby quote.CreatedAt descending
 
@@ -208,7 +208,6 @@ namespace ERPWebAppService.Construction
             return quotes.Select(x => new ConstructionQuoteDto
             {
                 QuoteId = x.Quote.Id,
-
                 Status = Enum.IsDefined(typeof(ConstructionQuoteStatus), x.Quote.Status)
                     ? ((ConstructionQuoteStatus)x.Quote.Status).ToString()
                     : "Unknown",
@@ -370,6 +369,19 @@ namespace ERPWebAppService.Construction
 
             quote.Status = (int)ConstructionQuoteStatus.OrderPlaced;
 
+            await dbContext.ConstructionDelivery.AddAsync(new ConstructionDelivery
+            {
+                Order = order,
+                VehicleNumber = string.Empty,
+                DriverName = string.Empty,
+                Status = (int)ConstructionDeliveryStatus.Preparing,
+                EstimatedArrivalTime = null,
+                Progress = 0m,
+                CreatedAt = currentUtcDate,
+                UpdatedAt = null,
+                IsDeleted = false
+            });
+
             await dbContext.SaveChangesAsync();
 
             return new CreateConstructionOrderResponseDto
@@ -388,7 +400,7 @@ namespace ERPWebAppService.Construction
             };
         }
 
-        public async Task<List<ConstructionOrderDto>> GetOrders(string userId)
+        public async Task<List<ConstructionOrderDto>> GetOrders(string userId, bool isAdmin = false)
         {
             if (string.IsNullOrWhiteSpace(userId))
                 throw new UnauthorizedAccessException("User ID is required.");
@@ -402,7 +414,7 @@ namespace ERPWebAppService.Construction
                 join unit in dbContext.UnitOfMeasure.AsNoTracking()
                     on order.UnitId equals unit.UOMIndex
 
-                where order.UserId == userId
+                where isAdmin || order.UserId == userId
 
                 orderby order.CreatedAt descending
 
@@ -439,7 +451,7 @@ namespace ERPWebAppService.Construction
             return orders;
         }
 
-        public async Task<List<ConstructionDeliveryDto>> GetDeliveries(string userId)
+        public async Task<List<ConstructionDeliveryDto>> GetDeliveries(string userId, bool isAdmin = false)
         {
             if (string.IsNullOrWhiteSpace(userId))
                 throw new UnauthorizedAccessException("User ID is required.");
@@ -453,7 +465,7 @@ namespace ERPWebAppService.Construction
                 join product in dbContext.Products.AsNoTracking()
                     on order.ProductId equals product.Id
 
-                where order.UserId == userId
+                where (isAdmin || order.UserId == userId)
                       && !delivery.IsDeleted
 
                 orderby delivery.CreatedAt descending
@@ -477,6 +489,61 @@ namespace ERPWebAppService.Construction
                 Progress = NormalizeProgress(x.Delivery.Progress)
             }).ToList();
         }
+
+        public async Task<UpdateConstructionDeliveryResponseDto> CreateDeliveryForOrder(int orderId)
+        {
+            if (orderId <= 0)
+                throw new ArgumentException("A valid order ID is required.");
+
+            var order = await dbContext.ConstructionOrders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == orderId);
+
+            if (order == null)
+                throw new KeyNotFoundException("Construction order not found.");
+
+            if (order.Status == (int)ConstructionOrderStatus.Cancelled)
+                throw new InvalidOperationException("A delivery cannot be created for a cancelled order.");
+
+            var delivery = await dbContext.ConstructionDelivery
+                .FirstOrDefaultAsync(x => x.OrderId == orderId && !x.IsDeleted);
+
+            if (delivery == null)
+            {
+                var now = DateTime.UtcNow;
+                delivery = new ConstructionDelivery
+                {
+                    OrderId = orderId,
+                    VehicleNumber = string.Empty,
+                    DriverName = string.Empty,
+                    Status = order.Status == (int)ConstructionOrderStatus.Delivered
+                        ? (int)ConstructionDeliveryStatus.Delivered
+                        : (int)ConstructionDeliveryStatus.Preparing,
+                    EstimatedArrivalTime = null,
+                    Progress = order.Status == (int)ConstructionOrderStatus.Delivered ? 1m : 0m,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    IsDeleted = false
+                };
+
+                await dbContext.ConstructionDelivery.AddAsync(delivery);
+                await dbContext.SaveChangesAsync();
+            }
+
+            return new UpdateConstructionDeliveryResponseDto
+            {
+                DeliveryId = delivery.Id,
+                OrderId = delivery.OrderId,
+                Status = delivery.Status,
+                StatusName = GetDeliveryStatusName(delivery.Status),
+                VehicleNumber = delivery.VehicleNumber,
+                DriverName = delivery.DriverName,
+                EstimatedArrivalTime = delivery.EstimatedArrivalTime,
+                Progress = delivery.Progress,
+                UpdatedAt = delivery.UpdatedAt ?? delivery.CreatedAt
+            };
+        }
+
         public async Task<UpdateConstructionOrderStatusResponseDto> UpdateOrderStatus(
     int orderId,
     UpdateConstructionOrderStatusRequest request)
@@ -658,15 +725,16 @@ namespace ERPWebAppService.Construction
 
             if (request.EstimatedArrivalTime.HasValue)
             {
-                if (request.EstimatedArrivalTime.Value <= DateTime.UtcNow &&
+                var estimatedArrivalUtc = NormalizeEtaToUtc(request.EstimatedArrivalTime.Value);
+
+                if (estimatedArrivalUtc <= DateTime.UtcNow &&
                     newStatus != ConstructionDeliveryStatus.Delivered)
                 {
                     throw new ArgumentException(
                         "Estimated arrival time must be in the future.");
                 }
 
-                delivery.EstimatedArrivalTime =
-                    request.EstimatedArrivalTime.Value;
+                delivery.EstimatedArrivalTime = estimatedArrivalUtc;
             }
 
             var updatedAt = DateTime.UtcNow;
@@ -739,18 +807,42 @@ namespace ERPWebAppService.Construction
             if (!eta.HasValue)
                 return null;
 
-            var etaDate = eta.Value;
-            var today = DateTime.UtcNow.Date;
+            var utcEta = DateTime.SpecifyKind(eta.Value, DateTimeKind.Utc);
+            var indiaTimeZone = GetIndiaTimeZone();
+            var etaDate = TimeZoneInfo.ConvertTimeFromUtc(utcEta, indiaTimeZone);
+            var today = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, indiaTimeZone).Date;
 
             if (etaDate.Date == today)
-                return $"Today, {etaDate.ToString("h:mm tt", CultureInfo.InvariantCulture)}";
+                return $"Today, {etaDate.ToString("h:mm tt", CultureInfo.InvariantCulture)} IST";
 
             if (etaDate.Date == today.AddDays(1))
-                return $"Tomorrow, {etaDate.ToString("h:mm tt", CultureInfo.InvariantCulture)}";
+                return $"Tomorrow, {etaDate.ToString("h:mm tt", CultureInfo.InvariantCulture)} IST";
 
             return etaDate.ToString(
-                "dd MMM yyyy, h:mm tt",
+                "dd MMM yyyy, h:mm tt 'IST'",
                 CultureInfo.InvariantCulture);
+        }
+
+        private static TimeZoneInfo GetIndiaTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("India Standard Time");
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata");
+            }
+        }
+
+        private static DateTime NormalizeEtaToUtc(DateTime eta)
+        {
+            return eta.Kind switch
+            {
+                DateTimeKind.Utc => eta,
+                DateTimeKind.Local => eta.ToUniversalTime(),
+                _ => TimeZoneInfo.ConvertTimeToUtc(eta, GetIndiaTimeZone())
+            };
         }
 
         private static decimal NormalizeProgress(decimal progress)

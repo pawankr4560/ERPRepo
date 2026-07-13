@@ -42,6 +42,14 @@ export const routes: Routes = [
           ),
         canActivate: [AdminGuard],
       },
+      {
+        path: 'construction-control',
+        loadChildren: () =>
+          import('./construction-admin/construction-admin.module').then(
+            (module) => module.ConstructionAdminModule
+          ),
+        canActivate: [AdminGuard],
+      },
 
       // Inventory under Home
       {

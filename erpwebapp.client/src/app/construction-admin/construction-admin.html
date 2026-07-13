@@ -1,0 +1,206 @@
+<section class="construction-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">Operations</span>
+      <h1>Construction Control</h1>
+      <p>Review customer quotes, move orders forward, and coordinate deliveries.</p>
+    </div>
+    <div class="header-actions">
+      <div class="token-user" *ngIf="currentUser.customerName || currentUser.contactNumber">
+        <mat-icon>verified_user</mat-icon>
+        <span><strong>{{ currentUser.customerName || 'Admin' }}</strong><small>{{ currentUser.contactNumber }}</small></span>
+      </div>
+      <button mat-stroked-button type="button" (click)="refresh()" [disabled]="isLoading || isSaving">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+      <span class="live-indicator"><i></i> Live</span>
+    </div>
+  </header>
+
+  <div class="summary-grid">
+    <button class="summary-card quote-card" type="button" (click)="selectedTab = 0">
+      <span class="summary-icon"><mat-icon>request_quote</mat-icon></span>
+      <span><strong>{{ pendingQuoteCount }}</strong><small>Quotes needing attention</small></span>
+    </button>
+    <button class="summary-card order-card" type="button" (click)="selectedTab = 1">
+      <span class="summary-icon"><mat-icon>inventory_2</mat-icon></span>
+      <span><strong>{{ activeOrderCount }}</strong><small>Active orders</small></span>
+    </button>
+    <button class="summary-card delivery-card" type="button" (click)="selectedTab = 2">
+      <span class="summary-icon"><mat-icon>local_shipping</mat-icon></span>
+      <span><strong>{{ activeDeliveryCount }}</strong><small>Deliveries in progress</small></span>
+    </button>
+  </div>
+
+  <div class="editor-card" *ngIf="editingQuote || editingOrder || editingDelivery">
+    <div class="editor-heading">
+      <div>
+        <span class="eyebrow">Quick update</span>
+        <h2 *ngIf="editingQuote">Quote #{{ editingQuote.quoteId }} · {{ editingQuote.productName }}</h2>
+        <h2 *ngIf="editingOrder">Order #{{ editingOrder.orderId }} · {{ editingOrder.productName }}</h2>
+        <h2 *ngIf="editingDelivery">Delivery #{{ editingDelivery.deliveryId }} · {{ editingDelivery.productName }}</h2>
+      </div>
+      <button mat-icon-button type="button" matTooltip="Close editor" (click)="closeEditor()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <form *ngIf="editingQuote" #quoteForm="ngForm" class="editor-form" (ngSubmit)="saveQuote(quoteForm)">
+      <div class="context-block">
+        <span>Current estimate</span>
+        <small>Estimate: INR {{ editingQuote.estimatedAmount | number:'1.2-2' }}</small>
+      </div>
+      <mat-form-field appearance="outline">
+        <mat-label>Final quoted amount</mat-label>
+        <span matTextPrefix>INR&nbsp;</span>
+        <input matInput type="number" name="quotePrice" [(ngModel)]="quotePrice" min="0.01" step="0.01" required />
+        <mat-error>Enter an amount greater than zero.</mat-error>
+      </mat-form-field>
+      <button mat-flat-button color="primary" type="submit" [disabled]="quoteForm.invalid || isSaving">
+        {{ isSaving ? 'Saving...' : 'Share price' }}
+      </button>
+    </form>
+
+    <form *ngIf="editingOrder" #orderForm="ngForm" class="editor-form" (ngSubmit)="saveOrder(orderForm)">
+      <div class="context-block">
+        <span>Current: {{ editingOrder.status }}</span>
+        <small>Order total · INR {{ editingOrder.totalAmount | number:'1.2-2' }}</small>
+      </div>
+      <mat-form-field appearance="outline">
+        <mat-label>Move order to</mat-label>
+        <mat-select name="orderStatus" [(ngModel)]="orderStatus" required>
+          <mat-option *ngFor="let status of availableOrderStatuses" [value]="status.value">{{ status.label }}</mat-option>
+        </mat-select>
+        <mat-error>Select the next order status.</mat-error>
+      </mat-form-field>
+      <button mat-flat-button color="primary" type="submit" [disabled]="orderForm.invalid || isSaving">
+        {{ isSaving ? 'Saving...' : 'Update order' }}
+      </button>
+    </form>
+
+    <form *ngIf="editingDelivery" #deliveryForm="ngForm" class="delivery-form" (ngSubmit)="saveDelivery(deliveryForm)">
+      <mat-form-field appearance="outline">
+        <mat-label>Delivery status</mat-label>
+        <mat-select name="deliveryStatus" [(ngModel)]="deliveryStatus" required>
+          <mat-option *ngFor="let status of availableDeliveryStatuses" [value]="status.value">{{ status.label }}</mat-option>
+        </mat-select>
+        <mat-hint *ngIf="nextDeliveryStep(editingDelivery.status)">Recommended: {{ nextDeliveryStep(editingDelivery.status) }}</mat-hint>
+        <mat-error>Select the next delivery status.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Vehicle number</mat-label>
+        <input matInput name="vehicleNumber" [(ngModel)]="vehicleNumber" maxlength="50" [required]="deliveryDispatchDetailsRequired && !editingDelivery.vehicleNumber" />
+        <mat-error>Vehicle number is required for dispatch.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Driver name</mat-label>
+        <input matInput name="driverName" [(ngModel)]="driverName" maxlength="150" [required]="deliveryDispatchDetailsRequired && !editingDelivery.driverName" />
+        <mat-error>Driver name is required for dispatch.</mat-error>
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Estimated arrival (IST)</mat-label>
+        <input matInput type="datetime-local" name="estimatedArrivalTime" [(ngModel)]="estimatedArrivalTime" [required]="deliveryDispatchDetailsRequired && !editingDelivery.eta" />
+        <mat-hint *ngIf="editingDelivery.eta">Current: {{ editingDelivery.eta }}</mat-hint>
+        <mat-error>ETA is required for dispatch.</mat-error>
+      </mat-form-field>
+      <button mat-flat-button color="primary" type="submit" [disabled]="deliveryForm.invalid || isSaving">
+        {{ isSaving ? 'Saving...' : 'Update delivery' }}
+      </button>
+    </form>
+  </div>
+
+  <div class="workspace-card">
+    <div class="toolbar">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
+        <mat-label>Search records</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input matInput [(ngModel)]="search" placeholder="ID, product, status or location" />
+        <button *ngIf="search" mat-icon-button matSuffix type="button" aria-label="Clear search" (click)="search = ''">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+      <span class="last-state" *ngIf="isLoading"><mat-spinner diameter="18"></mat-spinner> Loading records</span>
+    </div>
+
+    <mat-tab-group [(selectedIndex)]="selectedTab" animationDuration="180ms">
+      <mat-tab>
+        <ng-template mat-tab-label><mat-icon>request_quote</mat-icon> Quotes <span class="tab-count">{{ quotes.length }}</span></ng-template>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Quote</th><th>Requirement</th><th>Amount</th><th>Required by</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              <tr *ngIf="!filteredQuotes.length"><td colspan="6" class="empty-state"><mat-icon>request_quote</mat-icon><strong>{{ isLoading ? 'Loading quotes...' : 'No quotes found' }}</strong><span>New customer quote requests will appear here.</span></td></tr>
+              <tr *ngFor="let quote of filteredQuotes">
+                <td><strong>#{{ quote.quoteId }}</strong><span class="secondary">{{ quote.createdAt | date:'dd MMM yyyy' }}</span></td>
+                <td><strong>{{ quote.productName }}</strong><span class="secondary">{{ quote.quantity | number }} {{ quote.unitName }} · {{ quote.deliveryLocation }}</span></td>
+                <td><strong>INR {{ (quote.finalQuotedAmount || quote.estimatedAmount) | number:'1.2-2' }}</strong><span class="secondary">{{ quote.finalQuotedAmount > 0 ? 'Final quote' : 'Customer estimate' }}</span></td>
+                <td>{{ quote.requiredDate | date:'dd MMM yyyy' }}</td>
+                <td><span class="status-pill" [ngClass]="statusClass(quote.status)">{{ quote.status }}</span></td>
+                <td><button mat-stroked-button type="button" (click)="editQuote(quote)" [disabled]="!canEditQuote(quote)"><mat-icon>edit</mat-icon> Price</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label><mat-icon>inventory_2</mat-icon> Orders <span class="tab-count">{{ orders.length }}</span></ng-template>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Order</th><th>Product</th><th>Total</th><th>Delivery</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              <tr *ngIf="!filteredOrders.length"><td colspan="6" class="empty-state"><mat-icon>inventory_2</mat-icon><strong>{{ isLoading ? 'Loading orders...' : 'No orders found' }}</strong><span>Orders created from accepted quotes will appear here.</span></td></tr>
+              <tr *ngFor="let order of filteredOrders">
+                <td><strong>#{{ order.orderId }}</strong><span class="secondary">Quote #{{ order.quoteId }}</span></td>
+                <td><strong>{{ order.productName }}</strong><span class="secondary">{{ order.quantity | number }} {{ order.unitName }}</span></td>
+                <td><strong>INR {{ order.totalAmount | number:'1.2-2' }}</strong></td>
+                <td>{{ order.deliveryDate | date:'dd MMM yyyy' }}<span class="secondary">{{ order.deliveryLocation }}</span></td>
+                <td><span class="status-pill" [ngClass]="statusClass(order.status)">{{ order.status }}</span></td>
+                <td>
+                  <div class="row-actions">
+                    <button
+                      *ngIf="!hasDeliveryForOrder(order.orderId) && order.status !== 'Cancelled'"
+                      mat-flat-button
+                      color="primary"
+                      type="button"
+                      (click)="createDelivery(order)"
+                      [disabled]="isSaving"
+                    >
+                      <mat-icon>add_road</mat-icon>
+                      Set up delivery
+                    </button>
+                    <button mat-stroked-button type="button" (click)="editOrder(order)" [disabled]="!canEditStatus(order.status)">
+                      <mat-icon>sync_alt</mat-icon>
+                      Status
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </mat-tab>
+
+      <mat-tab>
+        <ng-template mat-tab-label><mat-icon>local_shipping</mat-icon> Deliveries <span class="tab-count">{{ deliveries.length }}</span></ng-template>
+        <div class="table-wrap">
+          <table class="data-table delivery-table">
+            <thead><tr><th>Delivery</th><th>Product</th><th>Driver & vehicle</th><th>Progress</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              <tr *ngIf="!filteredDeliveries.length"><td colspan="6" class="empty-state"><mat-icon>local_shipping</mat-icon><strong>{{ isLoading ? 'Loading deliveries...' : 'No deliveries found' }}</strong><span>A delivery is created when an order moves to Shipped.</span></td></tr>
+              <tr *ngFor="let delivery of filteredDeliveries">
+                <td><strong>#{{ delivery.deliveryId }}</strong><span class="secondary">Order #{{ delivery.orderId }}</span></td>
+                <td><strong>{{ delivery.productName }}</strong><span class="secondary">ETA: {{ delivery.eta || 'Not assigned' }}</span></td>
+                <td><strong>{{ delivery.driverName || 'Not assigned' }}</strong><span class="secondary">{{ delivery.vehicleNumber || 'Vehicle pending' }}</span></td>
+                <td><div class="progress-label"><span>{{ progressPercent(delivery.progress) }}%</span></div><mat-progress-bar mode="determinate" [value]="progressPercent(delivery.progress)"></mat-progress-bar></td>
+                <td><span class="status-pill" [ngClass]="statusClass(delivery.status)">{{ delivery.status }}</span></td>
+                <td><button mat-stroked-button type="button" (click)="editDelivery(delivery)" [disabled]="!canEditStatus(delivery.status)"><mat-icon>edit_location_alt</mat-icon> Update</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</section>

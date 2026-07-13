@@ -46,6 +46,7 @@ const ROUTE_ROLE_MAP: Record<string, string[]> = {
   'booking/items': ['admin'],
   'booking/list': ['user'],
   'booking/payments': ['admin'],
+  'construction-control': ['admin'],
   'dynamic': ['admin']
 };
 
@@ -217,15 +218,17 @@ export class Home implements OnDestroy,OnInit {
         .pipe(takeUntil(this.destroyed$))
         .subscribe({
           next: (res) => {
-            this.menus = this.prepareMenus(res ?? [], userRole);
+            const configuredMenus = this.prepareMenus(res ?? [], userRole);
+            this.menus = configuredMenus.length
+              ? configuredMenus
+              : this.getFallbackMenus(userRole);
+            this.menus = this.ensureConstructionAdminMenu(this.menus, userRole);
             this.sidebarSections = this.buildSidebarSections(this.menus);
-            if (!this.sidebarSections.length) {
-              this.sidebarSections = this.buildSidebarSections(this.getFallbackMenus(userRole));
-            }
             this.isLoadingMenus = false;
           },
           error: () => {
             this.menus = this.getFallbackMenus(userRole);
+            this.menus = this.ensureConstructionAdminMenu(this.menus, userRole);
             this.sidebarSections = this.buildSidebarSections(this.menus);
             this.isLoadingMenus = false;
           },
@@ -554,5 +557,30 @@ export class Home implements OnDestroy,OnInit {
     ];
 
     return this.filterMenusByRole(this.normalizeSidebarGroups(fallback), role);
+  }
+
+  private ensureConstructionAdminMenu(items: MenuItem[], role: string): MenuItem[] {
+    if (role.toLowerCase() !== 'admin' || this.containsRoute(items, 'construction-control')) {
+      return items;
+    }
+
+    return this.sortMenuTree([
+      ...items,
+      {
+        id: -100,
+        title: 'Construction Control',
+        iconClass: 'construction',
+        route: 'construction-control',
+        orderNumber: 5,
+        isActive: true,
+        children: [],
+      },
+    ]);
+  }
+
+  private containsRoute(items: MenuItem[], route: string): boolean {
+    return items.some((item) =>
+      this.cleanRoute(item.route) === route || this.containsRoute(item.children ?? [], route)
+    );
   }
 }
