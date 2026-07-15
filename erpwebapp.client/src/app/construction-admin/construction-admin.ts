@@ -16,7 +16,6 @@ import { ToastService } from '../shared/services/toast.service';
 import {
   ConstructionDelivery,
   ConstructionOrder,
-  ConstructionQuote,
   StatusOption,
 } from './construction-admin.models';
 import { ConstructionAdminService } from './construction-admin.service';
@@ -41,7 +40,6 @@ import { ConstructionAdminService } from './construction-admin.service';
   styleUrl: './construction-admin.css',
 })
 export class ConstructionAdminComponent implements OnInit, OnDestroy {
-  quotes: ConstructionQuote[] = [];
   orders: ConstructionOrder[] = [];
   deliveries: ConstructionDelivery[] = [];
   search = '';
@@ -50,10 +48,8 @@ export class ConstructionAdminComponent implements OnInit, OnDestroy {
   selectedTab = 0;
   currentUser = { userId: '', customerName: '', contactNumber: '' };
 
-  editingQuote?: ConstructionQuote;
   editingOrder?: ConstructionOrder;
   editingDelivery?: ConstructionDelivery;
-  quotePrice: number | null = null;
   orderStatus: number | null = null;
   deliveryStatus: number | null = null;
   vehicleNumber = '';
@@ -102,17 +98,9 @@ export class ConstructionAdminComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  get filteredQuotes(): ConstructionQuote[] {
-    return this.filter(this.quotes, (item) => [
-      item.quoteId, item.productName,
-      item.categoryName, item.status, item.deliveryLocation,
-    ]);
-  }
-
   get filteredOrders(): ConstructionOrder[] {
     return this.filter(this.orders, (item) => [
-      item.orderId, item.quoteId,
-      item.productName, item.status, item.deliveryLocation,
+      item.orderId, item.productName, item.status, item.deliveryLocation,
     ]);
   }
 
@@ -121,10 +109,6 @@ export class ConstructionAdminComponent implements OnInit, OnDestroy {
       item.deliveryId, item.orderId,
       item.productName, item.vehicleNumber, item.driverName, item.status,
     ]);
-  }
-
-  get pendingQuoteCount(): number {
-    return this.quotes.filter((item) => ['Pending', 'PriceShared'].includes(item.status)).length;
   }
 
   get activeOrderCount(): number {
@@ -166,7 +150,6 @@ export class ConstructionAdminComponent implements OnInit, OnDestroy {
     this.isRefreshing = true;
     if (!silent) this.isLoading = true;
     forkJoin({
-      quotes: this.constructionService.getQuotes(),
       orders: this.constructionService.getOrders(),
       deliveries: this.constructionService.getDeliveries(),
     })
@@ -175,19 +158,12 @@ export class ConstructionAdminComponent implements OnInit, OnDestroy {
         if (!silent) this.isLoading = false;
       }), takeUntil(this.destroy$))
       .subscribe({
-        next: ({ quotes, orders, deliveries }) => {
-          this.quotes = quotes.data ?? [];
+        next: ({ orders, deliveries }) => {
           this.orders = orders.data ?? [];
           this.deliveries = deliveries.data ?? [];
         },
         error: (error) => this.showError(error, 'Construction records could not be loaded.'),
       });
-  }
-
-  editQuote(quote: ConstructionQuote): void {
-    this.closeEditor();
-    this.editingQuote = quote;
-    this.quotePrice = quote.finalQuotedAmount > 0 ? quote.finalQuotedAmount : null;
   }
 
   editOrder(order: ConstructionOrder): void {
@@ -204,24 +180,13 @@ export class ConstructionAdminComponent implements OnInit, OnDestroy {
   }
 
   closeEditor(): void {
-    this.editingQuote = undefined;
     this.editingOrder = undefined;
     this.editingDelivery = undefined;
-    this.quotePrice = null;
     this.orderStatus = null;
     this.deliveryStatus = null;
     this.vehicleNumber = '';
     this.driverName = '';
     this.estimatedArrivalTime = '';
-  }
-
-  saveQuote(form: NgForm): void {
-    form.control.markAllAsTouched();
-    if (form.invalid || !this.editingQuote || !this.quotePrice || this.isSaving) return;
-    this.save(
-      this.constructionService.updateQuotePrice(this.editingQuote.quoteId, this.quotePrice),
-      'Quote price updated successfully.'
-    );
   }
 
   saveOrder(form: NgForm): void {
@@ -264,10 +229,6 @@ export class ConstructionAdminComponent implements OnInit, OnDestroy {
     return this.deliveryStatuses.find((item) => item.value === nextStatus)?.label ?? null;
   }
 
-  canEditQuote(quote: ConstructionQuote): boolean {
-    return !['Completed', 'Cancelled'].includes(quote.status);
-  }
-
   canEditStatus(status: string): boolean {
     return !['Delivered', 'Cancelled'].includes(status);
   }
@@ -286,7 +247,7 @@ export class ConstructionAdminComponent implements OnInit, OnDestroy {
         next: () => {
           this.toastService.success(`Delivery setup created for order #${order.orderId}.`);
           this.closeEditor();
-          this.selectedTab = 2;
+          this.selectedTab = 1;
           this.refresh();
         },
         error: (error) => this.showError(error, 'Delivery setup could not be created.'),
@@ -329,7 +290,7 @@ export class ConstructionAdminComponent implements OnInit, OnDestroy {
     }
   }
 
-  private save(request: ReturnType<ConstructionAdminService['updateQuotePrice']>, message: string): void {
+  private save(request: ReturnType<ConstructionAdminService['updateOrderStatus']>, message: string): void {
     this.isSaving = true;
     request.pipe(finalize(() => (this.isSaving = false)), takeUntil(this.destroy$)).subscribe({
       next: () => {

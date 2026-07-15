@@ -5,24 +5,8 @@ export interface ApiResponse<T> {
   data: T;
 }
 
-export interface ConstructionQuote {
-  quoteId: number;
-  status: string;
-  productName: string;
-  categoryName: string;
-  quantity: number;
-  unitId: number;
-  unitName: string;
-  estimatedAmount: number;
-  finalQuotedAmount: number;
-  deliveryLocation: string;
-  requiredDate: string;
-  createdAt: string;
-}
-
 export interface ConstructionOrder {
   orderId: number;
-  quoteId: number;
   status: string;
   productName: string;
   quantity: number;

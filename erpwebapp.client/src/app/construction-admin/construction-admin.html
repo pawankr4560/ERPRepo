@@ -3,7 +3,7 @@
     <div>
       <span class="eyebrow">Operations</span>
       <h1>Construction Control</h1>
-      <p>Review customer quotes, move orders forward, and coordinate deliveries.</p>
+      <p>Move orders forward and coordinate deliveries.</p>
     </div>
     <div class="header-actions">
       <div class="token-user" *ngIf="currentUser.customerName || currentUser.contactNumber">
@@ -19,25 +19,20 @@
   </header>
 
   <div class="summary-grid">
-    <button class="summary-card quote-card" type="button" (click)="selectedTab = 0">
-      <span class="summary-icon"><mat-icon>request_quote</mat-icon></span>
-      <span><strong>{{ pendingQuoteCount }}</strong><small>Quotes needing attention</small></span>
-    </button>
-    <button class="summary-card order-card" type="button" (click)="selectedTab = 1">
+    <button class="summary-card order-card" type="button" (click)="selectedTab = 0">
       <span class="summary-icon"><mat-icon>inventory_2</mat-icon></span>
       <span><strong>{{ activeOrderCount }}</strong><small>Active orders</small></span>
     </button>
-    <button class="summary-card delivery-card" type="button" (click)="selectedTab = 2">
+    <button class="summary-card delivery-card" type="button" (click)="selectedTab = 1">
       <span class="summary-icon"><mat-icon>local_shipping</mat-icon></span>
       <span><strong>{{ activeDeliveryCount }}</strong><small>Deliveries in progress</small></span>
     </button>
   </div>
 
-  <div class="editor-card" *ngIf="editingQuote || editingOrder || editingDelivery">
+  <div class="editor-card" *ngIf="editingOrder || editingDelivery">
     <div class="editor-heading">
       <div>
         <span class="eyebrow">Quick update</span>
-        <h2 *ngIf="editingQuote">Quote #{{ editingQuote.quoteId }} · {{ editingQuote.productName }}</h2>
         <h2 *ngIf="editingOrder">Order #{{ editingOrder.orderId }} · {{ editingOrder.productName }}</h2>
         <h2 *ngIf="editingDelivery">Delivery #{{ editingDelivery.deliveryId }} · {{ editingDelivery.productName }}</h2>
       </div>
@@ -45,22 +40,6 @@
         <mat-icon>close</mat-icon>
       </button>
     </div>
-
-    <form *ngIf="editingQuote" #quoteForm="ngForm" class="editor-form" (ngSubmit)="saveQuote(quoteForm)">
-      <div class="context-block">
-        <span>Current estimate</span>
-        <small>Estimate: INR {{ editingQuote.estimatedAmount | number:'1.2-2' }}</small>
-      </div>
-      <mat-form-field appearance="outline">
-        <mat-label>Final quoted amount</mat-label>
-        <span matTextPrefix>INR&nbsp;</span>
-        <input matInput type="number" name="quotePrice" [(ngModel)]="quotePrice" min="0.01" step="0.01" required />
-        <mat-error>Enter an amount greater than zero.</mat-error>
-      </mat-form-field>
-      <button mat-flat-button color="primary" type="submit" [disabled]="quoteForm.invalid || isSaving">
-        {{ isSaving ? 'Saving...' : 'Share price' }}
-      </button>
-    </form>
 
     <form *ngIf="editingOrder" #orderForm="ngForm" class="editor-form" (ngSubmit)="saveOrder(orderForm)">
       <div class="context-block">
@@ -125,34 +104,14 @@
 
     <mat-tab-group [(selectedIndex)]="selectedTab" animationDuration="180ms">
       <mat-tab>
-        <ng-template mat-tab-label><mat-icon>request_quote</mat-icon> Quotes <span class="tab-count">{{ quotes.length }}</span></ng-template>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Quote</th><th>Requirement</th><th>Amount</th><th>Required by</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-              <tr *ngIf="!filteredQuotes.length"><td colspan="6" class="empty-state"><mat-icon>request_quote</mat-icon><strong>{{ isLoading ? 'Loading quotes...' : 'No quotes found' }}</strong><span>New customer quote requests will appear here.</span></td></tr>
-              <tr *ngFor="let quote of filteredQuotes">
-                <td><strong>#{{ quote.quoteId }}</strong><span class="secondary">{{ quote.createdAt | date:'dd MMM yyyy' }}</span></td>
-                <td><strong>{{ quote.productName }}</strong><span class="secondary">{{ quote.quantity | number }} {{ quote.unitName }} · {{ quote.deliveryLocation }}</span></td>
-                <td><strong>INR {{ (quote.finalQuotedAmount || quote.estimatedAmount) | number:'1.2-2' }}</strong><span class="secondary">{{ quote.finalQuotedAmount > 0 ? 'Final quote' : 'Customer estimate' }}</span></td>
-                <td>{{ quote.requiredDate | date:'dd MMM yyyy' }}</td>
-                <td><span class="status-pill" [ngClass]="statusClass(quote.status)">{{ quote.status }}</span></td>
-                <td><button mat-stroked-button type="button" (click)="editQuote(quote)" [disabled]="!canEditQuote(quote)"><mat-icon>edit</mat-icon> Price</button></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </mat-tab>
-
-      <mat-tab>
         <ng-template mat-tab-label><mat-icon>inventory_2</mat-icon> Orders <span class="tab-count">{{ orders.length }}</span></ng-template>
         <div class="table-wrap">
           <table class="data-table">
             <thead><tr><th>Order</th><th>Product</th><th>Total</th><th>Delivery</th><th>Status</th><th></th></tr></thead>
             <tbody>
-              <tr *ngIf="!filteredOrders.length"><td colspan="6" class="empty-state"><mat-icon>inventory_2</mat-icon><strong>{{ isLoading ? 'Loading orders...' : 'No orders found' }}</strong><span>Orders created from accepted quotes will appear here.</span></td></tr>
+              <tr *ngIf="!filteredOrders.length"><td colspan="6" class="empty-state"><mat-icon>inventory_2</mat-icon><strong>{{ isLoading ? 'Loading orders...' : 'No orders found' }}</strong><span>New construction orders will appear here.</span></td></tr>
               <tr *ngFor="let order of filteredOrders">
-                <td><strong>#{{ order.orderId }}</strong><span class="secondary">Quote #{{ order.quoteId }}</span></td>
+                <td><strong>#{{ order.orderId }}</strong><span class="secondary">{{ order.createdAt | date:'dd MMM yyyy' }}</span></td>
                 <td><strong>{{ order.productName }}</strong><span class="secondary">{{ order.quantity | number }} {{ order.unitName }}</span></td>
                 <td><strong>INR {{ order.totalAmount | number:'1.2-2' }}</strong></td>
                 <td>{{ order.deliveryDate | date:'dd MMM yyyy' }}<span class="secondary">{{ order.deliveryLocation }}</span></td>
