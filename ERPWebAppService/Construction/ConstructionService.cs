@@ -132,103 +132,6 @@ namespace ERPWebAppService.Construction
                 .ToListAsync();
         }
 
-        public async Task<ConstructionQuoteResponseDto> CreateQuote(
-    ConstructionQuoteRequest request,string userId)
-        {
-            if (request == null)
-                throw new Exception("Request body is required.");
-
-            //var product = await dbContext.Products
-            //    .AsNoTracking()
-            //    .FirstOrDefaultAsync(x => x.Id.ToString() == request.ProductId);
-
-            //if (product == null)
-            //    throw new Exception("Product not found.");
-
-            var quote = new ConstructionQuote
-            {
-                ProductId = request.ProductId,
-                UserId = userId,
-                Quantity = request.Quantity,
-                UnitId = request.UnitId,
-                DeliveryLocation = request.DeliveryLocation,
-                RequiredDate = DateTime.UtcNow,
-                Status = 0, // Pending
-                EstimatedAmount = request.EstimatedAmount,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            await dbContext.ConstructionQuotes.AddAsync(quote);
-            await dbContext.SaveChangesAsync();
-
-            return new ConstructionQuoteResponseDto
-            {
-                QuoteId = quote.Id,
-                Status = "Pending",
-                ProductId = request.ProductId,
-                CategoryId=request.CategoryId,
-                Quantity = quote.Quantity,
-                UnitId = quote.UnitId,
-                DeliveryLocation = quote.DeliveryLocation,
-                RequiredDate = quote.RequiredDate,
-                CreatedAt = quote.CreatedAt
-            };
-        }
-
-        public async Task<List<ConstructionQuoteDto>> GetQuotes(string userId, bool isAdmin = false)
-        {
-            if (string.IsNullOrWhiteSpace(userId))
-                throw new UnauthorizedAccessException("User ID is required.");
-
-            var quotes = await (
-                from quote in dbContext.ConstructionQuotes.AsNoTracking()
-
-                join product in dbContext.Products.AsNoTracking()
-                    on quote.ProductId equals product.Id
-
-                join category in dbContext.Categories.AsNoTracking()
-                    on product.CategoryId equals category.Id
-
-                join unit in dbContext.UnitOfMeasure.AsNoTracking()
-                    on quote.UnitId equals unit.UOMIndex
-
-                where isAdmin || quote.UserId == userId
-
-                orderby quote.CreatedAt descending
-
-                select new
-                {
-                    Quote = quote,
-                    ProductName = product.Name,
-                    CategoryName = category.Name,
-                    UnitName = unit.UOMName
-                }
-            ).ToListAsync();
-
-            return quotes.Select(x => new ConstructionQuoteDto
-            {
-                QuoteId = x.Quote.Id,
-                Status = Enum.IsDefined(typeof(ConstructionQuoteStatus), x.Quote.Status)
-                    ? ((ConstructionQuoteStatus)x.Quote.Status).ToString()
-                    : "Unknown",
-
-                ProductName = x.ProductName,
-                CategoryName = x.CategoryName,
-
-                Quantity = x.Quote.Quantity,
-
-                UnitId = x.Quote.UnitId,
-                UnitName = x.UnitName,
-
-                EstimatedAmount = x.Quote.EstimatedAmount,
-                FinalQuotedAmount = x.Quote.FinalQuotedAmount,
-
-                DeliveryLocation = x.Quote.DeliveryLocation,
-                RequiredDate = x.Quote.RequiredDate,
-                CreatedAt = x.Quote.CreatedAt
-            }).ToList();
-        }
-
         public async Task<List<CategorieDto>> GetCategories()
         {
             return await dbContext.SubCategory
@@ -295,79 +198,26 @@ namespace ERPWebAppService.Construction
             };
         }
 
-        public async Task<CreateConstructionOrderResponseDto> CreateOrderFromQuote(
-    int quoteId,
+        public async Task<CreateConstructionOrderResponseDto> CreateOrderFromQuote(CreateConstructionOrderRequest request,
     string userId)
         {
-            if (quoteId <= 0)
-                throw new ArgumentException("A valid quote ID is required.");
-
-            if (string.IsNullOrWhiteSpace(userId))
-                throw new UnauthorizedAccessException("User ID is required.");
-
-            var quote = await dbContext.ConstructionQuotes
-                .FirstOrDefaultAsync(x =>
-                    x.Id == quoteId &&
-                    x.UserId == userId);
-
-            if (quote == null)
-                throw new KeyNotFoundException("Construction quote not found.");
-
-            if (quote.Status == (int)ConstructionQuoteStatus.Rejected)
-                throw new InvalidOperationException("An order cannot be created from a rejected quote.");
-
-            if (quote.Status == (int)ConstructionQuoteStatus.Cancelled)
-                throw new InvalidOperationException("An order cannot be created from a cancelled quote.");
-
-            if (quote.Status == (int)ConstructionQuoteStatus.Completed)
-                throw new InvalidOperationException("An order cannot be created from a completed quote.");
-
-            if (quote.FinalQuotedAmount <= 0)
-                throw new InvalidOperationException("The final quote price has not been shared.");
-
-            var orderAlreadyExists = await dbContext.ConstructionOrders
-                .AsNoTracking()
-                .AnyAsync(x => x.QuoteId == quoteId);
-
-            if (orderAlreadyExists)
-                throw new InvalidOperationException("An order has already been placed for this quote.");
-
-            var product = await dbContext.Products
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x =>
-                    x.Id == quote.ProductId &&
-                    x.IsActive &&
-                    !x.IsDeleted);
-
-            if (product == null)
-                throw new KeyNotFoundException("Product not found.");
-
-            var unit = await dbContext.UnitOfMeasure
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.UOMIndex == quote.UnitId);
-
-            if (unit == null)
-                throw new KeyNotFoundException("Unit not found.");
-
-            var currentUtcDate = DateTime.UtcNow;
-
+            var product = await dbContext.Products.FirstOrDefaultAsync(x => x.Id == request.ProductId);
+            var uom = await dbContext.UnitOfMeasure.FirstOrDefaultAsync(x => x.UOMIndex == request.UnitId);
             var order = new ConstructionOrder
             {
-                QuoteId = quote.Id,
-                ProductId = quote.ProductId,
+                ProductId = request.ProductId,
                 UserId = userId,
-                Quantity = quote.Quantity,
-                UnitId = quote.UnitId,
-                TotalAmount = quote.FinalQuotedAmount,
-                DeliveryLocation = quote.DeliveryLocation,
-                DeliveryDate = quote.RequiredDate,
+                CategoryId = request.CategoryId,
+                Quantity = request.Quantity,
+                UnitId = request.UnitId,
+                TotalAmount = Math.Round((request.Quantity*request.Price),2),
+                DeliveryLocation = request.DeliveryLocation,
+                DeliveryDate = request.RequiredDate,
                 Status = (int)ConstructionOrderStatus.Placed,
-                CreatedAt = currentUtcDate
+                CreatedAt = DateTime.UtcNow
             };
 
             await dbContext.ConstructionOrders.AddAsync(order);
-
-            quote.Status = (int)ConstructionQuoteStatus.OrderPlaced;
 
             await dbContext.ConstructionDelivery.AddAsync(new ConstructionDelivery
             {
@@ -377,7 +227,7 @@ namespace ERPWebAppService.Construction
                 Status = (int)ConstructionDeliveryStatus.Preparing,
                 EstimatedArrivalTime = null,
                 Progress = 0m,
-                CreatedAt = currentUtcDate,
+                CreatedAt = DateTime.UtcNow,
                 UpdatedAt = null,
                 IsDeleted = false
             });
@@ -387,12 +237,11 @@ namespace ERPWebAppService.Construction
             return new CreateConstructionOrderResponseDto
             {
                 OrderId = order.Id,
-                QuoteId = quote.Id,
                 Status = ConstructionOrderStatus.Placed.ToString(),
                 ProductName = product.Name,
                 Quantity = order.Quantity,
                 UnitId = order.UnitId,
-                UnitName = unit.UOMName,
+                UnitName = uom.UOMName,
                 TotalAmount = order.TotalAmount,
                 DeliveryLocation = order.DeliveryLocation,
                 DeliveryDate = order.DeliveryDate,
@@ -421,7 +270,7 @@ namespace ERPWebAppService.Construction
                 select new ConstructionOrderDto
                 {
                     OrderId = order.Id,
-                    QuoteId = (int)order.QuoteId,
+                    QuoteId = 0,
 
                     Status = order.Status == (int)ConstructionOrderStatus.Placed
                         ? nameof(ConstructionOrderStatus.Placed)

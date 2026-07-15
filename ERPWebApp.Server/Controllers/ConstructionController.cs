@@ -96,33 +96,6 @@ public class ConstructionController : ControllerBase
         }
     }
 
-    [HttpPost("quotes")]
-    public async Task<IActionResult> CreateQuote([FromBody] ConstructionQuoteRequest request)
-    {
-        try
-        {
-            var data = await constService.CreateQuote(request, GetUserId());
-            return Ok(new ApiResponse(true, "Quote request submitted successfully", data));
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new ApiResponse(false, ex.Message, null));
-        }
-    }
-
-    [HttpGet("quotes")]
-    public async Task<IActionResult> GetQuotes()
-    {
-        try
-        {
-            var items = await constService.GetQuotes(GetUserId(), User.IsInRole("Admin"));
-            return Ok(new ApiResponse(true, null, items));
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new ApiResponse(false, ex.Message, null));
-        }
-    }
     [HttpGet("orders")]
     public async Task<IActionResult> GetOrders()
     {
@@ -137,13 +110,13 @@ public class ConstructionController : ControllerBase
         }
     }
 
-    [HttpPost("orders/from-quote/{quoteId:int}")]
-    public async Task<IActionResult> CreateOrderFromQuote(int quoteId)
+    [HttpPost("orders")]
+    public async Task<IActionResult> CreateOrderFromQuote([FromBody] CreateConstructionOrderRequest request)
     {
         try
         {
             var data = await constService.CreateOrderFromQuote(
-             quoteId,
+             request,
              GetUserId());
             return Ok(new ApiResponse(true, null, data));
         }
