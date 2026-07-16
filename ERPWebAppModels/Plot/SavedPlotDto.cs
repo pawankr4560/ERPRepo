@@ -1,8 +1,6 @@
-using System;
-
-namespace ERPWebAppModels.Plot
+﻿namespace ERPWebAppModels.Plot
 {
-    public class PlotListingDto
+    public class SavedPlotDto
     {
         public Guid Id { get; set; }
 
@@ -19,6 +17,8 @@ namespace ERPWebAppModels.Plot
         public string PropertyType { get; set; } = string.Empty;
 
         public string ThumbnailUrl { get; set; } = string.Empty;
+
+        public DateTime SavedAt { get; set; }
 
         public bool IsSaved { get; set; }
     }

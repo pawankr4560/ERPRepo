@@ -92,10 +92,6 @@ namespace WebApp.Data
 
             modelBuilder.Entity<AgricultureStockItem>().HasQueryFilter(x => !x.IsDeleted);
 
-            modelBuilder.Entity<PlotListing>().HasQueryFilter(x => !x.IsDeleted);
-            modelBuilder.Entity<PlotListing>().Property(x => x.AreaSqFt).HasPrecision(18, 2);
-            modelBuilder.Entity<PlotListing>().Property(x => x.Price).HasPrecision(18, 2);
-
             modelBuilder.Entity<Vehicle>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Vehicle>().Property(x => x.DailyRate).HasPrecision(18, 2);
 
@@ -135,8 +131,15 @@ namespace WebApp.Data
         public DbSet<InventoryItem> InventoryItems { get; set; }
         public DbSet<FieldRecord> FieldRecords { get; set; }
         public DbSet<AgricultureStockItem> AgricultureStockItems { get; set; }
-        public DbSet<PlotListing> PlotListings { get; set; }
+        // Plot Module
+        public DbSet<Plot> Plots { get; set; }
+        public DbSet<Seller> Sellers { get; set; }
+        public DbSet<PlotImage> PlotImages { get; set; }
+        public DbSet<Amenity> Amenities { get; set; }
+        public DbSet<PlotAmenity> PlotAmenities { get; set; }
+        public DbSet<SavedPlot> SavedPlots { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
+        public DbSet<PlotVisit> PlotVisits { get; set; }
         public DbSet<CarBooking> CarBookings { get; set; }
         public DbSet<ActivityLog> ActivityLogs { get; set; }
     }

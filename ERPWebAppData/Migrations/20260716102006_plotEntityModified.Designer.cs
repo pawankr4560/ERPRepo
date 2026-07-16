@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebApp.Data;
 
 #nullable disable
 
-namespace WebApp.Data.Migrations
+namespace ERPWebAppData.Migrations
 {
     [DbContext(typeof(WebAppDbContext))]
-    partial class WebAppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260716102006_plotEntityModified")]
+    partial class plotEntityModified
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -92,27 +95,6 @@ namespace WebApp.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("AgricultureStockItems");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.Amenity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Amenities");
                 });
 
             modelBuilder.Entity("ERPWebAppData.Entity.Booking", b =>
@@ -754,23 +736,7 @@ namespace WebApp.Data.Migrations
                     b.Property<decimal>("AreaSqFt")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("Electricity")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
+                    b.Property<bool>("IsSaved")
                         .HasColumnType("bit");
 
                     b.Property<string>("Location")
@@ -786,140 +752,24 @@ namespace WebApp.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("Registration")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("RoadWidth")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<Guid>("SellerId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("ThumbnailUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Water")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("SellerId");
 
                     b.ToTable("Plots");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.PlotAmenity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("AmenityId")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("PlotId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AmenityId");
-
-                    b.HasIndex("PlotId");
-
-                    b.ToTable("PlotAmenities");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.PlotImage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("DisplayOrder")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("PlotId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlotId");
-
-                    b.ToTable("PlotImages");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.PlotVisit", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("MobileNumber")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<Guid>("PlotId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Remarks")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateOnly>("VisitDate")
-                        .HasColumnType("date");
-
-                    b.Property<TimeOnly>("VisitTime")
-                        .HasColumnType("time");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlotId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("PlotVisits");
                 });
 
             modelBuilder.Entity("ERPWebAppData.Entity.PreApprovedOffer", b =>
@@ -1002,53 +852,6 @@ namespace WebApp.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Profiles");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.SavedPlot", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("PlotId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("SavedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlotId");
-
-                    b.ToTable("SavedPlots");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.Seller", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Sellers");
                 });
 
             modelBuilder.Entity("ERPWebAppData.Entity.SubCategory", b =>
@@ -1989,66 +1792,6 @@ namespace WebApp.Data.Migrations
                     b.Navigation("Order");
                 });
 
-            modelBuilder.Entity("ERPWebAppData.Entity.Plot", b =>
-                {
-                    b.HasOne("ERPWebAppData.Entity.Seller", "Seller")
-                        .WithMany("Plots")
-                        .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Seller");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.PlotAmenity", b =>
-                {
-                    b.HasOne("ERPWebAppData.Entity.Amenity", "Amenity")
-                        .WithMany("PlotAmenities")
-                        .HasForeignKey("AmenityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ERPWebAppData.Entity.Plot", "Plot")
-                        .WithMany("PlotAmenities")
-                        .HasForeignKey("PlotId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Amenity");
-
-                    b.Navigation("Plot");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.PlotImage", b =>
-                {
-                    b.HasOne("ERPWebAppData.Entity.Plot", "Plot")
-                        .WithMany("Images")
-                        .HasForeignKey("PlotId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Plot");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.PlotVisit", b =>
-                {
-                    b.HasOne("ERPWebAppData.Entity.Plot", "Plot")
-                        .WithMany()
-                        .HasForeignKey("PlotId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("WebApp.Data.Entity.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Plot");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("ERPWebAppData.Entity.Profile", b =>
                 {
                     b.HasOne("WebApp.Data.Entity.User", "User")
@@ -2058,17 +1801,6 @@ namespace WebApp.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.SavedPlot", b =>
-                {
-                    b.HasOne("ERPWebAppData.Entity.Plot", "Plot")
-                        .WithMany("SavedPlots")
-                        .HasForeignKey("PlotId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Plot");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -2144,11 +1876,6 @@ namespace WebApp.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ERPWebAppData.Entity.Amenity", b =>
-                {
-                    b.Navigation("PlotAmenities");
-                });
-
             modelBuilder.Entity("ERPWebAppData.Entity.Car", b =>
                 {
                     b.Navigation("Bookings");
@@ -2157,20 +1884,6 @@ namespace WebApp.Data.Migrations
             modelBuilder.Entity("ERPWebAppData.Entity.Category", b =>
                 {
                     b.Navigation("Cars");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.Plot", b =>
-                {
-                    b.Navigation("Images");
-
-                    b.Navigation("PlotAmenities");
-
-                    b.Navigation("SavedPlots");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.Seller", b =>
-                {
-                    b.Navigation("Plots");
                 });
 #pragma warning restore 612, 618
         }

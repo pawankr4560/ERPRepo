@@ -1,12 +1,23 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using ERPWebAppModels.Plot;
+﻿using ERPWebAppModels.Plot;
 
 namespace WebApp.Service.Plot
 {
     public interface IPlotService
     {
-        Task<List<PlotListingDto>> GetListingsAsync();
-        Task<PlotListingDto> CreateListingAsync(PlotListingDto dto);
+        Task<PlotDetailsDto?> GetPlotByIdAsync(Guid plotId, string userId);
+        Task<PlotListResponseDto> GetPlotsAsync(string? search, string? status, string? location, string? propertyType, decimal? minPrice, decimal? maxPrice, decimal? minArea, decimal? maxArea, int page = 1, int pageSize = 20);
+        Task<List<SavedPlotDto>> GetSavedPlotsAsync(string userId);
+        Task<bool> RemoveSavedPlotAsync(Guid plotId, string userId);
+        Task<SavePlotResponseDto> SavePlotAsync(Guid plotId, string userId);
+        Task<PlotVisitResponseDto> BookSiteVisitAsync(
+        Guid plotId,
+        string userId,
+        BookSiteVisitRequest request);
+
+        Task<PlotVisitListResponseDto> GetMyVisitsAsync(
+        string userId,
+        string? status,
+        int page = 1,
+        int pageSize = 20);
     }
 }

@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using WebApp.Data;
 
 #nullable disable
 
-namespace WebApp.Data.Migrations
+namespace ERPWebAppData.Migrations
 {
     [DbContext(typeof(WebAppDbContext))]
-    partial class WebAppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260716104931_plotdetailsentitesAdded")]
+    partial class plotdetailsentitesAdded
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -870,56 +873,6 @@ namespace WebApp.Data.Migrations
                     b.HasIndex("PlotId");
 
                     b.ToTable("PlotImages");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.PlotVisit", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("MobileNumber")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<Guid>("PlotId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Remarks")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateOnly>("VisitDate")
-                        .HasColumnType("date");
-
-                    b.Property<TimeOnly>("VisitTime")
-                        .HasColumnType("time");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlotId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("PlotVisits");
                 });
 
             modelBuilder.Entity("ERPWebAppData.Entity.PreApprovedOffer", b =>
@@ -2028,25 +1981,6 @@ namespace WebApp.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Plot");
-                });
-
-            modelBuilder.Entity("ERPWebAppData.Entity.PlotVisit", b =>
-                {
-                    b.HasOne("ERPWebAppData.Entity.Plot", "Plot")
-                        .WithMany()
-                        .HasForeignKey("PlotId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("WebApp.Data.Entity.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Plot");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ERPWebAppData.Entity.Profile", b =>
