@@ -110,7 +110,7 @@
             <thead><tr><th>Order</th><th>Product</th><th>Total</th><th>Delivery</th><th>Status</th><th></th></tr></thead>
             <tbody>
               <tr *ngIf="!filteredOrders.length"><td colspan="6" class="empty-state"><mat-icon>inventory_2</mat-icon><strong>{{ isLoading ? 'Loading orders...' : 'No orders found' }}</strong><span>New construction orders will appear here.</span></td></tr>
-              <tr *ngFor="let order of filteredOrders">
+              <tr *ngFor="let order of filteredOrders; trackBy: trackOrder">
                 <td><strong>#{{ order.orderId }}</strong><span class="secondary">{{ order.createdAt | date:'dd MMM yyyy' }}</span></td>
                 <td><strong>{{ order.productName }}</strong><span class="secondary">{{ order.quantity | number }} {{ order.unitName }}</span></td>
                 <td><strong>INR {{ order.totalAmount | number:'1.2-2' }}</strong></td>
@@ -148,7 +148,7 @@
             <thead><tr><th>Delivery</th><th>Product</th><th>Driver & vehicle</th><th>Progress</th><th>Status</th><th></th></tr></thead>
             <tbody>
               <tr *ngIf="!filteredDeliveries.length"><td colspan="6" class="empty-state"><mat-icon>local_shipping</mat-icon><strong>{{ isLoading ? 'Loading deliveries...' : 'No deliveries found' }}</strong><span>A delivery is created when an order moves to Shipped.</span></td></tr>
-              <tr *ngFor="let delivery of filteredDeliveries">
+              <tr *ngFor="let delivery of filteredDeliveries; trackBy: trackDelivery">
                 <td><strong>#{{ delivery.deliveryId }}</strong><span class="secondary">Order #{{ delivery.orderId }}</span></td>
                 <td><strong>{{ delivery.productName }}</strong><span class="secondary">ETA: {{ delivery.eta || 'Not assigned' }}</span></td>
                 <td><strong>{{ delivery.driverName || 'Not assigned' }}</strong><span class="secondary">{{ delivery.vehicleNumber || 'Vehicle pending' }}</span></td>

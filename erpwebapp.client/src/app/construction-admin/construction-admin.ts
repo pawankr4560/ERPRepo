@@ -150,8 +150,8 @@ export class ConstructionAdminComponent implements OnInit, OnDestroy {
     this.isRefreshing = true;
     if (!silent) this.isLoading = true;
     forkJoin({
-      orders: this.constructionService.getOrders(),
-      deliveries: this.constructionService.getDeliveries(),
+      orders: this.constructionService.getOrders(silent),
+      deliveries: this.constructionService.getDeliveries(silent),
     })
       .pipe(finalize(() => {
         this.isRefreshing = false;
@@ -218,6 +218,14 @@ export class ConstructionAdminComponent implements OnInit, OnDestroy {
 
   statusClass(status: string): string {
     return `status-${(status || 'unknown').replace(/\s+/g, '-').toLowerCase()}`;
+  }
+
+  trackOrder(_index: number, order: ConstructionOrder): number {
+    return order.orderId;
+  }
+
+  trackDelivery(_index: number, delivery: ConstructionDelivery): number {
+    return delivery.deliveryId;
   }
 
   progressPercent(progress: number): number {

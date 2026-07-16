@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpContext, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -12,8 +12,8 @@ export class ApiService {
 
   constructor(private http: HttpClient) {}
 
-  get<T>(endpoint: string): Observable<T> {
-    return this.http.get<T>(this.toUrl(endpoint), { headers: this.headers });
+  get<T>(endpoint: string, context?: HttpContext): Observable<T> {
+    return this.http.get<T>(this.toUrl(endpoint), { headers: this.headers, context });
   }
 
   post<T>(endpoint: string, body: any): Observable<T> {

@@ -10,6 +10,7 @@ import { Router } from '@angular/router';
 import { Observable, catchError, finalize, switchMap, throwError } from 'rxjs';
 import { LoadingService } from '../shared/services/loading.service';
 import { Auth } from '../auth/auth';
+import { SKIP_GLOBAL_LOADING } from '../shared/http/loading-context';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
@@ -32,7 +33,10 @@ export class AuthInterceptor implements HttpInterceptor {
         })
       : request;
 
-    this.loadingService.show();
+    const showGlobalLoader = !request.context.get(SKIP_GLOBAL_LOADING);
+    if (showGlobalLoader) {
+      this.loadingService.show();
+    }
 
     return next.handle(authRequest).pipe(
       catchError((error: HttpErrorResponse) => {
@@ -68,7 +72,11 @@ export class AuthInterceptor implements HttpInterceptor {
 
         return throwError(() => error);
       }),
-      finalize(() => this.loadingService.hide())
+      finalize(() => {
+        if (showGlobalLoader) {
+          this.loadingService.hide();
+        }
+      })
     );
   }
 

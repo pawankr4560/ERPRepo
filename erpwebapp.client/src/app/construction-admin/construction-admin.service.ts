@@ -1,5 +1,7 @@
+import { HttpContext } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { SKIP_GLOBAL_LOADING } from '../shared/http/loading-context';
 import { ApiService } from '../shared/services/api.service';
 import {
   ApiResponse,
@@ -13,12 +15,18 @@ export class ConstructionAdminService {
 
   constructor(private api: ApiService) {}
 
-  getOrders(): Observable<ApiResponse<ConstructionOrder[]>> {
-    return this.api.get<ApiResponse<ConstructionOrder[]>>(`${this.endpoint}/orders`);
+  getOrders(silent = false): Observable<ApiResponse<ConstructionOrder[]>> {
+    return this.api.get<ApiResponse<ConstructionOrder[]>>(
+      `${this.endpoint}/orders`,
+      this.loadingContext(silent)
+    );
   }
 
-  getDeliveries(): Observable<ApiResponse<ConstructionDelivery[]>> {
-    return this.api.get<ApiResponse<ConstructionDelivery[]>>(`${this.endpoint}/deliveries`);
+  getDeliveries(silent = false): Observable<ApiResponse<ConstructionDelivery[]>> {
+    return this.api.get<ApiResponse<ConstructionDelivery[]>>(
+      `${this.endpoint}/deliveries`,
+      this.loadingContext(silent)
+    );
   }
 
   createDeliveryForOrder(orderId: number): Observable<ApiResponse<unknown>> {
@@ -48,5 +56,11 @@ export class ConstructionAdminService {
       `${this.endpoint}/deliveries/${deliveryId}`,
       request
     );
+  }
+
+  private loadingContext(silent: boolean): HttpContext | undefined {
+    return silent
+      ? new HttpContext().set(SKIP_GLOBAL_LOADING, true)
+      : undefined;
   }
 }

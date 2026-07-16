@@ -1,4 +1,4 @@
-﻿using ERPWebAppModels.Construction;
+using ERPWebAppModels.Construction;
 using WebApp.Data;
 using Microsoft.EntityFrameworkCore;
 using ERPWebAppData.Entity;
@@ -19,34 +19,87 @@ namespace ERPWebAppService.Construction
 
         public async Task<ConstructionDashboardDto> DashbordData(string userId)
         {
-            try
-            {
-                return new ConstructionDashboardDto
+            if (string.IsNullOrWhiteSpace(userId))
+                throw new UnauthorizedAccessException("User ID is required.");
+
+            const int recentActivityLimit = 10;
+            var todayUtc = DateTime.UtcNow.Date;
+            var tomorrowUtc = todayUtc.AddDays(1);
+
+            var orderActivities = await (
+                from order in dbContext.ConstructionOrders.AsNoTracking()
+                join product in dbContext.Products.AsNoTracking()
+                    on order.ProductId equals product.Id
+                where order.UserId == userId
+                orderby order.CreatedAt descending
+                select new
                 {
-                    TotalProducts = 48,
+                    order.Id,
+                    ProductName = product.Name,
+                    order.Status,
+                    CreatedAt = order.CreatedAt
+                })
+                .Take(recentActivityLimit)
+                .ToListAsync();
 
-                    PendingQuotes = await dbContext.ConstructionQuotes
-                 .CountAsync(x => x.Status == 0 && x.UserId == userId),
+            var deliveryActivities = await (
+                from delivery in dbContext.ConstructionDelivery.AsNoTracking()
+                join order in dbContext.ConstructionOrders.AsNoTracking()
+                    on delivery.OrderId equals order.Id
+                join product in dbContext.Products.AsNoTracking()
+                    on order.ProductId equals product.Id
+                where order.UserId == userId && !delivery.IsDeleted
+                orderby (delivery.UpdatedAt ?? delivery.CreatedAt) descending
+                select new
+                {
+                    delivery.Id,
+                    delivery.OrderId,
+                    ProductName = product.Name,
+                    delivery.Status,
+                    CreatedAt = delivery.UpdatedAt ?? delivery.CreatedAt
+                })
+                .Take(recentActivityLimit)
+                .ToListAsync();
 
-                    ActiveOrders = await dbContext.ConstructionQuotes
-                 .CountAsync(x => x.Status == 1 && x.UserId == userId),
+            var recentActivities = orderActivities.Select(x => new ConstructionActivityDto(
+                    $"order_{x.Id}",
+                    "ORDER",
+                    $"Order #{x.Id} for {x.ProductName}",
+                    $"Status: {GetOrderStatusName(x.Status)}",
+                    x.CreatedAt))
+                .Concat(deliveryActivities.Select(x => new ConstructionActivityDto(
+                    $"delivery_{x.Id}",
+                    "DELIVERY",
+                    $"Delivery #{x.Id} for {x.ProductName}",
+                    $"Order #{x.OrderId} - Status: {GetDeliveryStatusName(x.Status)}",
+                    x.CreatedAt)))
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(recentActivityLimit)
+                .ToList();
 
-                    DeliveriesToday = 2,
-
-                    RecentActivities = new List<ConstructionActivityDto>
+            return new ConstructionDashboardDto
             {
-                new ConstructionActivityDto(
-                    "act_001",
-                    "QUOTE",
-                    "Quote requested for TMT Steel",
-                    "Supplier confirmation pending",
-                    DateTime.Parse("2026-07-08T10:30:00Z").ToUniversalTime())
-            }
-                };
-            }
-            catch { throw; }
+                TotalProducts = await dbContext.Products.CountAsync(
+                    product => product.CategoryId == 2 && product.IsActive && !product.IsDeleted),
+                PendingQuotes = 0,
+                ActiveOrders = await dbContext.ConstructionOrders.CountAsync(
+                    order => order.UserId == userId &&
+                             order.Status != (int)ConstructionOrderStatus.Delivered &&
+                             order.Status != (int)ConstructionOrderStatus.Cancelled),
+                DeliveriesToday = await (
+                    from delivery in dbContext.ConstructionDelivery
+                    join order in dbContext.ConstructionOrders
+                        on delivery.OrderId equals order.Id
+                    where order.UserId == userId &&
+                          !delivery.IsDeleted &&
+                          delivery.Status == (int)ConstructionDeliveryStatus.Delivered &&
+                          (delivery.UpdatedAt ?? delivery.CreatedAt) >= todayUtc &&
+                          (delivery.UpdatedAt ?? delivery.CreatedAt) < tomorrowUtc
+                    select delivery.Id)
+                    .CountAsync(),
+                RecentActivities = recentActivities
+            };
         }
-
         public async Task<ConstructionProductListDto> GetProducts(
         int? categoryId,
         string? search,
@@ -637,6 +690,12 @@ namespace ERPWebAppService.Construction
             };
         }
 
+        private static string GetOrderStatusName(int status)
+        {
+            return Enum.IsDefined(typeof(ConstructionOrderStatus), status)
+                ? ((ConstructionOrderStatus)status).ToString()
+                : "Unknown";
+        }
         private static string GetDeliveryStatusName(int status)
         {
             return status switch
