@@ -106,7 +106,7 @@ namespace WebApp.Service.Plot
                     Price = x.Price,
                     Status = x.Status,
                     PropertyType = x.PropertyType,
-                    //ThumbnailUrl = x.,
+                    ThumbnailUrl = x.ThumbnailUrl,
                     //IsSaved = x.IsSaved
                 })
                 .ToListAsync();
