@@ -1,5 +1,6 @@
 using ERPWebAppModels.Plot;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Security.Claims;
@@ -213,6 +214,10 @@ public class PlotController : ControllerBase
                 "Invalid request.",
                 ModelState));
         }
+        if (request.VisitDate < DateOnly.FromDateTime(DateTime.Today))
+        {
+            return BadRequest(new ApiResponse(false, "Visit date cannot be in the past.", null));
+        }
 
         var result = await plotService.BookSiteVisitAsync(
             plotId,
@@ -283,6 +288,78 @@ public class PlotController : ControllerBase
         return User.FindFirst("Id")?.Value
             ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
             ?? string.Empty;
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("admin")]
+    public async Task<IActionResult> GetAdminPlots([FromQuery] string? search) =>
+        Ok(new ApiResponse(true, "Plots retrieved successfully.", await plotService.GetAdminPlotsAsync(search)));
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("admin")]
+    public async Task<IActionResult> CreatePlot([FromBody] AdminPlotRequest request)
+    {
+        var result = await plotService.CreatePlotAsync(request);
+        return CreatedAtAction(nameof(GetPlotById), new { plotId = result.Id },
+            new ApiResponse(true, "Plot created successfully.", result));
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("admin/{plotId:guid}")]
+    public async Task<IActionResult> UpdatePlot(Guid plotId, [FromBody] AdminPlotRequest request)
+    {
+        var result = await plotService.UpdatePlotAsync(plotId, request);
+        return result == null
+            ? NotFound(new ApiResponse(false, "Plot not found.", null))
+            : Ok(new ApiResponse(true, "Plot updated successfully.", result));
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("admin/{plotId:guid}")]
+    public async Task<IActionResult> DeletePlot(Guid plotId)
+    {
+        return await plotService.DeletePlotAsync(plotId)
+            ? Ok(new ApiResponse(true, "Plot deleted successfully.", null))
+            : NotFound(new ApiResponse(false, "Plot not found.", null));
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("admin/amenities")]
+    public async Task<IActionResult> GetAmenities() =>
+        Ok(new ApiResponse(true, "Amenities retrieved successfully.", await plotService.GetAmenitiesAsync()));
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("admin/visits")]
+    public async Task<IActionResult> GetAdminVisits([FromQuery] string? status, [FromQuery] string? search) =>
+        Ok(new ApiResponse(true, "Plot bookings retrieved successfully.", await plotService.GetAdminVisitsAsync(status, search)));
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("admin/bookings")]
+    public async Task<IActionResult> GetAdminBookings([FromQuery] string? status, [FromQuery] string? search) =>
+        Ok(new ApiResponse(true, "Plot bookings retrieved successfully.", await plotService.GetAdminVisitsAsync(status, search)));
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("admin/visits/{visitId:guid}/status")]
+    public async Task<IActionResult> UpdateVisitStatus(Guid visitId, [FromBody] UpdatePlotVisitStatusRequest request)
+    {
+        var allowed = new[] { "Pending", "Confirmed", "Completed", "Cancelled" };
+        var status = allowed.FirstOrDefault(x => x.Equals(request.Status?.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (status == null) return BadRequest(new ApiResponse(false, "Invalid visit status.", null));
+        var result = await plotService.UpdateVisitStatusAsync(visitId, status);
+        return result == null ? NotFound(new ApiResponse(false, "Site visit not found.", null))
+            : Ok(new ApiResponse(true, "Site visit status updated.", result));
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPut("admin/bookings/{bookingId:guid}/status")]
+    public async Task<IActionResult> UpdateBookingStatus(Guid bookingId, [FromBody] UpdatePlotVisitStatusRequest request)
+    {
+        var allowed = new[] { "Pending", "Confirmed", "Completed", "Cancelled" };
+        var status = allowed.FirstOrDefault(x => x.Equals(request.Status?.Trim(), StringComparison.OrdinalIgnoreCase));
+        if (status == null) return BadRequest(new ApiResponse(false, "Invalid booking status.", null));
+        var result = await plotService.UpdateVisitStatusAsync(bookingId, status);
+        return result == null ? NotFound(new ApiResponse(false, "Plot booking not found.", null))
+            : Ok(new ApiResponse(true, "Plot booking status updated.", result));
     }
 }
 

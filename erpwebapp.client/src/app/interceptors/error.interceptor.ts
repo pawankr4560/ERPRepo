@@ -47,13 +47,13 @@ export class ErrorInterceptor implements HttpInterceptor {
         this.toastService.show('Access denied', 'error');
         break;
       case 404:
-        this.toastService.show('Not found', 'error');
+        // Feature pages provide a more useful, contextual not-found message.
         break;
       case 500:
-        this.toastService.show('Something went wrong, please try again', 'error');
+        // Avoid duplicating the page-level error notification.
         break;
       default:
-        this.toastService.show('Unable to complete the request. Please try again.', 'error');
+        // Network and feature errors are handled by the requesting screen.
         break;
     }
   }

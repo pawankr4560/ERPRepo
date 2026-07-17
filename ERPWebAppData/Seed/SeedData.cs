@@ -26,6 +26,7 @@ namespace WebApp.Data.SeedData
             await SeedUsers();
             await SeedCarCategories();
             await SeedUnits();
+            await SeedAmenities();
         }
 
         public async Task SeedRoles()
@@ -130,6 +131,17 @@ namespace WebApp.Data.SeedData
             }
 
             _dbContext.UnitOfMeasure.AddRange(unitsToAdd);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task SeedAmenities()
+        {
+            var names = new[] { "Gated Community", "Security", "Park", "Clubhouse", "Drainage", "Street Lights", "Corner Plot", "Main Road" };
+            var existing = await _dbContext.Amenities.Select(x => x.Name).ToListAsync();
+            var additions = names.Where(x => !existing.Contains(x, StringComparer.OrdinalIgnoreCase))
+                .Select(x => new Amenity { Name = x, IsActive = true }).ToList();
+            if (additions.Count == 0) return;
+            _dbContext.Amenities.AddRange(additions);
             await _dbContext.SaveChangesAsync();
         }
 

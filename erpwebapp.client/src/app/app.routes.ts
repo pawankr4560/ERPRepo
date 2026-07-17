@@ -50,6 +50,11 @@ export const routes: Routes = [
           ),
         canActivate: [AdminGuard],
       },
+      {
+        path: 'plots',
+        loadChildren: () => import('./plot-admin/plot-admin.module').then(m => m.PlotAdminModule),
+        canActivate: [AdminGuard],
+      },
 
       // Inventory under Home
       {

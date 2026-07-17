@@ -1,0 +1,23 @@
+<h2 mat-dialog-title>{{ data.plot ? 'Edit Plot' : 'Add Plot' }}</h2>
+<mat-dialog-content>
+  <form [formGroup]="form" class="form-grid">
+    <mat-form-field><mat-label>Title</mat-label><input matInput formControlName="title"></mat-form-field>
+    <mat-form-field><mat-label>Location</mat-label><input matInput formControlName="location"></mat-form-field>
+    <mat-form-field><mat-label>Area (sq ft)</mat-label><input matInput type="number" formControlName="areaSqFt"></mat-form-field>
+    <mat-form-field><mat-label>Price</mat-label><input matInput type="number" formControlName="price"></mat-form-field>
+    <mat-form-field><mat-label>Status</mat-label><mat-select formControlName="status"><mat-option value="Available">Available</mat-option><mat-option value="Sold">Sold</mat-option><mat-option value="Reserved">Reserved</mat-option></mat-select></mat-form-field>
+    <mat-form-field><mat-label>Property type</mat-label><mat-select formControlName="propertyType"><mat-option value="Residential">Residential</mat-option><mat-option value="Commercial">Commercial</mat-option><mat-option value="Agricultural">Agricultural</mat-option></mat-select></mat-form-field>
+    <mat-form-field><mat-label>Seller name</mat-label><input matInput formControlName="sellerName"></mat-form-field>
+    <mat-form-field><mat-label>Seller phone</mat-label><input matInput formControlName="sellerPhone"></mat-form-field>
+    <mat-form-field><mat-label>Road width</mat-label><input matInput formControlName="roadWidth"></mat-form-field>
+    <mat-form-field><mat-label>Electricity</mat-label><input matInput formControlName="electricity"></mat-form-field>
+    <mat-form-field><mat-label>Water</mat-label><input matInput formControlName="water"></mat-form-field>
+    <mat-form-field><mat-label>Registration</mat-label><input matInput formControlName="registration"></mat-form-field>
+    <mat-form-field class="wide"><mat-label>Thumbnail URL</mat-label><input matInput formControlName="thumbnailUrl"></mat-form-field>
+    <mat-form-field class="wide"><mat-label>Gallery image URLs</mat-label><textarea matInput rows="3" formControlName="imageUrlsText"></textarea><mat-hint>Enter one image URL per line</mat-hint></mat-form-field>
+    <mat-form-field class="wide"><mat-label>Amenities</mat-label><mat-select formControlName="amenityIds" multiple><mat-option *ngFor="let amenity of data.amenities" [value]="amenity.id">{{amenity.name}}</mat-option></mat-select></mat-form-field>
+    <mat-form-field class="wide"><mat-label>Description</mat-label><textarea matInput rows="3" formControlName="description"></textarea></mat-form-field>
+    <mat-checkbox formControlName="isActive">Active listing</mat-checkbox>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end"><button mat-button type="button" (click)="cancel()">Cancel</button><button mat-raised-button color="primary" type="button" (click)="save()">Save</button></mat-dialog-actions>

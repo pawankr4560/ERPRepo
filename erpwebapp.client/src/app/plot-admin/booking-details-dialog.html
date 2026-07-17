@@ -1,0 +1,10 @@
+<h2 mat-dialog-title>Booking Details</h2>
+<mat-dialog-content>
+  <div class="hero"><mat-icon>landscape</mat-icon><div><strong>{{booking.plotTitle}}</strong><span>{{booking.plotLocation || 'Location unavailable'}}</span></div><b>{{booking.plotStatus}}</b></div>
+  <section><h3>Customer</h3><div class="details"><div><span>Name</span><strong>{{booking.customerName}}</strong></div><div><span>Phone</span><a [href]="'tel:'+booking.mobileNumber">{{booking.mobileNumber}}</a></div><div><span>Email</span><a *ngIf="booking.customerEmail; else noEmail" [href]="'mailto:'+booking.customerEmail">{{booking.customerEmail}}</a><ng-template #noEmail>Not available</ng-template></div></div></section>
+  <section><h3>Visit schedule</h3><div class="details"><div><span>Date</span><strong>{{booking.visitDate | date:'fullDate'}}</strong></div><div><span>Time</span><strong>{{booking.visitTime}}</strong></div><div><span>Requested</span><strong>{{booking.createdAt | date:'medium'}}</strong></div></div></section>
+  <section><h3>Plot information</h3><div class="details"><div><span>Area</span><strong>{{booking.plotAreaSqFt | number}} sq ft</strong></div><div><span>Price</span><strong>{{booking.plotPrice | currency:'INR':'symbol':'1.0-0'}}</strong></div><div><span>Listing status</span><strong>{{booking.plotStatus}}</strong></div></div></section>
+  <section><h3>Customer remarks</h3><p>{{booking.remarks || 'No remarks provided.'}}</p></section>
+  <mat-form-field appearance="outline" class="status"><mat-label>Booking status</mat-label><mat-select [(value)]="selectedStatus"><mat-option value="Pending">Pending</mat-option><mat-option value="Confirmed">Confirmed</mat-option><mat-option value="Completed">Completed</mat-option><mat-option value="Cancelled">Cancelled</mat-option></mat-select></mat-form-field>
+</mat-dialog-content>
+<mat-dialog-actions align="end"><button mat-button type="button" (click)="close()">Close</button><button mat-raised-button color="primary" type="button" (click)="update()" [disabled]="selectedStatus===booking.status">Update Status</button></mat-dialog-actions>

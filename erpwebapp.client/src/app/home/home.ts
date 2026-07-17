@@ -47,6 +47,7 @@ const ROUTE_ROLE_MAP: Record<string, string[]> = {
   'booking/list': ['user'],
   'booking/payments': ['admin'],
   'construction-control': ['admin'],
+  'plots': ['admin'],
   'dynamic': ['admin']
 };
 
@@ -222,13 +223,13 @@ export class Home implements OnDestroy,OnInit {
             this.menus = configuredMenus.length
               ? configuredMenus
               : this.getFallbackMenus(userRole);
-            this.menus = this.ensureConstructionAdminMenu(this.menus, userRole);
+            this.menus = this.ensurePlotAdminMenu(this.ensureConstructionAdminMenu(this.menus, userRole), userRole);
             this.sidebarSections = this.buildSidebarSections(this.menus);
             this.isLoadingMenus = false;
           },
           error: () => {
             this.menus = this.getFallbackMenus(userRole);
-            this.menus = this.ensureConstructionAdminMenu(this.menus, userRole);
+            this.menus = this.ensurePlotAdminMenu(this.ensureConstructionAdminMenu(this.menus, userRole), userRole);
             this.sidebarSections = this.buildSidebarSections(this.menus);
             this.isLoadingMenus = false;
           },
@@ -576,6 +577,11 @@ export class Home implements OnDestroy,OnInit {
         children: [],
       },
     ]);
+  }
+
+  private ensurePlotAdminMenu(items: MenuItem[], role: string): MenuItem[] {
+    if (role.toLowerCase() !== 'admin' || this.containsRoute(items, 'plots')) return items;
+    return this.sortMenuTree([...items, { id:-101, title:'Plot Management', iconClass:'landscape', route:'plots', orderNumber:6, isActive:true, children:[] }]);
   }
 
   private containsRoute(items: MenuItem[], route: string): boolean {
