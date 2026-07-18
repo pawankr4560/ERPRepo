@@ -4,6 +4,8 @@ using WebApp.Service.Transaction;
 
 namespace WebApp.Server.Controllers
 {
+    [Route("api/[controller]")]
+    [ApiController]
     public class LoanEMIScheduleController : ControllerBase
     {
         private readonly ILoanEMIScheduleService _loanEMIScheduleService;

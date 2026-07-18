@@ -58,7 +58,24 @@ namespace WebApp.Service.Transaction
                         RejectedAtUtc = loan.RejectedAtUtc,
                         RejectedByUserId = loan.RejectedByUserId,
                         CreatedDateTime = loan.F_Created_Date_Time,
-                        UpdatedDateTime = loan.F_Updated_Date_Time
+                        UpdatedDateTime = loan.F_Updated_Date_Time,
+                        EmiSchedules = _dbContext.LoanEMISchedule
+                            .Where(schedule => schedule.LoanId == loan.Id && !schedule.IsDeleted)
+                            .OrderBy(schedule => schedule.InstallmentNo)
+                            .Select(schedule => new LoanEMIScheduleDto
+                            {
+                                Id = schedule.Id,
+                                LoanId = schedule.LoanId,
+                                InstallmentNo = schedule.InstallmentNo,
+                                DueDate = schedule.DueDate,
+                                EMIAmount = schedule.EMIAmount,
+                                PrincipalAmount = schedule.PrincipalAmount,
+                                InterestAmount = schedule.InterestAmount,
+                                OutstandingBalance = schedule.OutstandingBalance,
+                                IsPaid = schedule.IsPaid,
+                                PaidDate = schedule.PaidDate
+                            })
+                            .ToList()
                     }).ToListAsync();
             }
             catch (Exception ex)

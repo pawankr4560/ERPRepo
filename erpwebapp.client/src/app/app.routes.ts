@@ -63,6 +63,7 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: ['admin'] }
       },
+      { path: 'inventory/emi', component: Emi, canActivate: [roleGuard], data: { roles: ['admin'] } },
       {
         path: 'inventory/payments',
         loadComponent: () =>
@@ -72,7 +73,6 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: ['admin'] }
       },
-      { path: 'inventory/emi', component: Emi, canActivate: [roleGuard], data: { roles: ['admin'] } },
      
       { path: 'booking/list', component: BookingMaster, canActivate: [roleGuard], data: { roles: ['admin'] } },
       {

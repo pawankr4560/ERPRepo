@@ -25,6 +25,7 @@ namespace WebApp.Data.SeedData
             await SeedRoles();
             await SeedUsers();
             await SeedCarCategories();
+            await SeedLoanPaymentMenu();
         }
 
         public async Task SeedRoles()
@@ -94,6 +95,31 @@ namespace WebApp.Data.SeedData
             }
 
             _dbContext.Categories.AddRange(categoriesToAdd);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task SeedLoanPaymentMenu()
+        {
+            const string route = "inventory/payments";
+            var customerMenu = await _dbContext.MenuItem
+                .FirstOrDefaultAsync(menu =>
+                    menu.Title == "Customer" &&
+                    (menu.ParentId == null || menu.ParentId == 0));
+            var paymentMenu = await _dbContext.MenuItem
+                .FirstOrDefaultAsync(menu => menu.Route == route);
+
+            if (paymentMenu == null)
+            {
+                paymentMenu = new MenuItems { Route = route };
+                _dbContext.MenuItem.Add(paymentMenu);
+            }
+
+            paymentMenu.ParentId = customerMenu?.Id;
+            paymentMenu.Title = "Receive EMI";
+            paymentMenu.IconClass = "payments";
+            paymentMenu.OrderNumber = 40;
+            paymentMenu.IsActive = true;
+
             await _dbContext.SaveChangesAsync();
         }
 

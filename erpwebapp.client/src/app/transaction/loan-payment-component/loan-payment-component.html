@@ -11,8 +11,8 @@
   </div>
   <header class="page-header">
     <div>
-      <h1>Loan Payments</h1>
-      <p>Record and manage payments against generated EMI installments.</p>
+      <h1>Receive EMI</h1>
+      <p>Select a customer loan and receive one of its pending EMI installments.</p>
     </div>
     <button mat-raised-button color="primary" type="button" (click)="startCreate()" [disabled]="isBusy">
       <mat-icon>add</mat-icon>
@@ -46,40 +46,40 @@
     <div class="form-grid">
       <mat-form-field appearance="outline">
         <mat-label>Loan</mat-label>
-        <mat-select
+        <select matNativeControl
           [(ngModel)]="current.loanId"
           name="loanId"
           #loanControl="ngModel"
-          (selectionChange)="onLoanChange()"
+          (change)="onLoanChange()"
           [disabled]="(current.id ?? 0) > 0"
           required
         >
-          <mat-option [value]="0">Select loan</mat-option>
-          <mat-option *ngFor="let loan of loans" [value]="loan.id">
+          <option [ngValue]="0" disabled>Select loan</option>
+          <option *ngFor="let loan of loans" [ngValue]="loan.id">
             {{ loan.loanNumber }} - {{ loan.userName || loan.userId }}
-          </mat-option>
-        </mat-select>
+          </option>
+        </select>
         <mat-error *ngIf="loanControl.invalid">Loan is required.</mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="outline">
         <mat-label>EMI Installment</mat-label>
-        <mat-select
+        <select matNativeControl
           [(ngModel)]="current.scheduleId"
           name="scheduleId"
           #scheduleControl="ngModel"
-          (selectionChange)="onScheduleChange($event.value)"
+          (change)="onScheduleChange(current.scheduleId)"
           [disabled]="!current.loanId || isLoadingInstallments || (current.id ?? 0) > 0"
           required
         >
-          <mat-option [value]="0">
+          <option [ngValue]="0" disabled>
             {{ isLoadingInstallments ? 'Loading installments...' : 'Select installment' }}
-          </mat-option>
-          <mat-option *ngFor="let schedule of availableSchedules" [value]="schedule.id">
+          </option>
+          <option *ngFor="let schedule of availableSchedules" [ngValue]="schedule.id">
             #{{ schedule.installmentNo }} · {{ schedule.dueDate | date:'dd MMM yyyy' }}
             · INR {{ schedule.emiAmount | number:'1.2-2' }}
-          </mat-option>
-        </mat-select>
+          </option>
+        </select>
         <mat-error *ngIf="scheduleControl.invalid">Installment is required.</mat-error>
       </mat-form-field>
 
@@ -115,8 +115,7 @@
         />
         <mat-error *ngIf="dateControl.errors?.['required']">Payment date is required.</mat-error>
         <mat-error *ngIf="dateControl.errors?.['min'] || isPaymentBeforeDueDate">
-          Payment cannot be before
-          {{ selectedInstallment?.dueDate | date:'dd MMM yyyy' }}.
+          Payment date cannot be before the EMI due date.
         </mat-error>
       </mat-form-field>
 
@@ -132,30 +131,31 @@
 
       <mat-form-field appearance="outline">
         <mat-label>Payment Mode</mat-label>
-        <mat-select
+        <select matNativeControl
           [(ngModel)]="current.paymentMode"
           name="paymentMode"
           #modeControl="ngModel"
           required
         >
-          <mat-option *ngFor="let mode of paymentModes" [value]="mode">{{ mode }}</mat-option>
-        </mat-select>
+          <option [ngValue]="null" disabled>Select payment mode</option>
+          <option *ngFor="let mode of paymentModes" [ngValue]="mode">{{ mode }}</option>
+        </select>
         <mat-error *ngIf="modeControl.invalid">Payment mode is required.</mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="outline">
         <mat-label>Status</mat-label>
-        <mat-select
+        <select matNativeControl
           [(ngModel)]="current.paymentStatus"
           name="paymentStatus"
           #statusControl="ngModel"
           [disabled]="(current.id ?? 0) > 0"
           required
         >
-          <mat-option *ngFor="let status of paymentStatuses" [value]="status">
+          <option *ngFor="let status of paymentStatuses" [ngValue]="status">
             {{ status }}
-          </mat-option>
-        </mat-select>
+          </option>
+        </select>
         <mat-error *ngIf="statusControl.invalid">Status is required.</mat-error>
       </mat-form-field>
 

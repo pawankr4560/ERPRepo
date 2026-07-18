@@ -53,6 +53,7 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
   isLoadingPayment = false;
   isDeleting = false;
   unpaidInstallments: UnpaidInstallment[] = [];
+  private installmentRequest$ = new Subject<void>();
 
   readonly paymentModes = ['Cash', 'Bank Transfer', 'UPI', 'Card', 'Cheque'];
   readonly paymentStatuses = ['Success', 'Pending', 'Failed', 'Refunded'];
@@ -62,8 +63,7 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
   private readonly destroyed$ = new Subject<void>();
 
   get isBusy(): boolean {
-    return this.isLoading || this.isSaving || this.isLoadingInstallments ||
-      this.isLoadingPayment || this.isDeleting;
+    return this.isLoading || this.isSaving || this.isLoadingPayment || this.isDeleting;
   }
 
   constructor(
@@ -84,6 +84,8 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.installmentRequest$.next();
+    this.installmentRequest$.complete();
     this.destroyed$.next();
     this.destroyed$.complete();
   }
@@ -197,6 +199,7 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
   }
 
   onLoanChange(): void {
+    this.installmentRequest$.next();
     this.current.scheduleId = 0;
     this.current.amountPaid = 0;
     this.unpaidInstallments = [];
@@ -208,22 +211,28 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.isLoadingInstallments = true;
-    this.paymentService.getUnpaidInstallments(loan.loanNumber).subscribe({
-      next: (installments) => {
-        this.unpaidInstallments = installments;
-        this.isLoadingInstallments = false;
-        if (!installments.length) {
-          this.snackBar.open('This loan has no unpaid installments.', 'Close', {
-            duration: 3500,
-          });
-        }
-      },
-      error: (error) => {
-        this.isLoadingInstallments = false;
-        this.showError('Unable to load unpaid installments.', error);
-      },
-    });
+    this.unpaidInstallments = (loan.emiSchedules ?? [])
+      .filter((schedule) =>
+        !schedule.isPaid &&
+        schedule.id != null &&
+        this.isDueTodayOrEarlier(schedule.dueDate)
+      )
+      .map((schedule) => ({
+        id: schedule.id as number,
+        loanId: schedule.loanId ?? Number(loan.id),
+        installmentNo: schedule.installmentNo,
+        dueDate: schedule.dueDate,
+        emiAmount: schedule.emiAmount,
+        principalAmount: schedule.principalAmount,
+        interestAmount: schedule.interestAmount,
+        outstandingBalance: schedule.outstandingBalance,
+      }));
+
+    if (!this.unpaidInstallments.length) {
+      this.snackBar.open('This loan has no EMI due today or earlier.', 'Close', {
+        duration: 3500,
+      });
+    }
   }
 
   onScheduleChange(scheduleId: number): void {
@@ -238,11 +247,10 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
   save(form: NgForm): void {
     form.control.markAllAsTouched();
     if (this.isPaymentBeforeDueDate) {
-      this.snackBar.open(
-        'Payment cannot be created before the installment due date.',
-        'Close',
-        { duration: 4500, panelClass: ['error-snackbar'] }
-      );
+      this.snackBar.open('Payment date cannot be before the EMI due date.', 'Close', {
+        duration: 4000,
+        panelClass: ['error-snackbar'],
+      });
       return;
     }
 
@@ -370,6 +378,22 @@ export class LoanPaymentComponent implements OnInit, OnDestroy {
   private toCalendarDate(value: string): string | null {
     const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})/);
     return match ? `${match[1]}-${match[2]}-${match[3]}` : null;
+  }
+
+  private isDueTodayOrEarlier(value: string): boolean {
+    const dueDate = this.toCalendarDate(value);
+    if (!dueDate) {
+      return false;
+    }
+
+    const now = new Date();
+    const today = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+    ].join('-');
+
+    return dueDate <= today;
   }
 
   private showError(message: string, error: any): void {

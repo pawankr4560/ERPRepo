@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { BehaviorSubject, map, tap } from 'rxjs';
+import { BehaviorSubject, map, tap, timeout } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { LoanPayment } from './loan-service';
 
@@ -20,10 +20,20 @@ export interface UnpaidInstallment {
 })
 export class LoanPaymentService {
   private readonly apiUrl = `${environment.apiUrl}/api/LoanPayment`;
-  private readonly headers = new HttpHeaders({
-    'Content-Type': 'application/json; charset=utf-8',
-    api_key: environment.apiKey,
-  } as any);
+
+  private get headers(): HttpHeaders {
+    let headers = new HttpHeaders({
+      'Content-Type': 'application/json; charset=utf-8',
+      api_key: environment.apiKey,
+    } as any);
+
+    const token = localStorage.getItem('jwt');
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    return headers;
+  }
 
   private readonly paymentsSubject = new BehaviorSubject<LoanPayment[]>([]);
   readonly payments$ = this.paymentsSubject.asObservable();
@@ -46,10 +56,11 @@ export class LoanPaymentService {
   getUnpaidInstallments(loanNumber: string) {
     return this.http
       .get<any[]>(
-        `${environment.apiUrl}/unpaid-installments/${encodeURIComponent(loanNumber)}`,
+        `${environment.apiUrl}/api/LoanEMISchedule/unpaid-installments/${encodeURIComponent(loanNumber)}`,
         { headers: this.headers }
       )
       .pipe(
+        timeout(15000),
         map((response) =>
           (response ?? []).map((installment) =>
             this.normalizeUnpaidInstallment(installment)

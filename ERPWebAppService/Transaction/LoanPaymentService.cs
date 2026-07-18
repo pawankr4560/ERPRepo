@@ -66,6 +66,12 @@ namespace WebApp.Service.Transaction
             if (schedule.IsPaid)
                 throw new InvalidOperationException("The selected installment is already paid.");
 
+            if (schedule.DueDate.Date > DateTime.Today)
+                throw new InvalidOperationException("Future EMI installments cannot be received before their due date.");
+
+            if (model.PaymentDate.Date < schedule.DueDate.Date)
+                throw new InvalidOperationException("Payment date cannot be before the EMI due date.");
+
             var entity = _mapper.Map<LoanPayment>(model);
 
             entity.Active = true;

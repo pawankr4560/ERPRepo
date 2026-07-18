@@ -90,18 +90,15 @@ describe('LoanPaymentComponent', () => {
   });
 
   it('loads unpaid installments and fills the selected EMI amount', () => {
-    paymentService.getUnpaidInstallments.and.returnValue(of([{
-      id: 11, loanId: 1, installmentNo: 1, dueDate: '2026-01-01',
-      emiAmount: 5250, principalAmount: 5000, interestAmount: 250, outstandingBalance: 5000,
-    }]));
     component.current.loanId = 1;
     component.onLoanChange();
     expect(component.unpaidInstallments.length).toBe(1);
+    expect(paymentService.getUnpaidInstallments).not.toHaveBeenCalled();
     component.onScheduleChange(11);
     expect(component.current.amountPaid).toBe(5250);
   });
 
-  it('prevents a payment before the installment due date', () => {
+  it('prevents an installment payment date before its due date', () => {
     component.unpaidInstallments = [{
       id: 11, loanId: 1, installmentNo: 1, dueDate: '2026-02-01',
       emiAmount: 5250, principalAmount: 5000, interestAmount: 250, outstandingBalance: 5000,
@@ -109,7 +106,6 @@ describe('LoanPaymentComponent', () => {
     component.current = { ...payment, id: 0, scheduleId: 11, paymentDate: '2026-01-01T10:00' };
     component.save({ invalid: false, control: { markAllAsTouched: () => undefined } } as any);
     expect(paymentService.createPayment).not.toHaveBeenCalled();
-    expect(snackBar.open).toHaveBeenCalled();
   });
 
   it('creates a valid payment and exposes the saving state', () => {

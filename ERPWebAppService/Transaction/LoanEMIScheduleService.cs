@@ -103,6 +103,7 @@ namespace WebApp.Service.Transaction
 
         public async Task<List<LoanInstallmentDto>> GetUnpaidInstallmentsByLoanNumber(string loanNumber)
         {
+            var today = DateTime.Today;
             var result = await (
                 from loan in _dbContext.Loan
                 join schedule in _dbContext.LoanEMISchedule
@@ -111,6 +112,7 @@ namespace WebApp.Service.Transaction
                       && !loan.IsDeleted
                       && !schedule.IsDeleted
                       && !schedule.IsPaid
+                      && schedule.DueDate.Date <= today
                 orderby schedule.InstallmentNo
                 select new LoanInstallmentDto
                 {
