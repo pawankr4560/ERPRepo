@@ -55,6 +55,8 @@ public class LoanDashboardService : ILoanDashboardService
                 payment => (decimal?)payment.AmountPaid,
                 cancellationToken) ?? 0;
 
+        var collectedPrincipal = await _dbContext.LoanEMISchedule.Where(x => !x.IsDeleted&& x.Active && x.IsPaid).Select(x => x.PrincipalAmount).SumAsync();
+
         var overdueStats = await (
             from schedule in _dbContext.LoanEMISchedule.AsNoTracking()
             join loan in _dbContext.Loan.AsNoTracking()
@@ -138,7 +140,7 @@ public class LoanDashboardService : ILoanDashboardService
         {
             TotalPortfolio = totalPortfolio,
             TotalCollected = totalCollected,
-            OutstandingPortfolio = Math.Max(0, totalPortfolio - totalCollected),
+            OutstandingPortfolio = Math.Max(0, totalPortfolio - collectedPrincipal),
             OverdueAmount = overdueStats?.Amount ?? 0,
             TotalLoans = totalLoans,
             ActiveLoans = activeLoans,
